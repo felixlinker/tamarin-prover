@@ -152,6 +152,7 @@ executable tamarin-prover
       , text
       , threads
       , time
+      , transformers
       , wai
       , warp
       , yesod-core
@@ -169,6 +170,7 @@ executable tamarin-prover
       -- Main
       Main.Console
       Main.Environment
+      Main.REPL
       Main.TheoryLoader
       Main.Utils
       Main.Mode.Batch

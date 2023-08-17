@@ -28,6 +28,7 @@ module Theory.Proof (
   , ProofPath
   , atPath
   , atPathDiff
+  , modifyAtPath
   , insertPaths
   , insertPathsDiff
 
