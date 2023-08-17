@@ -1,0 +1,334 @@
+theory Minimal_HashChain_solved begin
+
+// Function signature and definition of the equational theory E
+
+functions: f/1, fst/1, pair/2, snd/1
+equations: fst(<x.1, x.2>) = x.1, snd(<x.1, x.2>) = x.2
+
+
+
+
+
+/* looping facts with injective instances: Gen/2, Loop/3 */
+
+rule (modulo E) Gen_Start:
+   [ Fr( seed ) ] --> [ Gen( seed, seed ), Out( seed ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Gen_Step:
+   [ Gen( seed, chain ) ]
+  --[ ChainKey( chain ) ]->
+   [ Gen( seed, f(chain) ) ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Gen_Stop:
+   [ Gen( seed, kZero ) ]
+  --[ ChainKey( kZero ) ]->
+   [ !Final( kZero ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Check0:
+   [ In( kOrig ), Fr( loopId ) ]
+  --[ Start( loopId, kOrig ) ]->
+   [ Loop( loopId, kOrig, kOrig ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Check:
+   [ Loop( loopId, k, kOrig ) ]
+  --[ Loop( loopId, k, kOrig ) ]->
+   [ Loop( loopId, f(k), kOrig ) ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Success:
+   [ Loop( loopId, kZero, kOrig ), !Final( kZero ) ]
+  --[ Success( loopId, kOrig ) ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma Loop_Start:
+  all-traces
+  "∀ lid k kOrig #i.
+    (Loop( lid, k, kOrig ) @ #i) ⇒
+    (∃ #j. (Start( lid, kOrig ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig #i.
+  (Loop( lid, k, kOrig ) @ #i)
+ ∧
+  ∀ #j. (Start( lid, kOrig ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( Loop( lid, k, kOrig ) ▶₀ #i )
+  case Check
+  weaken node( #i )
+  by contradiction
+next
+  case Check0
+  by contradiction
+qed
+
+lemma Loop_Success_ord:
+  all-traces
+  "∀ lid k kOrig1 kOrig2 #i #j.
+    ((Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)) ⇒
+    (#i < #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig1 kOrig2 #i #j.
+  (Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)
+ ∧
+  ¬(#i < #j)"
+*/
+simplify
+solve( Loop( lid, k, kOrig1 ) ▶₀ #i )
+  case Check
+  weaken node( #i )
+  by contradiction
+next
+  case Check0
+  by contradiction
+qed
+
+lemma Loop_charn:
+  all-traces
+  "∀ lid k kOrig #i.
+    (Loop( lid, k, kOrig ) @ #i) ⇒
+    (∃ #j. Loop( lid, kOrig, kOrig ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig #i.
+  (Loop( lid, k, kOrig ) @ #i)
+ ∧
+  ∀ #j. (Loop( lid, kOrig, kOrig ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( Loop( lid, k, kOrig ) ▶₀ #i )
+  case Check
+  weaken node( #i )
+  by contradiction
+next
+  case Check0
+  by contradiction
+qed
+
+lemma Helper_Loop_and_success:
+  all-traces
+  "∀ lid kOrig k1 k2 #x #y #z.
+    ((((Loop( lid, k1, kOrig ) @ #x) ∧ (Loop( lid, k2, kOrig ) @ #y)) ∧
+      (#y < #x)) ∧
+     (ChainKey( k1 ) @ #z)) ⇒
+    (∃ #t. ChainKey( k2 ) @ #t)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid kOrig k1 k2 #x #y #z.
+  (Loop( lid, k1, kOrig ) @ #x) ∧
+  (Loop( lid, k2, kOrig ) @ #y) ∧
+  (ChainKey( k1 ) @ #z)
+ ∧
+  (#y < #x) ∧ (∀ #t. (ChainKey( k2 ) @ #t) ⇒ ⊥)"
+*/
+by sorry
+
+lemma Loop_and_success:
+  all-traces
+  "∀ lid k kOrig1 kOrig2 #i #j.
+    ((Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)) ⇒
+    (∃ #j.1. ChainKey( k ) @ #j.1)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig1 kOrig2 #i #j.
+  (Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)
+ ∧
+  ∀ #j.1. (ChainKey( k ) @ #j.1) ⇒ ⊥"
+*/
+simplify
+solve( !Final( kZero ) ▶₁ #j )
+  case Gen_Stop_case_1
+  solve( Loop( lid, k, kOrig1 ) ▶₀ #i )
+    case Check
+    weaken node( #i )
+    by contradiction
+  next
+    case Check0
+    by solve( Loop( ~n, ~n.1, kOrig2 ) ▶₀ #j )
+  qed
+next
+  case Gen_Stop_case_2
+  solve( Loop( lid, f(chain), kOrig2 ) ▶₀ #j )
+    case Check
+    weaken node( #j )
+    weaken node( #vr )
+    solve( Loop( lid, k, kOrig1 ) ▶₀ #i )
+      case Check
+      weaken node( #i )
+      by contradiction /* cyclic proof */
+    next
+      case Check0
+      solve( Loop( ~n, chain, kOrig2 ) ▶₀ #vr.1 )
+        case Check
+        solve( Gen( seed, f(k.1) ) ▶₀ #vr )
+          case Gen_Step
+          weaken node( #vr )
+          weaken node( #vr )
+          by contradiction
+        qed
+      next
+        case Check0
+        by contradiction
+      qed
+    qed
+  next
+    case Check0
+    solve( Loop( ~n, k, kOrig1 ) ▶₀ #i )
+      case Check
+      weaken node( #i )
+      by contradiction
+    qed
+  qed
+qed
+
+lemma Helper_Success_charn:
+  all-traces
+  "∀ lid k kOrig #x #y.
+    ((ChainKey( k ) @ #x) ∧ (Loop( lid, k, kOrig ) @ #y)) ⇒
+    (∃ #z. ChainKey( kOrig ) @ #z)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig #x #y.
+  (ChainKey( k ) @ #x) ∧ (Loop( lid, k, kOrig ) @ #y)
+ ∧
+  ∀ #z. (ChainKey( kOrig ) @ #z) ⇒ ⊥"
+*/
+simplify
+solve( ChainKey( k ) @ #x )
+  case Gen_Step
+  solve( Loop( lid, k, kOrig ) ▶₀ #y )
+    case Check
+    solve( Gen( seed, f(k) ) ▶₀ #x )
+      case Gen_Step
+      weaken node( #x )
+      weaken node( #y )
+      by contradiction
+    qed
+  next
+    case Check0
+    by contradiction
+  qed
+next
+  case Gen_Stop
+  solve( Gen( seed, k ) ▶₀ #x )
+    case Gen_Start
+    solve( Loop( lid, ~n, kOrig ) ▶₀ #y )
+      case Check0
+      by contradiction
+    qed
+  next
+    case Gen_Step
+    solve( Loop( lid, f(chain), kOrig ) ▶₀ #y )
+      case Check
+      weaken node( #x )
+      solve( Gen( seed, chain ) ▶₀ #vr )
+        case Gen_Start
+        solve( Loop( lid, ~n, kOrig ) ▶₀ #vr.1 )
+          case Check0
+          by contradiction
+        qed
+      next
+        case Gen_Step
+        solve( Loop( lid, f(chain), kOrig ) ▶₀ #vr.1 )
+          case Check
+          weaken node( #vr )
+          weaken node( #y )
+          by contradiction
+        next
+          case Check0
+          by contradiction
+        qed
+      qed
+    next
+      case Check0
+      by contradiction
+    qed
+  qed
+qed
+
+lemma Success_charn:
+  all-traces
+  "∀ lid k #i. (Success( lid, k ) @ #i) ⇒ (∃ #j. ChainKey( k ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k #i.
+  (Success( lid, k ) @ #i) ∧ ∀ #j. (ChainKey( k ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( Loop( lid, kZero, k ) ▶₀ #i )
+  case Check
+  solve( !Final( f(k) ) ▶₁ #i )
+    case Gen_Stop
+    weaken node( #i )
+    weaken node( #vr.1 )
+    solve( Loop( lid, k, k.1 ) ▶₀ #vr )
+      case Check
+      solve( Gen( seed, f(k) ) ▶₀ #vr.1 )
+        case Gen_Step
+        weaken node( #vr )
+        weaken node( #vr )
+        by contradiction /* cyclic proof */
+      qed
+    next
+      case Check0
+      by contradiction /* from formulas */
+    qed
+  qed
+next
+  case Check0
+  solve( !Final( k ) ▶₁ #i )
+    case Gen_Stop_case_1
+    by contradiction
+  next
+    case Gen_Stop_case_2
+    by contradiction
+  qed
+qed
+
+lemma LoopTest:
+  all-traces
+  "∀ lid k k_ kOrig #t1 #t2.
+    ((Loop( lid, k, kOrig ) @ #t1) ∧ (Loop( lid, k_, kOrig ) @ #t2)) ⇒
+    (#t1 < #t2)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k k_ kOrig #t1 #t2.
+  (Loop( lid, k, kOrig ) @ #t1) ∧ (Loop( lid, k_, kOrig ) @ #t2)
+ ∧
+  ¬(#t1 < #t2)"
+*/
+by sorry
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.7.1
+Maude version 2.7.1
+Git revision: 57557d67b2c2362503f58f806309151f76e3e631 (with uncommited changes), branch: cyclic
+Compiled at: 2023-06-26 12:02:14.317569016 UTC
+*/
+
+end
