@@ -131,7 +131,7 @@ addAutoSourcesLemma :: MaudeHandle
                     -> ClosedRuleCache
                     -> [TheoryItem ClosedProtoRule IncrementalProof s]
                     -> [TheoryItem ClosedProtoRule IncrementalProof s]
-addAutoSourcesLemma hnd lemmaName (ClosedRuleCache _ raw _ _) items =
+addAutoSourcesLemma hnd lemmaName (ClosedRuleCache _ raw _ _ _) items =
   -- We only add the lemma if there is no lemma of the same name
   case find lemma items of
     Nothing  -> items'++[LemmaItem l]

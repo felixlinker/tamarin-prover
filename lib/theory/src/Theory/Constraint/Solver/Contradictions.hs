@@ -62,7 +62,7 @@ import           Term.Rewriting.Norm            (maybeNotNfSubterms, nf')
 
 -- | Reasons why a constraint 'System' can be contradictory.
 data Contradiction =
-    Cyclic                         -- ^ The paths are cyclic.
+    CyclicTimePoints               -- ^ The paths are cyclic.
   | SubtermCyclic                  -- ^ The subterm predicates form a cycle
   | NonNormalTerms                 -- ^ Has terms that are not in normal form.
   -- | NonLastNode                    -- ^ Has a non-silent node after the last node.
@@ -77,6 +77,7 @@ data Contradiction =
   | FormulasFalse                  -- ^ False in formulas
   | SuperfluousLearn LNTerm NodeId -- ^ A term is derived both before and after a learn
   | NodeAfterLast (NodeId, NodeId) -- ^ There is a node after the last node.
+  | Cyclic                         -- ^ Cyclic proof
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 
@@ -91,7 +92,7 @@ contradictorySystem ctxt = not . null . contradictions ctxt
 contradictions :: ProofContext -> System -> [Contradiction]
 contradictions ctxt sys = F.asum
     -- CR-rule **
-    [ guard (D.cyclic $ rawLessRel sys)                            *> pure Cyclic
+    [ guard (D.cyclic $ rawLessRel sys)                            *> pure CyclicTimePoints
     -- CR-rule *S_Subterm-Chain-Fail*
     , guard (L.get isContradictory subtermStore)                   *> pure SubtermCyclic
     -- CR-rule *N1*
@@ -110,6 +111,7 @@ contradictions ctxt sys = F.asum
     , guard (eqsIsFalse $ L.get sEqStore sys)                      *> pure IncompatibleEqs
     -- CR-rules *S_⟂*, *S_{¬,last,1}*, *S_{¬,≐}*, *S_{¬,≈}*
     , guard (S.member gfalse $ L.get sFormulas sys)                *> pure FormulasFalse
+    , guard (canCloseCycle ctxt sys)                               *> pure Cyclic
     ]
     ++
     -- This rule is not yet documented. It removes constraint systems that
@@ -436,7 +438,7 @@ isForbiddenDEMapOrder sys (i, ruDEMap) = fromMaybe False $ do
 -- | Pretty-print a 'Contradiction'.
 prettyContradiction :: Document d => Contradiction -> d
 prettyContradiction contra = case contra of
-    Cyclic                       -> text "cyclic"
+    CyclicTimePoints             -> text "cyclic"
     SubtermCyclic                -> text "contradictory subterm store"
     IncompatibleEqs              -> text "incompatible equalities"
     NonNormalTerms               -> text "non-normal terms"
@@ -446,6 +448,7 @@ prettyContradiction contra = case contra of
     ForbiddenChain               -> text "forbidden chain"
     ImpossibleChain              -> text "impossible chain"
     NonInjectiveFactInstance cex -> text $ "non-injective facts " ++ show cex
+    Cyclic                       -> text $ "cyclic proof"
     FormulasFalse                -> text "from formulas"
     SuperfluousLearn m v         ->
         doubleQuotes (prettyLNTerm m) <->

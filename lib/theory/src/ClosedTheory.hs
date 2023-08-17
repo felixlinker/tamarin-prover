@@ -5,6 +5,7 @@ module ClosedTheory (
 import Control.Basics
 import Control.Category
 import qualified Data.Set as S
+import qualified Data.Map as M
 import qualified Extension.Data.Label as L
 -- import qualified Data.Label.Total
 
@@ -98,6 +99,7 @@ getProofContext l thy = ProofContext
     ( L.get thySignature                       thy)
     ( L.get (crcRules . thyCache)              thy)
     ( L.get (crcInjectiveFactInsts . thyCache) thy)
+    ( L.get (crcRuleLoopTypes . thyCache) thy)
     kind
     ( L.get (cases . thyCache)                 thy)
     inductionHint
@@ -143,6 +145,7 @@ getProofContextDiff s l thy = case s of
             ( L.get diffThySignature                           thy)
             ( L.get (crcRules . diffThyCacheLeft)              thy)
             ( L.get (crcInjectiveFactInsts . diffThyCacheLeft) thy)
+            M.empty
             kind
             ( L.get (cases . diffThyCacheLeft)                 thy)
             inductionHint
@@ -160,6 +163,7 @@ getProofContextDiff s l thy = case s of
             ( L.get diffThySignature                    thy)
             ( L.get (crcRules . diffThyCacheRight)           thy)
             ( L.get (crcInjectiveFactInsts . diffThyCacheRight) thy)
+            M.empty
             kind
             ( L.get (cases . diffThyCacheRight)              thy)
             inductionHint
@@ -219,6 +223,7 @@ getDiffProofContext l thy = DiffProofContext (proofContext LHS) (proofContext RH
             ( L.get diffThySignature                    thy)
             ( L.get (crcRules . diffThyDiffCacheLeft)           thy)
             ( L.get (crcInjectiveFactInsts . diffThyDiffCacheLeft) thy)
+            M.empty
             RefinedSource
             ( L.get (crcRefinedSources . diffThyDiffCacheLeft)              thy)
             AvoidInduction
@@ -236,6 +241,7 @@ getDiffProofContext l thy = DiffProofContext (proofContext LHS) (proofContext RH
             ( L.get diffThySignature                    thy)
             ( L.get (crcRules . diffThyDiffCacheRight)           thy)
             ( L.get (crcInjectiveFactInsts . diffThyDiffCacheRight) thy)
+            M.empty
             RefinedSource
             ( L.get (crcRefinedSources . diffThyDiffCacheRight)              thy)
             AvoidInduction

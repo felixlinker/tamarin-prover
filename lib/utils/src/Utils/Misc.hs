@@ -40,6 +40,9 @@ module Utils.Misc (
   -- * uncurry
   , uncurry3
 
+  -- * zips
+  , zipEquals
+  , zipWithEquals
 ) where
 
 import Data.List
@@ -176,3 +179,16 @@ editDistance s t =
                              , d!!(i-1)!!(j-1) + (if s!!(i-1)==t!!(j-1) 
                                                   then 0 else 1) 
                              ]
+
+-- |  Zip two lists. Similar to @zip@, but fails whenever lists are not of equal
+--    length.
+zipEquals :: [a] -> [b] -> Maybe [(a, b)]
+zipEquals [] [] = Just []
+zipEquals [] (_:_) = Nothing
+zipEquals (_:_) [] = Nothing
+zipEquals (a:as) (b:bs) = ((a,b):) <$> zipEquals as bs
+
+-- |  Zip two lists and apply a function. Similar to @zipWith@, but fails
+--    whenever lists are not of equal length.
+zipWithEquals :: (a -> b -> c) -> [a] -> [b] -> Maybe [c]
+zipWithEquals f as = fmap (map $ uncurry f) . zipEquals as

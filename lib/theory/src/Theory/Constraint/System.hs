@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE TupleSections #-}
 -- |
 -- Copyright   : (c) 2010-2012 Benedikt Schmidt & Simon Meier
 -- License     : GPL v3 (see LICENSE)
@@ -73,6 +74,7 @@ module Theory.Constraint.System (
   , pcSignature
   , pcRules
   , pcInjectiveFactInsts
+  , pcRuleLoopTypes
   , pcSources
   , pcSourceKind
   , pcUseInduction
@@ -234,6 +236,25 @@ module Theory.Constraint.System (
 
   , isDiffSystem
   , sDiffSystem
+  
+  -- * Cyclic Proofs
+  , sIsWeakened
+  , sCycleTargets
+  , sIsCycleTarget
+  , getCycleRenamings
+  , getCycleRenaming
+  , canCloseCycle
+  , getGreaterNodes
+  , getLoopLeaves
+  , getLoopRoots
+  , getLoopExits
+  , isCorrectRenaming
+  , isProgressingRenaming
+  , isCorrectRenamingM
+  , isProgressingRenamingM
+  , isValidRenamingM
+  , allNodeRenamings
+  , renameableSize
 
   -- * Formula simplification
   , impliedFormulas
@@ -256,9 +277,9 @@ import           GHC.Generics                         (Generic)
 import           Data.Binary
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
-import           Data.List                            (foldl', partition, intersect,find,intercalate)
+import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy, permutations, uncons)
 import qualified Data.Map                             as M
-import           Data.Maybe                           (fromMaybe,mapMaybe)
+import           Data.Maybe                           (fromMaybe,mapMaybe, isJust)
 -- import           Data.Monoid                          (Monoid(..))
 import qualified Data.Monoid                             as Mono
 import qualified Data.Set                             as S
@@ -273,6 +294,8 @@ import           Control.Monad.Reader
 
 import           Data.Label                           ((:->), mkLabels)
 import qualified Extension.Data.Label                 as L
+
+import           Theory.Constraint.Renaming
 
 import           Logic.Connectives
 import           Theory.Constraint.Solver.AnnotatedGoals
@@ -375,6 +398,11 @@ data GoalStatus = GoalStatus
 -- | A constraint system.
 data System = System
     { _sNodes          :: M.Map NodeId RuleACInst
+    -- NOTE: I could add a fild `_sLeaf :: S.Set NodeId` to memorize where I can
+    -- apply weakening, however, this would imply a refactoring of the code base
+    -- as there does not seem to be a function that adds nodes. It would be best
+    -- to maintain the `_sLeaf` set when adding nodes and edges, but then we 
+    -- would need to refactor every write to `_sNodes` and `_sEdges`.
     , _sEdges          :: S.Set Edge
     , _sLessAtoms      :: S.Set (NodeId, NodeId, Reason)
     , _sLastAtom       :: Maybe NodeId
@@ -387,6 +415,9 @@ data System = System
     , _sNextGoalNr     :: Integer
     , _sSourceKind     :: SourceKind
     , _sDiffSystem     :: Bool
+    , _sIsWeakened     :: Bool
+    , _sCycleTargets   :: [System]
+    , _sIsCycleTarget  :: Bool
     }
     -- NOTE: Don't forget to update 'substSystem' in
     -- "Constraint.Solver.Reduction" when adding further fields to the
@@ -718,11 +749,12 @@ data ProofContext = ProofContext
        { _pcSignature          :: SignatureWithMaude
        , _pcRules              :: ClassifiedRules
        , _pcInjectiveFactInsts :: S.Set (FactTag, [[MonotonicBehaviour]])
+       , _pcRuleLoopTypes      :: M.Map (RuleInfo ProtoRuleName IntrRuleACInfo) [RuleLoopInfo]
        , _pcSourceKind         :: SourceKind
        , _pcSources            :: [Source]
        , _pcUseInduction       :: InductionHint
        , _pcHeuristic          :: Maybe (Heuristic ProofContext)
-       , _pcTactic            :: Maybe [Tactic ProofContext]
+       , _pcTactic             :: Maybe [Tactic ProofContext]
        , _pcTraceQuantifier    :: SystemTraceQuantifier
        , _pcLemmaName          :: String
        , _pcHiddenLemmas       :: [String]
@@ -790,7 +822,7 @@ emptySystem :: SourceKind -> Bool -> System
 emptySystem d isdiff = System
     M.empty S.empty S.empty Nothing emptySubtermStore emptyEqStore
     S.empty S.empty S.empty
-    M.empty 0 d isdiff
+    M.empty 0 d isdiff False [] False
 
 -- | The empty diff constraint system.
 emptyDiffSystem :: DiffSystem
@@ -1787,13 +1819,13 @@ instance Apply LNSubst SourceKind where
     apply = const id
 
 instance Apply LNSubst System where
-    apply subst (System a b c d e f g h i j k l m) =
+    apply subst (System a b c d e f g h i j k l m n o p) =
         System (apply subst a)
         -- we do not apply substitutions to node variables, so we do not apply them to the edges either
         b
         (apply subst c) (apply subst d)
         (apply subst e) (apply subst f) (apply subst g) (apply subst h) (apply subst i)
-        j k (apply subst l) (apply subst m)
+        j k (apply subst l) (apply subst m) n o p
 
 instance HasFrees SourceKind where
     foldFrees = const mempty
@@ -1806,7 +1838,7 @@ instance HasFrees GoalStatus where
     mapFrees  = const pure
 
 instance HasFrees System where
-    foldFrees fun (System a b c d e f g h i j k l m) =
+    foldFrees fun (System a b c d e f g h i j k l m n o p) =
         foldFrees fun a `mappend`
         foldFrees fun b `mappend`
         foldFrees fun c `mappend`
@@ -1819,9 +1851,12 @@ instance HasFrees System where
         foldFrees fun j `mappend`
         foldFrees fun k `mappend`
         foldFrees fun l `mappend`
-        foldFrees fun m
+        foldFrees fun m `mappend`
+        foldFrees fun n `mappend`
+        foldFrees fun o `mappend`
+        foldFrees fun p
 
-    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m) =
+    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n _o _p) =
         foldFreesOcc fun ("a":ctx') a {- `mappend`
         foldFreesCtx fun ("b":ctx') b `mappend`
         foldFreesCtx fun ("c":ctx') c `mappend`
@@ -1835,7 +1870,7 @@ instance HasFrees System where
         foldFreesCtx fun ("k":ctx') k -}
       where ctx' = "system":ctx
 
-    mapFrees fun (System a b c d e f g h i j k l m) =
+    mapFrees fun (System a b c d e f g h i j k l m n o p) =
         System <$> mapFrees fun a
                <*> mapFrees fun b
                <*> mapFrees fun c
@@ -1849,6 +1884,9 @@ instance HasFrees System where
                <*> mapFrees fun k
                <*> mapFrees fun l
                <*> mapFrees fun m
+               <*> mapFrees fun n
+               <*> mapFrees fun o
+               <*> mapFrees fun p
 
 instance HasFrees Source where
     foldFrees f th =
@@ -1881,14 +1919,182 @@ compareNodesUpToNewVars n1 n2 = compareListsUpToNewVars (M.toAscList n1) (M.toAs
 compareSystemsUpToNewVars :: System -> System -> Ordering
 -- when we have trace systems, we can ignore new variable instantiations
 compareSystemsUpToNewVars
-   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False)
-   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False)
+   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _ _ _)
+   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _ _ _)
        = if compareNodes == EQ then
-            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False)
-                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False)
+            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False False [] False)
+                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False False [] False)
          else
             compareNodes
         where
             compareNodes = compareNodesUpToNewVars a1 a2
 -- in case of diff systems, we remain prudent
 compareSystemsUpToNewVars s1 s2 = compare s1 s2
+
+data Node = Node
+  { nnid  :: NodeId
+  , nrule :: RuleACInst}
+
+forSys :: System -> NodeId -> Node
+forSys sys nid = Node nid $ L.get sNodes sys M.! nid
+
+instance Eq Node where
+  (Node n1 r1)== (Node n2 r2) = n1 == n2 && r1 == r2
+
+instance Ord Node where
+  compare (Node n1 r1) (Node n2 r2) = case compare (L.get rInfo r1) (L.get rInfo r2) of
+    LT  -> LT
+    GT  -> GT
+    _   -> compare n1 n2
+
+instance Renamable Node LNSubst where
+  (Node nid1 r1) ~> (Node nid2 r2) = mapVarM nid1 nid2 (r1 ~> r2)
+
+isCorrectRenaming :: System -> System -> Renaming LNSubst -> Bool
+isCorrectRenaming cycleTgt cycleCnd renaming =
+  let tgtNodes = M.keysSet (L.get sNodes cycleTgt)
+      lessInTgt = S.mapMonotonic (\(a, b, _) -> (a, b)) $ L.get sLessAtoms cycleTgt
+      lessInCnd = S.mapMonotonic (\(a,b,_) -> (a,b)) $ L.get sLessAtoms cycleCnd
+  in  applyRenaming renaming (L.get sEdges cycleTgt) == L.get sEdges cycleCnd &&
+      -- Only check for `isSubsetOf` as we could always weaken away additional
+      -- excess less atoms.
+      applyRenaming renaming (S.filter (bothInSet tgtNodes) lessInTgt) `S.isSubsetOf` lessInCnd &&
+      applyRenaming renaming (L.get sLastAtom cycleTgt) == L.get sLastAtom cycleCnd &&
+      -- applyRenaming renaming (L.get sFormulas cycleTgt) == L.get sFormulas cycleCnd &&
+      -- applyRenaming renaming (L.get sSolvedFormulas cycleTgt) == L.get sFormulas cycleCnd &&
+      True
+      where
+        bothInSet :: S.Set NodeId -> (NodeId, NodeId) -> Bool
+        bothInSet s (a, b) = a `S.member` s && b `S.member` s
+
+isCorrectRenamingM :: System -> System -> MaybeRenaming LNSubst -> MaybeRenaming LNSubst
+isCorrectRenamingM cycleTgt cycleCnd rM = do
+  isCorrect <- isCorrectRenaming cycleTgt cycleCnd <$> rM
+  guard isCorrect
+  rM
+
+isProgressingRenaming :: System -> Renaming LNSubst -> Bool
+isProgressingRenaming sys r =
+  let chainStarts = M.keysSet (L.get sNodes sys) S.\\ S.map (snd . e2t) (L.get sEdges sys)
+  in not $ S.null $ S.filter (\var -> var `S.member` applyRenaming r (getGreaterNodes sys var)) chainStarts
+
+isProgressingRenamingM :: System -> MaybeRenaming LNSubst -> MaybeRenaming LNSubst
+isProgressingRenamingM sys rM = do
+  isProgressing <- isProgressingRenaming sys <$> rM
+  guard isProgressing
+  rM
+
+e2t ::Edge -> (NodeId, NodeId)
+e2t (Edge (src, _) (tgt, _)) = (src, tgt)
+
+isValidRenamingM :: System -> System -> MaybeRenaming LNSubst -> MaybeRenaming LNSubst
+isValidRenamingM cycleTgt cycleCnd rM =  do
+  isCorrect <- isCorrectRenaming cycleTgt cycleCnd <$> rM
+  isProgressing <- isProgressingRenaming cycleCnd <$> rM
+  guard (isCorrect && isProgressing)
+  rM
+
+-- | O(1). Does the size of two constraint system indicate that src could be
+-- renamed to tgt?
+renameableSize :: System -> System -> Bool
+renameableSize tgt cand =
+  M.size (L.get sNodes cand) == M.size (L.get sNodes tgt) &&
+  S.size (L.get sEdges cand) == S.size (L.get sEdges tgt) &&
+  S.size (L.get sLessAtoms cand) >= S.size (L.get sLessAtoms tgt) &&
+  -- S.size (L.get sFormulas cand) == S.size (L.get sFormulas tgt) &&
+  True
+
+allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
+allNodeRenamings cycleTgt cycleCnd = 
+  let nidsCycleTgt = gatherRules $ getNodes cycleTgt
+      nidsCycleCnd = gatherRules $ getNodes cycleCnd
+      -- First we do a O(1) check that the two systems are of the same size.
+  in  if    renameableSize cycleTgt cycleCnd
+      then  renamingsByRule nidsCycleTgt nidsCycleCnd [idRenaming]
+      else  []
+  where
+    renamingsByRule :: [[Node]] -> [[Node]] -> [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst]
+    renamingsByRule _ _ []                 = []
+    renamingsByRule [] [] acc              = acc
+    renamingsByRule [] (_:_) _             = []
+    renamingsByRule (_:_) [] _             = []
+    renamingsByRule (ns1:t1) (ns2:t2) acc  =
+      let ruleRenamings = map (allRenamings ns1 ns2) acc
+      in  foldl rec [] ruleRenamings
+      where
+        rec :: [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst]
+        rec foldAcc ruleRenamings = foldAcc ++ renamingsByRule t1 t2 ruleRenamings
+
+    allRenamings :: [Node] -> [Node] -> MaybeRenaming LNSubst -> [MaybeRenaming LNSubst]
+    allRenamings ns1 ns2 acc = if length ns1 /= length ns2
+      then []
+      else map ((~><~ acc) . (ns1 ~>)) (permutations ns2)
+
+    getNodes :: System -> S.Set Node
+    getNodes sys = S.map (forSys sys) $ M.keysSet (L.get sNodes sys)
+
+    gatherRules :: S.Set Node -> [[Node]]
+    gatherRules = groupBy (\n1 n2 -> get_rInfo n1 == get_rInfo n2) . S.toAscList
+      where get_rInfo = L.get rInfo . nrule
+
+instance Renamable System LNSubst where
+  cycleTgt ~> cycleCnd = msum $ map (isValidRenamingM cycleTgt cycleCnd) (allNodeRenamings cycleTgt cycleCnd)
+
+getCycleRenamings :: ProofContext -> System -> [(Renaming LNSubst, System)]
+getCycleRenamings ctx candidate =
+  let hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
+  in  mapMaybe (\tgt -> (,tgt) <$> computeRenaming (tgt ~> candidate) hnd) $ L.get sCycleTargets candidate
+
+getCycleRenaming :: ProofContext -> System -> Maybe (Renaming LNSubst)
+getCycleRenaming ctx = peak . getCycleRenamings ctx
+  where peak = (fst . fst <$>) . uncons
+
+canCloseCycle :: ProofContext -> System -> Bool
+canCloseCycle ctx = isJust . getCycleRenaming ctx
+-- canCloseCycle ctx = const False
+
+guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
+guardLoopType ctxt typ nid r =
+  let loopTypes = L.get pcRuleLoopTypes ctxt
+  in do
+    infos <- M.lookup (ruleName r) loopTypes
+    guard (typ `elem` map lType infos)
+    return nid
+
+getLoopNodesWhere :: RuleLoopType -> (NodeId -> Bool) -> ProofContext -> System -> S.Set NodeId
+getLoopNodesWhere typ p ctxt sys =
+  let nidAndInfos = mapMaybe (uncurry $ guardLoopType ctxt typ) . M.toAscList $ L.get sNodes sys
+  in S.fromAscList $ filter p nidAndInfos
+
+getLoopLeaves :: ProofContext -> System -> S.Set NodeId
+getLoopLeaves ctxt sys =
+  let haveOutgoing = S.map (fst . eSrc) $ L.get sEdges sys
+  in getLoopNodesWhere Loop (not . (`S.member` haveOutgoing)) ctxt sys
+
+getLoopRoots :: ProofContext -> System -> S.Set NodeId
+getLoopRoots ctxt sys =
+  let haveIncoming = S.map (fst . eTgt) $ L.get sEdges sys
+  in getLoopNodesWhere Loop (not . (`S.member` haveIncoming)) ctxt sys
+
+getLoopExits :: ProofContext -> System -> S.Set NodeId
+getLoopExits = getLoopNodesWhere LoopExit (const True)
+
+getGreaterNodes :: System -> NodeId -> S.Set NodeId
+getGreaterNodes sys nid =
+  let sorting = topologicalSortingAsc (S.map e2t (L.get sEdges sys) <> S.mapMonotonic (\(a,b,_) -> (a,b)) (L.get sLessAtoms sys))
+  in S.delete nid $ go (S.singleton nid) sorting where
+    go :: S.Set NodeId -> [(NodeId, NodeId)] -> S.Set NodeId
+    go acc [] = acc
+    go acc ((from, to):es) = go (if from `S.member` acc then S.insert to acc else acc) es
+
+    topologicalSortingAsc :: S.Set (NodeId, NodeId) -> [(NodeId, NodeId)]
+    topologicalSortingAsc s
+      | S.null s  = []
+      | otherwise = let noOutgoing = S.map fst s S.\\ S.map snd s
+                        (mins, rest) = S.partition ((`S.member` noOutgoing) . fst) s
+                    in  if   S.null mins
+                        -- TODO: Can be called on cyclic graph, e.g., when there
+                        -- are cyclic timepoints. This is then also a
+                        -- contradiction, but I should establish this invariant.
+                        then error "not a DAG"
+                        else S.toList mins ++ topologicalSortingAsc rest

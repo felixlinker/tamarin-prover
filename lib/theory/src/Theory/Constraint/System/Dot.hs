@@ -478,6 +478,7 @@ reasonToColor l = S.fromList ( map getAllRToC $
              Adversary      -> "red"
              Formula        -> "black"
              Fresh          -> "blue3"
+             KeepWeakened   -> "grey"
              InjectiveFacts -> "purple"
              NormalForm     -> "darkorange3"
         allRtoColors :: [Reason] -> String

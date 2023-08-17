@@ -16,6 +16,7 @@
 module Theory.Constraint.Solver.ProofMethod (
   -- * Proof methods
     CaseName
+  , WeakenEl(..)
   , ProofMethod(..)
   , DiffProofMethod(..)
   , execProofMethod
@@ -42,7 +43,7 @@ import           Data.Label                                hiding (get)
 import qualified Data.Label                                as L
 import           Data.List                                 (intersperse,partition,groupBy,sortBy,isPrefixOf,findIndex,intercalate)
 import qualified Data.Map                                  as M
-import           Data.Maybe                                (catMaybes, fromMaybe)
+import           Data.Maybe                                (catMaybes, fromMaybe, isJust, mapMaybe)
 -- import           Data.Monoid
 import           Data.Ord                                  (comparing)
 import qualified Data.Set                                  as S
@@ -52,6 +53,7 @@ import qualified Data.ByteString.Char8 as BC
 import           Control.Basics
 import           Control.DeepSeq
 import qualified Control.Monad.Trans.PreciseFresh          as Precise
+import qualified Control.Monad.State                       as St
 
 import           Debug.Trace
 import           Safe
@@ -68,6 +70,7 @@ import           Theory.Constraint.Solver.Simplify
 import           Theory.Constraint.System
 import           Theory.Model
 import           Theory.Text.Pretty
+import qualified Extension.Data.Label as L
 
 
 
@@ -184,6 +187,9 @@ unmarkPremiseG annGoal                        = annGoal
 -- | Every case in a proof is uniquely named.
 type CaseName = String
 
+data WeakenEl = WeakenNode NodeId | WeakenGoal Goal
+  deriving( Eq, Ord, Show, Generic, NFData, Binary )
+
 -- | Sound transformations of sequents.
 data ProofMethod =
     Sorry (Maybe String)                 -- ^ Proof was not completed
@@ -196,6 +202,7 @@ data ProofMethod =
   | Induction                            -- ^ Use inductive strengthening on
                                          -- the single formula constraint in
                                          -- the system.
+  | Weaken WeakenEl
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | Sound transformations of diff sequents.
@@ -233,6 +240,21 @@ instance HasFrees DiffProofMethod where
 -- Proof method execution
 -------------------------
 
+setCycleTarget :: ProofContext -> System -> Reduction ()
+setCycleTarget ctxt sys = do
+  isCycleTarget <- L.getM sIsCycleTarget
+  diffSystem <- L.getM sDiffSystem
+  let loopLeaves = getLoopLeaves ctxt sys
+  unless  (isCycleTarget || diffSystem || null loopLeaves)
+          (L.modM sCycleTargets (prepCycleTarget sys:))
+  where
+    prepCycleTarget :: System -> System
+    prepCycleTarget =
+        set sIsCycleTarget True
+      . set sGoals M.empty
+      . set sLemmas S.empty
+      . set sCycleTargets []
+
 -- @execMethod rules method se@ checks first if the @method@ is applicable to
 -- the sequent @se@. Then, it applies the @method@ to the sequent under the
 -- assumption that the @rules@ describe all rewriting rules in scope.
@@ -245,6 +267,8 @@ execProofMethod ctxt method sys =
       case method of
         Sorry _                                -> return M.empty
         Solved
+          -- TODO: Map to `Unfinishable`?
+          | L.get sIsWeakened sys -> Nothing
           | null (openGoals sys)
             && finishedSubterms ctxt sys       -> return M.empty
           | otherwise                          -> Nothing
@@ -260,6 +284,7 @@ execProofMethod ctxt method sys =
         Contradiction _
           | null (contradictions ctxt sys)     -> Nothing
           | otherwise                          -> Just M.empty
+        Weaken el                              -> singleCase $ weaken el >> setCycleTarget ctxt sys
   where
     -- at this point it is safe to remove the free substitution, as all
     -- systems have it fully applied (by the virtue of a call to
@@ -272,9 +297,9 @@ execProofMethod ctxt method sys =
 
     -- expect only one or no subcase in the given case distinction
     singleCase m =
-        case    removeRedundantCases ctxt [] id . map cleanupSystem
-              . map fst . getDisj $ execReduction m ctxt sys (avoid sys) of
-          []                  -> return $ M.empty
+        case    removeRedundantCases ctxt [] id . map (cleanupSystem . fst)
+              . getDisj $ execReduction m ctxt sys (avoid sys) of
+          []                  -> return M.empty
           [sys'] | check sys' -> return $ M.singleton "" sys'
                  | otherwise  -> mzero
           syss                ->
@@ -295,6 +320,7 @@ execProofMethod ctxt method sys =
                                   (fmap $ concat . intersperse "_")
                                   (solveWithSource ctxt ths goal)
                     simplifySystem
+                    setCycleTarget ctxt sys
                     return name
 
         makeCaseNames =
@@ -327,6 +353,54 @@ execProofMethod ctxt method sys =
              $ emptySystem (L.get sSourceKind sys) (L.get sDiffSystem sys)
 
         insCase name gf = M.insert name (set sFormulas (S.singleton gf) sys)
+
+    -- NOTE: It is not good to return @Reduction@ here. The documentation of
+    -- @Reduction@ notes that this should indeed reduce a constraint system such
+    -- that the solutions stay the same.
+    weaken :: WeakenEl -> Reduction ()
+    weaken (WeakenGoal g)
+      | L.get sDiffSystem sys = return ()
+      | otherwise = do
+        status <- M.lookup g <$> L.getM sGoals
+        when  (maybe True (not . L.get gsSolved) status)
+              (L.modM sGoals (M.delete g))
+    weaken (WeakenNode i)
+      | L.get sDiffSystem sys = return ()
+      | not $ M.member i $ L.get sNodes sys = return ()
+      | otherwise =
+          let keepGoal :: Goal -> GoalStatus -> Bool
+              keepGoal (PremiseG (i', _) _) st = i /= i' || L.get gsSolved st
+              keepGoal _ _ = True
+          in do
+          L.setM sIsWeakened True
+          L.modM sNodes $ M.delete i
+          L.modM sGoals $ M.filterWithKey keepGoal
+          toDeleteOutgoing <- S.filter ((== i) . fst . eSrc) <$> L.getM sEdges
+          toDeleteIncoming <- S.filter ((== i) . fst . eTgt) <$> L.getM sEdges
+          let toDelete = toDeleteIncoming <> toDeleteOutgoing
+          -- Memorize dropped edges as less atoms relations. We do not weaken
+          -- less atoms. The order often is necessary to derive contradictions.
+          -- `System.isCorrectRenaming`, though, accounts for this by only
+          -- checking for a subset-relation between less atoms (we could always
+          -- weaken excess less atoms).
+          let e2t (Edge (c,_) (p,_)) = (c, p, KeepWeakened)
+          L.modM sLessAtoms (\le -> foldr (S.insert . e2t) le (S.toList toDelete))
+          L.modM sEdges (S.\\ toDelete)
+          mapM_ (insertPrem . eTgt) $ S.toList toDeleteOutgoing
+          -- TODO: Probably we need to find a new latom? Must we perform a case split on
+          -- all maximal facts?
+          L.modM sLastAtom (\mlatom -> do
+            latom <- mlatom
+            guard (latom /= i)
+            return latom)
+          return ()
+        where
+          insertPrem :: NodePrem -> Reduction ()
+          insertPrem prem@(nid, pix) = do
+            nodes <- L.getM sNodes
+            let r = M.findWithDefault (error "edge points to nothing") nid nodes
+            let breakers = ruleInfo (L.get praciLoopBreakers) (const []) $ L.get rInfo r
+            overwriteGoal (PremiseG prem $ L.get (rPrem pix) r) (pix `elem` breakers)
 
 -- @execDiffMethod rules method se@ checks first if the @method@ is applicable to
 -- the sequent @se@. Then, it applies the @method@ to the sequent under the
@@ -486,18 +560,28 @@ rankGoals ctxt ranking tacticsList = case ranking of
 -- system is solved.
 rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> System
                  -> [(ProofMethod, (M.Map CaseName System, String))]
-rankProofMethods ranking tactics ctxt sys = do
-    (m, expl) <-
-            (contradiction <$> contradictions ctxt sys)
-        <|> (case L.get pcUseInduction ctxt of
-               AvoidInduction -> [(Simplify, ""), (Induction, "")]
-               UseInduction   -> [(Induction, ""), (Simplify, "")]
-            )
-        <|> (solveGoalMethod <$> (rankGoals ctxt ranking tactics sys $ openGoals sys))
-    case execProofMethod ctxt m sys of
-      Just cases -> return (m, (cases, expl))
-      Nothing    -> []
+rankProofMethods ranking tactics ctxt sys =
+  let nodesToWeaken = map WeakenNode $ S.toList $ getLoopLeaves ctxt sys <> getLoopExits ctxt sys
+      goalsToWeaken = map WeakenGoal $ filter canDrop $ M.keys $ L.get sGoals sys
+      methods =       (contradiction <$> contradictions ctxt sys)
+                  ++  (case L.get pcUseInduction ctxt of
+                        AvoidInduction -> [(Simplify, ""), (Induction, "")]
+                        UseInduction   -> [(Induction, ""), (Simplify, "")]
+                      )
+                  ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
+      cyclicMethods = map ((,"") . Weaken) (nodesToWeaken ++ goalsToWeaken)
+  in if null methods then [] else execMethods $ methods ++ cyclicMethods
   where
+    execMethods = mapMaybe execMethod
+    execMethod (m, expl) = do
+      cases <- execProofMethod ctxt m sys
+      return (m, (cases, expl))
+
+    canDrop :: Goal -> Bool
+    canDrop (ActionG _ _) = True
+    canDrop (ChainG _ _)  = True
+    canDrop _             = False
+
     contradiction c                    = (Contradiction (Just c), "")
 
     sourceRule goal = case goalRule sys goal of
@@ -528,12 +612,18 @@ rankDiffProofMethods ranking tactics ctxt sys = do
         <|> [(DiffBackwardSearch, "Do backward search from rule")]
         <|> (case (L.get dsSide sys, L.get dsSystem sys) of
                   (Just s, Just sys') -> map (\x -> (DiffBackwardSearchStep (fst x), "Do backward search step"))
-                                          $ filter (\x -> not $ fst x == Induction)
+                                          $ filter (isDiffApplicable . fst)
                                           $ rankProofMethods ranking tactics (eitherProofContext ctxt s) sys'
                   (_     , _        ) -> [])
     case execDiffProofMethod ctxt m sys of
       Just cases -> return (m, (cases, expl))
       Nothing    -> []
+  where
+    -- TODO: There might be more elegant ways to handle this; especially, it
+    -- seems silly to maintain the set of leaves, etc.
+    isDiffApplicable Induction = False
+    isDiffApplicable (Weaken _) = False
+    isDiffApplicable _ = True
 
 -- | Smart constructor for heuristics. Schedules the goal rankings in a
 -- round-robin fashion dependent on the proof depth.
@@ -1208,6 +1298,8 @@ prettyProofMethod method = case method of
         sep [ keyword_ "contradiction"
             , maybe emptyDoc (closedComment . prettyContradiction) reason
             ]
+    Weaken (WeakenNode i) -> keyword_ "weaken node(" <-> prettyNodeId i <-> keyword_ ")"
+    Weaken (WeakenGoal g) -> keyword_ "weaken goal(" <-> prettyGoal g <-> keyword_ ")"
 
 -- | Pretty-print a diff proof method.
 prettyDiffProofMethod :: HighlightDocument d => DiffProofMethod -> d

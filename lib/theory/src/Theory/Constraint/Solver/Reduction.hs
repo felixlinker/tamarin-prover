@@ -38,6 +38,7 @@ module Theory.Constraint.Solver.Reduction (
   , insertFreshNodeConc
 
   , insertGoal
+  , overwriteGoal
   , insertAtom
   , insertEdges
   , insertChain
@@ -92,7 +93,7 @@ import           Control.Category
 import           Control.Monad.Bind
 import           Control.Monad.Disj
 import           Control.Monad.Reader
-import           Control.Monad.State                     (StateT, execStateT, gets, runStateT)
+import           Control.Monad.State                     (State, StateT, execState, execStateT, gets, runStateT)
 
 import           Text.PrettyPrint.Class
 
@@ -116,7 +117,6 @@ import           Utils.Misc
 -- context.
 type Reduction = StateT System (FreshT (DisjT (Reader ProofContext)))
 
-
 -- Executing reductions
 -----------------------
 
@@ -135,7 +135,6 @@ execReduction :: Reduction a -> ProofContext -> System -> FreshState
               -> Disj (System, FreshState)
 execReduction m ctxt se fs =
     Disj $ (`runReader` ctxt) . runDisjT . (`runFreshT` fs) $ execStateT m se
-
 
 -- Change management
 --------------------
@@ -273,15 +272,16 @@ labelNodeId = \i rules parent -> do
         breakers = ruleInfo (get praciLoopBreakers) (const []) $ get rInfo ru
 
 -- | Insert a chain constrain.
-insertChain :: NodeConc -> NodePrem -> Reduction ()
-insertChain c p = insertGoal (ChainG c p) False
+insertChain :: NodeId -> NodePrem -> Reduction ()
+insertChain cId p = insertGoal (ChainG (cId, ConcIdx 0) p) False
 
 -- | Insert an edge constraint. CR-rule *DG1_2* is enforced automatically,
 -- i.e., the fact equalities are enforced.
 insertEdges :: [(NodeConc, LNFact, LNFact, NodePrem)] -> Reduction ()
 insertEdges edges = do
     void (solveFactEqs SplitNow [ Equal fa1 fa2 | (_, fa1, fa2, _) <- edges ])
-    modM sEdges (\es -> foldr S.insert es [ Edge c p | (c,_,_,p) <- edges])
+    let eEdges = [ Edge c p | (c,_,_,p) <- edges]
+    modM sEdges (S.union (S.fromList eEdges))
 
 -- | Insert an 'Action' atom. Ensures that (almost all) trivial *KU* actions
 -- are solved immediately using rule *S_{at,u,triv}*. We currently avoid
@@ -515,17 +515,26 @@ combineGoalStatus (GoalStatus solved1 age1 loops1)
                   (GoalStatus solved2 age2 loops2) =
     GoalStatus (solved1 || solved2) (min age1 age2) (loops1 || loops2)
 
+insertGoalStatusF :: (Goal -> GoalStatus -> M.Map Goal GoalStatus -> M.Map Goal GoalStatus) -> Goal -> GoalStatus -> Reduction ()
+insertGoalStatusF insertF goal status = do
+    age <- getM sNextGoalNr
+    modM sGoals $ insertF goal (set gsNr age status)
+    sNextGoalNr =: succ age
+
 -- | Insert a goal and its status with a new age. Merge status if goal exists.
 insertGoalStatus :: Goal -> GoalStatus -> Reduction ()
-insertGoalStatus goal status = do
-    age <- getM sNextGoalNr
-    modM sGoals $ M'.insertWith combineGoalStatus goal (set gsNr age status)
-    sNextGoalNr =: succ age
+insertGoalStatus = insertGoalStatusF (M'.insertWith combineGoalStatus)
+
+overwriteGoalStatus :: Goal -> GoalStatus -> Reduction ()
+overwriteGoalStatus = insertGoalStatusF M.insert
 
 -- | Insert a 'Goal' and store its age.
 insertGoal :: Goal -> Bool -> Reduction ()
 insertGoal goal looping = insertGoalStatus goal (GoalStatus False 0 looping)
- 
+
+overwriteGoal :: Goal -> Bool -> Reduction ()
+overwriteGoal goal looping = overwriteGoalStatus goal (GoalStatus False 0 looping)
+
 -- | Mark the given goal as solved.
 markGoalAsSolved :: String -> Goal -> Reduction ()
 markGoalAsSolved how goal =
@@ -577,13 +586,15 @@ substSystem = do
     substFormulas
     substSolvedFormulas
     substLemmas
+    substCycleTargets
     c2 <- substGoals
     substNextGoalNr
     return (c1 <> c2)
 
 -- no invariants to maintain here
 substEdges, substLessAtoms, substSubtermStore, substLastAtom, substFormulas,
-  substSolvedFormulas, substLemmas, substNextGoalNr :: Reduction ()
+  substSolvedFormulas, substLemmas, substNextGoalNr,
+  substCycleTargets :: Reduction ()
 
 substEdges          = substPart sEdges
 substLessAtoms      = substPart sLessAtoms
@@ -593,7 +604,7 @@ substFormulas       = substPart sFormulas
 substSolvedFormulas = substPart sSolvedFormulas
 substLemmas         = substPart sLemmas
 substNextGoalNr     = return ()
-
+substCycleTargets   = substPart sCycleTargets
 
 -- | Apply the current substitution of the equation store to a part of the
 -- sequent. This is an internal function.
@@ -662,9 +673,9 @@ conjoinSystem sys = do
     kind <- getM sSourceKind
     unless (kind == get sSourceKind sys) $
         error "conjoinSystem: source-kind mismatch"
-    joinSets sSolvedFormulas
-    joinSets sLemmas
-    joinSets sEdges
+    joinFields sSolvedFormulas
+    joinFields sLemmas
+    joinFields sEdges
     F.mapM_ insertLast                 $ get sLastAtom    sys
     F.mapM_  (uncurry3 insertLess)     $ get sLessAtoms   sys
     -- split-goals are not valid anymore
@@ -685,8 +696,8 @@ conjoinSystem sys = do
     -- assumed to be 'Changed' by default.
     void substSystem
   where
-    joinSets :: Ord a => (System :-> S.Set a) -> Reduction ()
-    joinSets proj = modM proj (`S.union` get proj sys)
+    joinFields :: Monoid a => (System :-> a) -> Reduction ()
+    joinFields proj = modM proj (<> get proj sys)
 
 -- Unification via the equation store
 -------------------------------------

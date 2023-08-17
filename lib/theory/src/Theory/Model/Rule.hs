@@ -89,6 +89,9 @@ module Theory.Model.Rule (
   , isProtocolRule
   , isConstantRule
   , isSubtermRule
+  , RuleLoopType(..)
+  , RuleLoopInfo(..)
+  , getLoopInfo
   , containsNewVars
   , getRuleName
   , getRuleNameDiff
@@ -129,6 +132,7 @@ module Theory.Model.Rule (
   -- ** Unification
   , unifyRuleACInstEqs
   , unifiableRuleACInsts
+  , getRuleRenaming
   , equalRuleUpToRenaming
   , equalRuleUpToAnnotations
   , equalRuleUpToDiffAnnotation
@@ -191,6 +195,7 @@ import           Theory.Model.Fact
 import qualified Theory.Model.Formula as F
 import           Theory.Text.Pretty
 import           Theory.Sapic
+import Data.Maybe (isJust)
 
 -- import           Debug.Trace
 
@@ -697,6 +702,45 @@ isSubtermRule ru = case ruleName ru of
   -- the equality rule is considered a subterm rule, as it has no RHS.
   _                                  -> False
 
+data RuleLoopType = LoopStart | Loop | LoopExit deriving( Eq, Ord, Show, Enum, Data, Typeable )
+
+instance NFData RuleLoopType where
+  rnf _ = ()
+instance Binary RuleLoopType where
+  put = mempty
+  -- TODO: This is bullshit...
+  get = return Loop
+
+data RuleLoopInfo = RuleLoopInfo
+  { iFact :: FactTag
+  , lType :: RuleLoopType } deriving( Eq, Ord, Show, Typeable, Data, Generic )
+
+instance NFData RuleLoopInfo
+instance Binary RuleLoopInfo
+
+getLoopInfo :: S.Set FactTag -> Rule i -> [RuleLoopInfo]
+getLoopInfo fs r =
+  let (infos, remainingConcs) = foldr folder ([], iConcs) iPrems
+  in infos ++ map mkStart (S.toList remainingConcs)
+  where
+    folder tagTerm (acc, remainingConcs) =
+      if tagTerm `S.member` remainingConcs
+      then (mkLoop tagTerm:acc, S.delete tagTerm remainingConcs)
+      else (mkExit tagTerm:acc, remainingConcs)
+
+    mkExit = (`RuleLoopInfo` LoopExit) . fst
+    mkStart = (`RuleLoopInfo` LoopStart) . fst
+    mkLoop = (`RuleLoopInfo` Loop) . fst
+
+    -- We can use (head . factTerms) because injective facts always have a fresh
+    -- terms as the first argument.
+    -- Also, usage of a Set is safe here. If there are multiple facts in the
+    -- premise with the same first argument, the rule is never applicable. If
+    -- there are mutliple facts in conclusion with the same first term, the fact
+    -- wouldn't injective.
+    iPrems = S.fromList $ map ((,) <$> factTag <*> (head . factTerms)) $ filter ((`S.member` fs) . factTag) $ L.get rPrems r
+    iConcs = S.fromList $ map ((,) <$> factTag <*> (head . factTerms)) $ filter ((`S.member` fs) . factTag) $ L.get rConcs r
+
 -- | True if the messages in premises and conclusions are in normal form
 nfRule :: Rule i -> WithMaude Bool
 nfRule (Rule _ ps cs as nvs) = reader $ \hnd ->
@@ -1026,12 +1070,13 @@ unifiableRuleACInsts :: RuleACInst -> RuleACInst -> WithMaude Bool
 unifiableRuleACInsts ru1 ru2 =
     (not . null) <$> unifyRuleACInstEqs [Equal ru1 ru2]
 
--- | Are these two rule instances equal up to renaming of variables?
-equalRuleUpToRenaming :: (Show a, Eq a, HasFrees a) => Rule a -> Rule a -> WithMaude Bool
-equalRuleUpToRenaming r1@(Rule rn1 pr1 co1 ac1 nvs1) r2@(Rule rn2 pr2 co2 ac2 nvs2) = reader $ \hnd ->
+getRuleRenaming :: (Show a, Eq a, HasFrees a) => Rule a -> Rule a -> WithMaude (Maybe LNSubstVFresh)
+getRuleRenaming r1@(Rule rn1 pr1 co1 ac1 nvs1) r2@(Rule rn2 pr2 co2 ac2 nvs2) = reader $ \hnd ->
   case eqs of
-       Nothing   -> False
-       Just eqs' -> (rn1 == rn2) && (any isRenamingPerRule $ unifs eqs' hnd)
+       Nothing   -> Nothing
+       Just eqs' -> do
+        guard (rn1 == rn2)
+        find isRenamingPerRule $ unifs eqs' hnd
     where
        isRenamingPerRule subst = isRenaming (restrictVFresh (vars r1) subst) && isRenaming (restrictVFresh (vars r2) subst)
        vars ru = map fst $ varOccurences ru
@@ -1040,6 +1085,10 @@ equalRuleUpToRenaming r1@(Rule rn1 pr1 co1 ac1 nvs1) r2@(Rule rn2 pr2 co2 ac2 nv
        matchFacts Nothing  _                                    = Nothing
        matchFacts (Just l) (Fact f1 _ t1, Fact f2 _ t2) | f1 == f2  = Just ((zipWith Equal t1 t2)++l)
                                                     | otherwise = Nothing
+
+-- | Are these two rule instances equal up to renaming of variables?
+equalRuleUpToRenaming :: (Show a, Eq a, HasFrees a) => Rule a -> Rule a -> WithMaude Bool
+equalRuleUpToRenaming r1 r2 = isJust <$> getRuleRenaming r1 r2
 
 -- | Are these two rule instances equal up to added annotations in @ac2@?
 equalRuleUpToAnnotations :: (Eq a) => Rule a -> Rule a -> Bool

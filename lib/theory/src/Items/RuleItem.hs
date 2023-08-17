@@ -14,6 +14,7 @@ import           Prelude                             hiding (id, (.))
 
 
 import qualified Data.Set                            as S
+import qualified Data.Map                            as M
 
 import           Control.Category
 import           Extension.Data.Label                hiding (get)
@@ -66,6 +67,7 @@ data ClosedRuleCache = ClosedRuleCache
        , _crcRawSources          :: [Source]
        , _crcRefinedSources      :: [Source]
        , _crcInjectiveFactInsts  :: S.Set (FactTag, [[MonotonicBehaviour]])
+       , _crcRuleLoopTypes       :: M.Map (RuleInfo ProtoRuleName IntrRuleACInfo) [RuleLoopInfo]
        }
        deriving( Eq, Ord, Show, Generic, NFData, Binary )
 

@@ -76,12 +76,14 @@ goal = asum
 -- | Parse a proof method.
 proofMethod :: Parser ProofMethod
 proofMethod = asum
-  [ symbol "sorry"         *> pure (Sorry Nothing)
-  , symbol "simplify"      *> pure Simplify
-  , symbol "solve"         *> (SolveGoal <$> parens goal)
-  , symbol "contradiction" *> pure (Contradiction Nothing)
-  , symbol "induction"     *> pure Induction
-  , symbol "UNFINISHABLE"  *> pure Unfinishable
+  [ symbol "sorry"              *> pure (Sorry Nothing)
+  , symbol "simplify"           *> pure Simplify
+  , symbol "solve"              *> (SolveGoal <$> parens goal)
+  , symbol "contradiction"      *> pure (Contradiction Nothing)
+  , symbol "induction"          *> pure Induction
+  , symbol "UNFINISHABLE"       *> pure Unfinishable
+  , symbol "weaken node"        *> (Weaken . WeakenNode <$> parens nodevar)
+  , symbol "weaken goal"        *> (Weaken . WeakenGoal <$> parens goal)
   ]
 
 -- | Start parsing a proof skeleton.

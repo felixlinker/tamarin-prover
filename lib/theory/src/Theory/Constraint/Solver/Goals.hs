@@ -282,7 +282,7 @@ solvePremise rules p faPrem
           premLearn = outFact mLearn
           -- !! Make sure that you construct the correct rule!
           ruLearn = Rule (IntrInfo IRecvRule) [premLearn] [concLearn] [] []
-          cLearn = (iLearn, ConcIdx 0)
+          cLearn = iLearn
           pLearn = (iLearn, PremIdx 0)
       modM sNodes  (M.insert iLearn ruLearn)
       insertChain cLearn p
@@ -351,7 +351,7 @@ solveChain rules (c, p) = do
     extendAndMark i ru v faPrem faConc = do
         insertEdges [(c, faConc, faPrem, (i, v))]
         markGoalAsSolved "directly" (PremiseG (i, v) faPrem)
-        insertChain (i, ConcIdx 0) p
+        insertChain i p
         return (showRuleCaseName ru)
 
     -- contradicts normal form condition:

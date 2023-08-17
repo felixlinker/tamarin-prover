@@ -1039,8 +1039,8 @@ cutOnSolvedBFSDiff =
 -- Use 'annotateWithSystems' to annotate the proof tree with the constraint
 -- systems.
 proveSystemDFS :: Heuristic ProofContext -> [Tactic ProofContext] -> ProofContext -> Int -> System -> Proof ()
-proveSystemDFS heuristic tactics ctxt d0 sys0 =
-    prove d0 sys0
+proveSystemDFS heuristic tactics ctxt =
+    prove
   where
     prove !depth sys =
         case rankProofMethods (useHeuristic heuristic depth) tactics ctxt sys of

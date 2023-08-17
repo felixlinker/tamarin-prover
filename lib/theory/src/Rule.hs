@@ -13,6 +13,7 @@ import           Prelude                             hiding (id, (.))
 import           Data.List
 
 import qualified Data.Set                            as S
+import qualified Data.Map                            as M
 
 import           Control.Basics
 import           Control.Category
@@ -130,10 +131,10 @@ closeRuleCache :: IntegerParameters  -- ^ Parameters for open chains and saturat
                -> ClosedRuleCache    -- ^ Cached rules and case distinctions.
 closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules intrRules verbose isdiff isSapic = -- trace ("closeRuleCache: " ++ show classifiedRules) $
     ClosedRuleCache
-        classifiedRules rawSources refinedSources injFactInstances
+        classifiedRules rawSources refinedSources injFactInstances loopInfo
   where
     ctxt0 = ProofContext
-        sig classifiedRules injFactInstances RawSource [] AvoidInduction Nothing Nothing 
+        sig classifiedRules injFactInstances loopInfo RawSource [] AvoidInduction Nothing Nothing
         (error "closeRuleCache: trace quantifier should not matter here")
         (error "closeRuleCache: lemma name should not matter here") [] verbose isdiff
         (all isSubtermRule {-- $ trace (show destr ++ " - " ++ show (map isSubtermRule destr))-} destr) (any isConstantRule destr)
@@ -159,8 +160,12 @@ closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules int
     intrRulesAC = concat $ map (closeIntrRule hnd) intrRules
 
     -- classifying the rules
-    rulesAC = (fmap IntrInfo                      <$> intrRulesAC) <|>
+    rulesAC = (fmap IntrInfo                      <$> intrRulesAC) ++
               ((fmap ProtoInfo . L.get cprRuleAC) <$> protoRules)
+
+    loopInfo = M.fromList
+                $ filter (not . null . snd)
+                $ map (\r -> (ruleName r, getLoopInfo (S.map fst injFactInstances) r)) rulesAC
 
     anyOf ps = partition (\x -> any ($ x) ps)
 
@@ -178,7 +183,7 @@ closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules int
 -- | Returns true if the REFINED sources contain open chains.
 containsPartialDeconstructions :: ClosedRuleCache    -- ^ Cached rules and case distinctions.
                      -> Bool               -- ^ Result
-containsPartialDeconstructions (ClosedRuleCache _ _ cases _) =
+containsPartialDeconstructions (ClosedRuleCache _ _ cases _ _) =
       sum (map (sum . unsolvedChainConstraints) cases) /= 0
 
 -- | Add an action to a closed Proto Rule.

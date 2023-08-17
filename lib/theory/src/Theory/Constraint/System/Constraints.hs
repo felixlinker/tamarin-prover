@@ -78,7 +78,8 @@ data Edge = Edge {
 
 -- | A reason to explain the less
 -- | Order is from the most important to the least important 
-data Reason = Formula | InjectiveFacts | Fresh | Adversary | NormalForm
+-- TODO: Is KeepWeakened in right order?
+data Reason = Formula | InjectiveFacts | Fresh | KeepWeakened | Adversary | NormalForm
       deriving (Ord, Eq, Data, Typeable, Generic, NFData, Binary)
 
 -- | A *⋖* constraint between 'NodeId's.
@@ -90,6 +91,7 @@ instance Show Reason where
     show Fresh              = "fresh value"
     show Formula            = "formula"
     show InjectiveFacts     = "injective facts"
+    show KeepWeakened       = "keep order of weakened nodes"
     show NormalForm         = "normal form condition"
     show Adversary          = "adversary"
 
@@ -121,7 +123,8 @@ data Goal =
        ActionG LVar LNFact
        -- ^ An action that must exist in the trace.
      | ChainG NodeConc NodePrem
-       -- ^ A destruction chain.
+       -- ^ A destruction chain. ConcIdx of NodeConc will always be 0.
+       --   This invariant is estalished by @insertGoal@.
      | PremiseG NodePrem LNFact
        -- ^ A premise that must have an incoming direct edge.
      | SplitG SplitId

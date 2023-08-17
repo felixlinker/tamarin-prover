@@ -1,0 +1,112 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+module Theory.Constraint.Renaming
+  ( applyRenaming
+  , Renaming
+  , idRenaming
+  , noRenaming
+  , Renamable(..)
+  , mapVar
+  , mapVarM
+  , (~><~)
+  , MaybeMaude
+  , MaybeRenaming
+  , computeRenaming
+  ) where
+
+import Data.Label as L ( mkLabels )
+import qualified Data.Map as M
+import qualified Data.Set as S
+import Term.LTerm (Term (LIT, FAPP), Lit (Var, Con), IsVar, IsConst, LVar, VTerm, Name, varOccurences)
+import Control.Monad (guard, MonadPlus (mzero))
+import Extension.Data.Label (modA)
+import Theory.Model.Rule (RuleACInst, getRuleRenaming)
+import Term.Unification (Apply (apply), SubstVFresh(..), WithMaude, LNSubstVFresh, LNSubst, Subst (Subst), emptySubst)
+import Control.Monad.Trans.Maybe (MaybeT(..), mapMaybeT)
+import Control.Monad.Trans.Reader (runReader)
+import Term.Maude.Process (MaudeHandle)
+import Utils.Misc (zipWithEquals)
+
+newtype Renaming s = Renaming { _giSubst  :: s } deriving Show
+
+$(mkLabels [''Renaming])
+
+type Acc = (M.Map LVar LVar, M.Map LVar LVar, M.Map LVar (VTerm Name LVar))
+
+fromRuleRenaming :: RuleACInst -> RuleACInst -> LNSubstVFresh -> Renaming LNSubst
+fromRuleRenaming r1 r2 =
+  let rng1 = range r1
+      rng2 = range r2
+  in Renaming . Subst . mergeAcc . M.foldrWithKey (canonicalize rng1 rng2) (M.empty, M.empty, M.empty) . svMap
+  where
+    canonicalize :: S.Set LVar -> S.Set LVar -> LVar -> VTerm Name LVar -> Acc -> Acc
+    canonicalize rng1 rng2 v t@(LIT (Var tv)) (memd, memdInv, m)
+      | tv `S.member` rng2 = (memd, memdInv, M.insert v t m)
+      | tv `S.member` rng1 = (memd, memdInv, M.insert tv (LIT $ Var v) m)
+      | v `S.member` rng1 = (M.insert v tv memd, memdInv, m)
+      | v `S.member` rng2 = (memd, M.insert tv v memdInv, m)
+      | otherwise = error "illegal state"
+    canonicalize _ _ _ (LIT (Con _)) _ = error "no renaming"
+    canonicalize _ _ _ (FAPP _ _)    _ = error "no renaming"
+
+    range :: RuleACInst -> S.Set LVar
+    range = S.fromList . map fst . varOccurences
+
+    mergeAcc :: Acc -> M.Map LVar (VTerm Name LVar)
+    mergeAcc (memd, memdInv, target) =
+      M.foldrWithKey (\k v -> M.insert k (LIT $ Var $ memdInv M.! v)) target memd
+
+applyRenaming :: Apply s a => Renaming s -> a -> a
+applyRenaming (Renaming s) = apply s
+
+tryInsert :: (Ord k, Eq v) => k -> v -> Maybe (M.Map k v) -> Maybe (M.Map k v)
+tryInsert k v maybeMap = do
+  m <- maybeMap
+  guard (M.findWithDefault v k m == v)
+  return $ M.insert k v m
+
+idRenaming :: MaybeMaude (Renaming (Subst c v))
+idRenaming = MaybeT $ return $ Just $ Renaming emptySubst
+
+noRenaming :: MaybeMaude (Renaming s)
+noRenaming = mzero
+
+mapVar :: (IsConst c, IsVar v) => v -> v -> Renaming (Subst c v) -> Maybe (Renaming (Subst c v))
+mapVar from to = if from == to then Just else modA giSubst modLnSubst
+  where modLnSubst (Subst m) = Subst <$> tryInsert from (LIT $ Var to) (Just m)
+
+mapVarM :: (IsConst c, IsVar v) => v -> v -> MaybeMaude (Renaming (Subst c v)) -> MaybeMaude (Renaming (Subst c v))
+mapVarM v1 v2 = mapMaybeT (\mm -> do
+  renaming <- mm
+  return $ mapVar v1 v2 =<< renaming)
+
+type MaybeMaude t = MaybeT WithMaude t
+
+type MaybeRenaming s = MaybeMaude (Renaming s)
+
+class Renamable t s where
+  -- |  Compute a renaming from the first argument to the second. The renaming
+  --    should ensure that whenever @Apply s t@, then @applyRenaming (t1 ~> t2) t1@
+  --    is equal to @t2@.
+  (~>) :: t -> t -> MaybeRenaming s
+
+instance Renamable RuleACInst LNSubst where
+  r1 ~> r2 = fromRuleRenaming r1 r2 <$> MaybeT (getRuleRenaming r1 r2)
+
+(~><~) :: (IsConst c, IsVar v) => MaybeRenaming (Subst c v) -> MaybeRenaming (Subst c v) -> MaybeRenaming (Subst c v)
+(~><~) lrm rrm = do
+  (Renaming lsubst) <- lrm
+  (Renaming rsubst) <- rrm
+  MaybeT $ return $ Renaming <$> merge lsubst rsubst
+  where
+    merge :: (IsConst c, IsVar v) => Subst c v -> Subst c v -> Maybe (Subst c v)
+    merge (Subst m1) (Subst m2) = Subst <$> M.foldrWithKey tryInsert (Just m1) m2
+
+instance (IsConst c, IsVar v, Renamable d (Subst c v)) => Renamable [d] (Subst c v) where
+  l1 ~> l2 = maybe noRenaming (foldl (~><~) idRenaming) $ zipWithEquals (~>) l1 l2
+
+computeRenaming :: MaybeRenaming s -> MaudeHandle -> Maybe (Renaming s)
+computeRenaming mr = runReader $ runMaybeT mr

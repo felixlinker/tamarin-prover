@@ -79,6 +79,7 @@ library
       Theory.Proof
       Theory.ProofSkeleton
 
+      Theory.Constraint.Renaming
       Theory.Constraint.Solver
       Theory.Constraint.Solver.Sources
       Theory.Constraint.Solver.Contradictions
