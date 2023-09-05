@@ -135,7 +135,7 @@ guarded formula characterizing all counter-examples:
  ∧
   (#y < #x) ∧ (∀ #t. (ChainKey( k2 ) @ #t) ⇒ ⊥)"
 */
-by sorry
+by sorry /* removed */
 
 lemma Loop_and_success:
   all-traces
@@ -150,48 +150,38 @@ guarded formula characterizing all counter-examples:
   ∀ #j.1. (ChainKey( k ) @ #j.1) ⇒ ⊥"
 */
 simplify
-solve( !Final( kZero ) ▶₁ #j )
-  case Gen_Stop_case_1
-  solve( Loop( lid, k, kOrig1 ) ▶₀ #i )
-    case Check
-    weaken node( #i )
-    by contradiction
-  next
-    case Check0
-    by solve( Loop( ~n, ~n.1, kOrig2 ) ▶₀ #j )
-  qed
-next
-  case Gen_Stop_case_2
-  solve( Loop( lid, f(chain), kOrig2 ) ▶₀ #j )
-    case Check
-    weaken node( #j )
-    weaken node( #vr )
+solve( Loop( lid, kZero, kOrig1 ) ▶₀ #j )
+  case Check
+  solve( !Final( f(k.1) ) ▶₁ #j )
+    case Gen_Stop
+    weaken node( #vr.1 )
     solve( Loop( lid, k, kOrig1 ) ▶₀ #i )
       case Check
       weaken node( #i )
       by contradiction /* cyclic proof */
     next
       case Check0
-      solve( Loop( ~n, chain, kOrig2 ) ▶₀ #vr.1 )
+      weaken node( #j )
+      solve( Loop( ~n, k.1, k ) ▶₀ #vr )
         case Check
-        solve( Gen( seed, f(k.1) ) ▶₀ #vr )
+        solve( Gen( seed, f(k.1) ) ▶₀ #vr.1 )
           case Gen_Step
           weaken node( #vr )
           weaken node( #vr )
-          by contradiction
+          by contradiction /* cyclic proof */
         qed
       next
         case Check0
-        by contradiction
+        by contradiction /* from formulas */
       qed
     qed
-  next
-    case Check0
-    solve( Loop( ~n, k, kOrig1 ) ▶₀ #i )
-      case Check
-      weaken node( #i )
-      by contradiction
-    qed
+  qed
+next
+  case Check0
+  solve( Loop( ~n, k, kOrig1 ) ▶₀ #i )
+    case Check
+    weaken node( #i )
+    by contradiction /* cyclic proof */
   qed
 qed
 
@@ -281,11 +271,11 @@ solve( Loop( lid, kZero, k ) ▶₀ #i )
         case Gen_Step
         weaken node( #vr )
         weaken node( #vr )
-        by contradiction /* cyclic proof */
+        by contradiction
       qed
     next
       case Check0
-      by contradiction /* from formulas */
+      by contradiction
     qed
   qed
 next
@@ -325,10 +315,10 @@ by sorry
 
 /*
 Generated from:
-Tamarin version 1.7.1
-Maude version 2.7.1
-Git revision: 57557d67b2c2362503f58f806309151f76e3e631 (with uncommited changes), branch: cyclic
-Compiled at: 2023-06-26 12:02:14.317569016 UTC
+Tamarin version 1.9.0
+Maude version 3.3.1
+Git revision: 00c9d263f6a32b3665fc28d5fc297d2a4058f639, branch: cyclic
+Compiled at: 2023-09-05 11:35:58.547631783 UTC
 */
 
 end
