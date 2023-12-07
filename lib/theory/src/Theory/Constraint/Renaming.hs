@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Theory.Constraint.Renaming
   ( applyRenaming
+  , renamedTimePoints
   , Renaming
   , idRenaming
   , noRenaming
@@ -17,14 +18,14 @@ module Theory.Constraint.Renaming
   , computeRenaming
   ) where
 
-import Data.Label as L ( mkLabels )
+import Data.Label as L ( get, mkLabels )
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Term.LTerm (Term (LIT, FAPP), Lit (Var, Con), IsVar, IsConst, LVar, VTerm, Name, varOccurences)
+import Term.LTerm (Term (LIT, FAPP), Lit (Var, Con), IsVar, IsConst, LVar(..), LSort(..), VTerm, Name, varOccurences)
 import Control.Monad (guard, MonadPlus (mzero))
 import Extension.Data.Label (modA)
 import Theory.Model.Rule (RuleACInst, getRuleRenaming)
-import Term.Unification (Apply (apply), SubstVFresh(..), WithMaude, LNSubstVFresh, LNSubst, Subst (Subst), emptySubst)
+import Term.Unification (Apply (apply), SubstVFresh(..), WithMaude, LNSubstVFresh, LNSubst, Subst(..), emptySubst)
 import Control.Monad.Trans.Maybe (MaybeT(..), mapMaybeT)
 import Control.Monad.Trans.Reader (runReader)
 import Term.Maude.Process (MaudeHandle)
@@ -33,6 +34,16 @@ import Utils.Misc (zipWithEquals)
 newtype Renaming s = Renaming { _giSubst  :: s } deriving Show
 
 $(mkLabels [''Renaming])
+
+termToVar :: VTerm Name LVar -> LVar
+termToVar (LIT (Var v)) = v
+termToVar _             = error "term is not a variable literal"
+
+renamedTimePoints :: Renaming LNSubst -> [(LVar, LVar)]
+renamedTimePoints r =
+  let subst = sMap $ L.get giSubst r
+      timepoints = filter ((== LSortNode) . lvarSort) $ M.keys subst
+  in zip timepoints (map (termToVar . (subst M.!)) timepoints)
 
 type Acc = (M.Map LVar LVar, M.Map LVar LVar, M.Map LVar (VTerm Name LVar))
 
@@ -43,14 +54,13 @@ fromRuleRenaming r1 r2 =
   in Renaming . Subst . mergeAcc . M.foldrWithKey (canonicalize rng1 rng2) (M.empty, M.empty, M.empty) . svMap
   where
     canonicalize :: S.Set LVar -> S.Set LVar -> LVar -> VTerm Name LVar -> Acc -> Acc
-    canonicalize rng1 rng2 v t@(LIT (Var tv)) (memd, memdInv, m)
+    canonicalize rng1 rng2 v t (memd, memdInv, m)
       | tv `S.member` rng2 = (memd, memdInv, M.insert v t m)
       | tv `S.member` rng1 = (memd, memdInv, M.insert tv (LIT $ Var v) m)
       | v `S.member` rng1 = (M.insert v tv memd, memdInv, m)
       | v `S.member` rng2 = (memd, M.insert tv v memdInv, m)
       | otherwise = error "illegal state"
-    canonicalize _ _ _ (LIT (Con _)) _ = error "no renaming"
-    canonicalize _ _ _ (FAPP _ _)    _ = error "no renaming"
+      where tv = termToVar t
 
     range :: RuleACInst -> S.Set LVar
     range = S.fromList . map fst . varOccurences
