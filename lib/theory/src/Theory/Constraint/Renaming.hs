@@ -29,7 +29,6 @@ import Term.Unification (Apply (apply), SubstVFresh(..), WithMaude, LNSubstVFres
 import Control.Monad.Trans.Maybe (MaybeT(..), mapMaybeT)
 import Control.Monad.Trans.Reader (runReader)
 import Term.Maude.Process (MaudeHandle)
-import Utils.Misc (zipWithEquals)
 
 newtype Renaming s = Renaming { _giSubst  :: s } deriving Show
 
@@ -100,7 +99,7 @@ type MaybeRenaming s = MaybeMaude (Renaming s)
 class Renamable t s where
   -- |  Compute a renaming from the first argument to the second. The renaming
   --    should ensure that whenever @Apply s t@, then @applyRenaming (t1 ~> t2) t1@
-  --    is equal to @t2@.
+  --    is contained in @t2@.
   (~>) :: t -> t -> MaybeRenaming s
 
 instance Renamable RuleACInst LNSubst where
@@ -116,7 +115,7 @@ instance Renamable RuleACInst LNSubst where
     merge (Subst m1) (Subst m2) = Subst <$> M.foldrWithKey tryInsert (Just m1) m2
 
 instance (IsConst c, IsVar v, Renamable d (Subst c v)) => Renamable [d] (Subst c v) where
-  l1 ~> l2 = maybe noRenaming (foldl (~><~) idRenaming) $ zipWithEquals (~>) l1 l2
+  l1 ~> l2 = foldl (~><~) idRenaming $ zipWith (~>) l1 l2
 
 computeRenaming :: MaybeRenaming s -> MaudeHandle -> Maybe (Renaming s)
 computeRenaming mr = runReader $ runMaybeT mr
