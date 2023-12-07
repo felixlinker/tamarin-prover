@@ -375,18 +375,11 @@ execProofMethod ctxt method sys =
           L.setM sIsWeakened True
           L.modM sNodes $ M.delete i
           L.modM sGoals $ M.filterWithKey keepGoal
+          -- Add premise goals for about-to-be-deleted, outgoing edges
           toDeleteOutgoing <- S.filter ((== i) . fst . eSrc) <$> L.getM sEdges
-          toDeleteIncoming <- S.filter ((== i) . fst . eTgt) <$> L.getM sEdges
-          let toDelete = toDeleteIncoming <> toDeleteOutgoing
-          -- Memorize dropped edges as less atoms relations. We do not weaken
-          -- less atoms. The order often is necessary to derive contradictions.
-          -- `System.isCorrectRenaming`, though, accounts for this by only
-          -- checking for a subset-relation between less atoms (we could always
-          -- weaken excess less atoms).
-          let e2t (Edge (c,_) (p,_)) = (c, p, KeepWeakened)
-          L.modM sLessAtoms (\le -> foldr (S.insert . e2t) le (S.toList toDelete))
-          L.modM sEdges (S.\\ toDelete)
           mapM_ (insertPrem . eTgt) $ S.toList toDeleteOutgoing
+          L.modM sLessAtoms (S.filter $ neqForAny i [fst3, snd3])
+          L.modM sEdges (S.filter $ neqForAny i [fst . eSrc, fst . eTgt])
           -- TODO: Probably we need to find a new latom? Must we perform a case split on
           -- all maximal facts?
           L.modM sLastAtom (\mlatom -> do
@@ -395,6 +388,15 @@ execProofMethod ctxt method sys =
             return latom)
           return ()
         where
+          fst3 :: (a, b, c) -> a
+          fst3 (a, _, _) = a
+
+          snd3 :: (a, b, c) -> b
+          snd3 (_, b, _) = b
+
+          neqForAny :: Eq a => a -> [(b -> a)] -> b -> Bool
+          neqForAny i cs b = any (/= i) $ map ($ b) cs
+
           insertPrem :: NodePrem -> Reduction ()
           insertPrem prem@(nid, pix) = do
             nodes <- L.getM sNodes
