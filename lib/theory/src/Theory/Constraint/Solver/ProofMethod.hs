@@ -382,6 +382,9 @@ execProofMethod ctxt method sys =
           L.modM sEdges (S.filter $ neqForAny i [fst . eSrc, fst . eTgt])
           -- TODO: Probably we need to find a new latom? Must we perform a case split on
           -- all maximal facts?
+          -- TODO: Just drop this; we will not use cyclic induction and other
+          -- in parallel. However, this still might have implications on the
+          -- paper.
           L.modM sLastAtom (\mlatom -> do
             latom <- mlatom
             guard (latom /= i)

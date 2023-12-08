@@ -2000,6 +2000,7 @@ isValidRenamingM cycleTgt cycleCnd rM =  do
   rM
 
 allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
+-- NOTE: We try to make cycleTgt be contained in cycleCnd
 allNodeRenamings cycleTgt cycleCnd = 
   let nidsCycleTgt = gatherRules $ getNodes cycleTgt
       nidsCycleCnd = gatherRules $ getNodes cycleCnd
