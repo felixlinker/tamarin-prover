@@ -38,6 +38,7 @@ module Theory (
   , asynchronousChannels
   , compressEvents
   , forcedInjectiveFacts
+  , addForcedInjectiveFacts
   , setforcedInjectiveFacts
   , thyOptions
   , thyIsSapic

@@ -107,6 +107,7 @@ module TheoryObject (
   , addFunctionTypingInfo
   , clearFunctionTypingInfos
   , addExportInfo
+  , addForcedInjectiveFacts
   , setforcedInjectiveFacts
   , filterLemma
   , lookupFunctionTypingInfo
@@ -487,6 +488,10 @@ setOption :: Data.Label.Poly.Lens
                Data.Label.Point.Total (Option -> Option) (Bool -> Bool)
              -> Theory sig c r p s -> Theory sig c r p s
 setOption l = L.set (l . thyOptions) True
+
+addForcedInjectiveFacts :: S.Set FactTag
+             -> Theory sig c r p s -> Theory sig c r p s
+addForcedInjectiveFacts tags = L.modify (forcedInjectiveFacts . thyOptions) (S.union tags)
 
 setforcedInjectiveFacts :: S.Set FactTag
              -> Theory sig c r p s -> Theory sig c r p s
