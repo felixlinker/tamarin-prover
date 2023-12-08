@@ -218,6 +218,9 @@ theory inFile = do
            addItems inFile0 thy'
       , do thy' <- liftedAddTactic thy =<< tactic False
            addItems inFile0 thy'
+      , do injectiveFacts <- parseForcedInjectiveFacts
+           let thy' = addForcedInjectiveFacts injectiveFacts thy
+           addItems inFile0 thy'
       , do thy' <- builtins thy
            msig <- sig <$> getState
            addItems inFile0 $ set (sigpMaudeSig . thySignature) msig thy'

@@ -10,6 +10,7 @@
 
 module Theory.Text.Parser.Signature (
     heuristic
+    , parseForcedInjectiveFacts
     , builtins
     , options
     , functions
@@ -46,9 +47,22 @@ import Theory.Text.Parser.Exceptions
 import Data.Label.Total
 import Data.Label.Mono (Lens)
 import Theory.Sapic
+import Theory.Model.Fact (FactTag(..), Multiplicity(..))
 import qualified Data.Functor
 
 
+parseForcedInjectiveFacts :: Parser (S.Set FactTag)
+parseForcedInjectiveFacts = do
+  _ <- symbol "injective"
+  colon
+  tags <- commaSep1 factTags
+  return $ S.fromList tags
+  where
+    factTags = do
+      tag <- identifier
+      opSlash
+      mult  <- fromIntegral <$> natural
+      return $ ProtoFact Linear tag mult
 
  -- Describes the mapping between Maude Signatures and the builtin Name
 builtinsDiffNames :: [(String,
