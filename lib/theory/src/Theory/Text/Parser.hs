@@ -12,9 +12,7 @@
 -- Parsing protocol theories. See the MANUAL for a high-level description of
 -- the syntax.
 module Theory.Text.Parser (
-    parseOpenTheory
-  , parseOpenTheoryString
-  , parseOpenDiffTheory
+    parseOpenTheoryString
   , parseOpenDiffTheoryString
   , theory
   , diffTheory
@@ -55,19 +53,6 @@ import Theory.Text.Parser.Sapic
 ------------------------------------------------------------------------------
 -- Lexing and parsing theory files and proof methods
 ------------------------------------------------------------------------------
-
--- | Parse a security protocol theory file.
-parseOpenTheory :: [String] -- ^ Defined flags
-                -> FilePath
-                -> IO OpenTheory
-parseOpenTheory flags0 inFile = parseFile flags0 (theory (Just inFile)) inFile
-
--- | Parse a security protocol theory file.
-parseOpenDiffTheory :: [String] -- ^ Defined flags
-                -> FilePath
-                -> IO OpenDiffTheory
-parseOpenDiffTheory flags0 inFile = parseFile flags0 (diffTheory (Just inFile)) inFile
-
 
 -- | Parse a security protocol theory from a string.
 parseOpenTheoryString :: [String]  -- ^ Defined flags.
