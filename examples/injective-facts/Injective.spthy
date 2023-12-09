@@ -1,0 +1,21 @@
+theory InjectiveFacts
+begin
+
+injective: FactA/2
+
+rule StartA:
+  [ Fr(~id) ] --> [ FactA(~id, $X) ]
+
+rule ObscurA:
+  [ FactA(~id, x) ] --> [ ObscurA(~id, x) ]
+
+rule LoopA:
+  [ ObscurA(~id, x) ] --> [ FactA(~id, x) ]
+
+rule StartB:
+  [ Fr(~id) ] --> [ FactB(~id, $X) ]
+
+rule ObscurB:
+  [ FactB(~id, x) ] --> [ FactB(~id, x) ]
+
+end
