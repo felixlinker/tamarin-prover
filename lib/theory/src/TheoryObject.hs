@@ -108,7 +108,6 @@ module TheoryObject (
   , clearFunctionTypingInfos
   , addExportInfo
   , addForcedInjectiveFacts
-  , setforcedInjectiveFacts
   , filterLemma
   , lookupFunctionTypingInfo
   , prettyTheory
@@ -492,10 +491,6 @@ setOption l = L.set (l . thyOptions) True
 addForcedInjectiveFacts :: S.Set FactTag
              -> Theory sig c r p s -> Theory sig c r p s
 addForcedInjectiveFacts tags = L.modify (forcedInjectiveFacts . thyOptions) (S.union tags)
-
-setforcedInjectiveFacts :: S.Set FactTag
-             -> Theory sig c r p s -> Theory sig c r p s
-setforcedInjectiveFacts = L.set (forcedInjectiveFacts . thyOptions)
 
 -- | Add a new restriction. Fails, if restriction with the same name exists.
 addRestrictionDiff :: Side -> Restriction -> DiffTheory sig c r r2 p p2 -> Maybe (DiffTheory sig c r r2 p p2)

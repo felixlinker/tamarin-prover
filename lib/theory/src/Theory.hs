@@ -39,7 +39,6 @@ module Theory (
   , compressEvents
   , forcedInjectiveFacts
   , addForcedInjectiveFacts
-  , setforcedInjectiveFacts
   , thyOptions
   , thyIsSapic
   , setOption
