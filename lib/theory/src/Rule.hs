@@ -143,7 +143,9 @@ closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules int
     hnd = L.get sigmMaudeHandle sig
     reducibles = reducibleFunSyms $ mhMaudeSig hnd
 
-    forcedInjFacts' = S.map (\x -> (x, replicate (factTagArity x) [Unspecified])) forcedInjFacts
+    -- We compute @factTagArity x - 1@ because the first argument of injective
+    -- facts is always taken as constant
+    forcedInjFacts' = S.map (\x -> (x, replicate (factTagArity x - 1) [Unspecified])) forcedInjFacts
     -- inj fact instances
     injFactInstances = forcedInjFacts' `S.union`
         simpleInjectiveFactInstances reducibles (L.get cprRuleE <$> protoRules)
