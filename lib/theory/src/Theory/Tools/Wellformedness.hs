@@ -590,6 +590,13 @@ factReports thy = concat
              return $ (,) ("Lemma " ++ quote (get lName l)) $ do
                  fa <- formulaFacts (get lFormula l)
                  return $ (text (show fa), factInfo fa)
+      <|> do
+          let forced = get forcedInjectiveFacts $ get thyOptions thy
+          let mapped = map extractTagInfo $ S.toList forced
+          return ("Forced Injective Facts", mapped)
+
+    extractTagInfo t@(ProtoFact mult _ arity) = (text $ show t, (t, arity, mult))
+    extractTagInfo _ = error "non-proto fact was forced to be injective"
 
     -- we must compute all important information up-front in order to
     -- mangle facts with terms with bound variables and such without them
