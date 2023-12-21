@@ -27,7 +27,9 @@ module Sapic.Facts (
    , actionToFact
    , actionToFactFormula
    , pureStateFactTag
+   , pureStateFactTagInjectiveInstance
    , pureStateLockFactTag
+   , pureStateLockFactTagInjectiveInstance
    , toRule
    , varMID
    , varProgress
@@ -58,6 +60,7 @@ import Data.Bits
 import qualified Data.Set as S
 import Data.Color
 import qualified Data.List              as List
+import Theory.Tools.InjectiveFactInstances (MonotonicBehaviour(..))
 -- import Control.Monad.Trans.FastFresh
 
 -- | Facts that are used as actions
@@ -264,8 +267,18 @@ factToFact (CellLocked t1 t2) = protoFact Linear "L_CellLocked" [t1, t2]
 pureStateFactTag :: FactTag
 pureStateFactTag =  ProtoFact Linear "L_PureState" 2
 
+pureStateFactTagInjectiveInstance :: (FactTag, [[MonotonicBehaviour]])
+-- We compute @factTagArity pureStateFactTag - 1@ because the first argument of
+-- injective facts is always taken as constant
+pureStateFactTagInjectiveInstance = (pureStateFactTag, replicate (factTagArity pureStateFactTag - 1) [Unspecified])
+
 pureStateLockFactTag :: FactTag
 pureStateLockFactTag =  ProtoFact Linear "L_CellLocked" 2
+
+pureStateLockFactTagInjectiveInstance :: (FactTag, [[MonotonicBehaviour]])
+-- We compute @factTagArity pureStateLockFactTag - 1@ because the first argument
+-- of injective facts is always taken as constant
+pureStateLockFactTagInjectiveInstance = (pureStateLockFactTag, replicate (factTagArity pureStateLockFactTag - 1) [Unspecified])
 
 
 isOutFact :: Fact t -> Bool

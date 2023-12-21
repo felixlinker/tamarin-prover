@@ -12,6 +12,7 @@ import Data.Binary (Binary)
 import Data.Label as L
 import qualified Data.Set as S
 import Theory.Model.Fact
+import Theory.Tools.InjectiveFactInstances (MonotonicBehaviour)
 
 ------------------------------------------------------------------------------
 -- Options
@@ -28,7 +29,7 @@ data Option = Option
         , _stateChannelOpt            :: Bool
         , _asynchronousChannels       :: Bool
         , _compressEvents       :: Bool
-        , _forcedInjectiveFacts :: S.Set FactTag
+        , _forcedInjectiveFacts :: S.Set (FactTag, [[MonotonicBehaviour]])
         , _lemmasToProve        :: [String]
         , _openChainsLimit      :: Integer
         , _saturationLimit      :: Integer

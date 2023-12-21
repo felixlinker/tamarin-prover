@@ -171,6 +171,7 @@ import Items.ExportInfo
 import qualified Data.Set as S
 import Theory.Syntactic.Predicate
 import Data.ByteString.Char8 (unpack)
+import Theory.Tools.InjectiveFactInstances (MonotonicBehaviour)
 
 -- | A theory contains a single set of rewriting rules modeling a protocol
 -- and the lemmas that
@@ -488,7 +489,7 @@ setOption :: Data.Label.Poly.Lens
              -> Theory sig c r p s -> Theory sig c r p s
 setOption l = L.set (l . thyOptions) True
 
-addForcedInjectiveFacts :: S.Set FactTag
+addForcedInjectiveFacts :: S.Set (FactTag, [[MonotonicBehaviour]])
              -> Theory sig c r p s -> Theory sig c r p s
 addForcedInjectiveFacts tags = L.modify (forcedInjectiveFacts . thyOptions) (S.union tags)
 

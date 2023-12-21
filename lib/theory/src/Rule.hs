@@ -120,7 +120,8 @@ closeIntrRule _   ir                                        = [ir]
 closeRuleCache :: IntegerParameters  -- ^ Parameters for open chains and saturation limits
                -> [LNGuarded]        -- ^ Restrictions to use.
                -> [LNGuarded]        -- ^ Source lemmas to use.
-               -> S.Set FactTag      -- ^ Fact tags forced to be injective
+               -> S.Set (FactTag, [[MonotonicBehaviour]])
+                                     -- ^ Fact tags forced to be injective
                -> SignatureWithMaude -- ^ Signature of theory.
                -> [ClosedProtoRule]  -- ^ Protocol rules with variants.
                -> OpenRuleCache      -- ^ Intruder rules modulo AC.
@@ -143,11 +144,8 @@ closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules int
     hnd = L.get sigmMaudeHandle sig
     reducibles = reducibleFunSyms $ mhMaudeSig hnd
 
-    -- We compute @factTagArity x - 1@ because the first argument of injective
-    -- facts is always taken as constant
-    forcedInjFacts' = S.map (\x -> (x, replicate (factTagArity x - 1) [Unspecified])) forcedInjFacts
     -- inj fact instances
-    injFactInstances = forcedInjFacts' `S.union`
+    injFactInstances = forcedInjFacts `S.union`
         simpleInjectiveFactInstances reducibles (L.get cprRuleE <$> protoRules)
 
     -- precomputing the case distinctions: we make sure to only add safety

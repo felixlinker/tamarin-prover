@@ -49,20 +49,37 @@ import Data.Label.Mono (Lens)
 import Theory.Sapic
 import Theory.Model.Fact (FactTag(..), Multiplicity(..))
 import qualified Data.Functor
+import Theory.Tools.InjectiveFactInstances (MonotonicBehaviour(..))
 
 
-parseForcedInjectiveFacts :: Parser (S.Set FactTag)
+parseBehavior :: Parser [MonotonicBehaviour]
+parseBehavior = choice $ map (\(t, bhv) -> symbol t Data.Functor.$> [bhv]) [
+      ("=<", Increasing),
+      (">=", Decreasing),
+      ("=", Constant),
+      ("<", StrictlyIncreasing),
+      (">", StrictlyDecreasing),
+      (".", Unstable),
+      ("?", Unspecified)
+    ]
+
+parseForcedInjectiveFacts :: Parser (S.Set (FactTag, [[MonotonicBehaviour]]))
 parseForcedInjectiveFacts = do
   _ <- symbol "injective"
   colon
   tags <- commaSep1 factTags
   return $ S.fromList tags
   where
+    withArity tag = do
+            opSlash
+            mult  <- fromIntegral <$> natural
+            return (ProtoFact Linear tag mult, replicate (mult - 1) [Unspecified])
+    withBehavior tag = do
+      bhvs <- parens (symbol "id" *> try (symbol "," *> commaSep parseBehavior))
+      return (ProtoFact Linear tag (length bhvs + 1), bhvs)
     factTags = do
       tag <- identifier
-      opSlash
-      mult  <- fromIntegral <$> natural
-      return $ ProtoFact Linear tag mult
+      choice [withArity tag, withBehavior tag]
 
  -- Describes the mapping between Maude Signatures and the builtin Name
 builtinsDiffNames :: [(String,

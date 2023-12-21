@@ -83,7 +83,7 @@ translate th = case theoryProcesses th of
                 -- add heuristic, if not already defined by user
                 let th3 = fromMaybe th2 (addHeuristic [SapicRanking] th2)
                 -- for state optimisation: force special facts  to be injective
-                let th4 = checkOps' stateChannelOpt (addForcedInjectiveFacts (S.fromList [pureStateFactTag, pureStateLockFactTag])) th3
+                let th4 = checkOps' stateChannelOpt (addForcedInjectiveFacts (S.fromList [pureStateFactTagInjectiveInstance, pureStateLockFactTagInjectiveInstance])) th3
                 let th5 = set thyIsSapic True th4
                 return th5
       _   -> throw (MoreThanOneProcess :: SapicException AnnotatedProcess)

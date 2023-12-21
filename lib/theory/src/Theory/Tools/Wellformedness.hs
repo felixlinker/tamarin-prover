@@ -592,7 +592,7 @@ factReports thy = concat
                  return $ (text (show fa), factInfo fa)
       <|> do
           let forced = get forcedInjectiveFacts $ get thyOptions thy
-          let mapped = map extractTagInfo $ S.toList forced
+          let mapped = map (extractTagInfo . fst) $ S.toList forced
           return ("Forced Injective Facts", mapped)
 
     extractTagInfo t@(ProtoFact mult _ arity) = (text $ show t, (t, arity, mult))
