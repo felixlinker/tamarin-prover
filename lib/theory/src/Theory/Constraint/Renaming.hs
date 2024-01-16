@@ -68,12 +68,6 @@ fromRuleRenaming r1 r2 =
 applyRenaming :: Apply s a => Renaming s -> a -> a
 applyRenaming (Renaming s) = apply s
 
-tryInsert :: (Ord k, Eq v) => k -> v -> Maybe (M.Map k v) -> Maybe (M.Map k v)
-tryInsert k v maybeMap = do
-  m <- maybeMap
-  guard (M.findWithDefault v k m == v)
-  return $ M.insert k v m
-
 idRenaming :: MaybeMaude (Renaming (Subst c v))
 idRenaming = MaybeT $ return $ Just $ Renaming emptySubst
 
@@ -82,7 +76,14 @@ noRenaming = mzero
 
 mapVar :: (IsConst c, IsVar v) => v -> v -> Renaming (Subst c v) -> Maybe (Renaming (Subst c v))
 mapVar from to = if from == to then Just else modA giSubst modLnSubst
-  where modLnSubst (Subst m) = Subst <$> tryInsert from (LIT $ Var to) (Just m)
+  where
+    tryInsert :: (Ord k, Eq v) => k -> v -> Maybe (M.Map k v) -> Maybe (M.Map k v)
+    tryInsert k v maybeMap = do
+      m <- maybeMap
+      guard (M.findWithDefault v k m == v)
+      return $ M.insert k v m
+
+    modLnSubst (Subst m) = Subst <$> tryInsert from (LIT $ Var to) (Just m)
 
 mapVarM :: (IsConst c, IsVar v) => v -> v -> MaybeMaude (Renaming (Subst c v)) -> MaybeMaude (Renaming (Subst c v))
 mapVarM v1 v2 = mapMaybeT (\mm -> do
@@ -109,8 +110,19 @@ instance Renamable RuleACInst LNSubst where
   MaybeT $ return $ Renaming <$> merge lsubst rsubst
   where
     merge :: (IsConst c, IsVar v) => Subst c v -> Subst c v -> Maybe (Subst c v)
-    merge (Subst m1) (Subst m2) = Subst <$> M.foldrWithKey tryInsert (Just m1) m2
+    merge (Subst m1) (Subst m2) = Subst <$> mergeMaps m1 m2
 
 instance (IsConst c, IsVar v, Renamable d (Subst c v)) => Renamable [d] (Subst c v) where
   l1 ~> l2 = foldl (~><~) idRenaming $ zipWith (~>) l1 l2
 
+mergeMaps :: (Ord k, Eq v) => M.Map k v -> M.Map k v -> Maybe (M.Map k v)
+mergeMaps m1 m2 = M.fromAscList <$> go (M.toAscList m1) (M.toAscList m2)
+  where
+    go :: (Ord a, Eq b) => [(a, b)] -> [(a, b)] -> Maybe [(a, b)]
+    go [] l2 = Just l2
+    go l1 [] = Just l1
+    go l1@((k1, v1):t1) l2@((k2, v2):t2)
+      | k1 == k2 && v1 == v2 = ((k1,v1):) <$> go t1 t2
+      | k1 < k2 = ((k1, v1):) <$> go t1 l2
+      | k2 < k1 = ((k2, v2):) <$> go l1 t2
+      | otherwise = Nothing
