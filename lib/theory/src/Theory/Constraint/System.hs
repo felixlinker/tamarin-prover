@@ -2021,8 +2021,7 @@ getCycleRenaming ctx = peak . getCycleRenamings ctx
   where peak = (fst . fst <$>) . uncons
 
 canCloseCycle :: ProofContext -> System -> Bool
-canCloseCycle ctx = isJust . getCycleRenaming ctx
--- canCloseCycle ctx = const False
+canCloseCycle ctx = maybe False S.null . getCycleRenaming ctx
 
 guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
 guardLoopType ctxt typ nid r =

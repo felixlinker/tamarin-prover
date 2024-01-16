@@ -16,6 +16,7 @@ where
 
 import           Prelude                    hiding (id, (.))
 import qualified Data.Map                   as M
+import qualified Data.Set                   as S
 -- import           Data.Monoid                hiding (Last)
 import           Control.Applicative        hiding (empty, many, optional)
 import           Control.Category
@@ -84,6 +85,7 @@ proofMethod = asum
   , symbol "UNFINISHABLE"       *> pure Unfinishable
   , symbol "weaken node"        *> (Weaken . WeakenNode <$> parens nodevar)
   , symbol "weaken goal"        *> (Weaken . WeakenGoal <$> parens goal)
+  , symbol "cut"                *> (Cut . CutEl . S.fromList <$> parens (commaSep guardedFormula))
   ]
 
 -- | Start parsing a proof skeleton.

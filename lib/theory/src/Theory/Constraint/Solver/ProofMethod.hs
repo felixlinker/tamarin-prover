@@ -17,6 +17,7 @@ module Theory.Constraint.Solver.ProofMethod (
   -- * Proof methods
     CaseName
   , WeakenEl(..)
+  , CutEl(..)
   , ProofMethod(..)
   , DiffProofMethod(..)
   , execProofMethod
@@ -190,6 +191,9 @@ type CaseName = String
 data WeakenEl = WeakenNode NodeId | WeakenGoal Goal
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
+data CutEl = CutEl (S.Set LNGuarded)
+  deriving ( Eq, Ord, Show, Generic, NFData, Binary )
+
 -- | Sound transformations of sequents.
 data ProofMethod =
     Sorry (Maybe String)                 -- ^ Proof was not completed
@@ -203,6 +207,7 @@ data ProofMethod =
                                          -- the single formula constraint in
                                          -- the system.
   | Weaken WeakenEl
+  | Cut CutEl
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | Sound transformations of diff sequents.
@@ -283,6 +288,7 @@ execProofMethod ctxt method sys =
           | null (contradictions ctxt sys)     -> Nothing
           | otherwise                          -> Just M.empty
         Weaken el                              -> singleCase $ weaken el >> setCycleTarget ctxt sys
+        Cut el                                 -> Just $ M.map cleanupSystem $ execCut el
   where
     -- at this point it is safe to remove the free substitution, as all
     -- systems have it fully applied (by the virtue of a call to
@@ -404,6 +410,15 @@ execProofMethod ctxt method sys =
             let r = M.findWithDefault (error "edge points to nothing") nid nodes
             let breakers = ruleInfo (L.get praciLoopBreakers) (const []) $ L.get rInfo r
             overwriteGoal (PremiseG prem $ L.get (rPrem pix) r) (pix `elem` breakers)
+
+    execCut :: CutEl -> M.Map CaseName System
+    execCut (CutEl phis) =
+      let phisL = S.toList phis
+          conj = gconj phisL
+      in    M.singleton "cut" (insertFormula conj sys)
+        <>  M.fromList (zip (map (\i -> "case_" ++ show i) [0..]) (map (\phi -> insertFormula (gnot phi) sys) phisL))
+      where
+        insertFormula phi = L.modify sFormulas (S.insert phi)
 
 -- @execDiffMethod rules method se@ checks first if the @method@ is applicable to
 -- the sequent @se@. Then, it applies the @method@ to the sequent under the
@@ -572,8 +587,9 @@ rankProofMethods ranking tactics ctxt sys =
                         UseInduction   -> [(Induction, ""), (Simplify, "")]
                       )
                   ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
-      cyclicMethods = map ((,"") . Weaken) (nodesToWeaken ++ goalsToWeaken)
-  in if null methods then [] else execMethods $ methods ++ cyclicMethods
+      weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ goalsToWeaken)
+      cutMethods = maybe [] ((:[]) . (,"") . Cut . CutEl) (getCycleRenaming ctxt sys)
+  in if null methods then [] else execMethods $ methods ++ cutMethods ++ weakenMethods
   where
     execMethods = mapMaybe execMethod
     execMethod (m, expl) = do
@@ -1303,6 +1319,7 @@ prettyProofMethod method = case method of
             ]
     Weaken (WeakenNode i) -> keyword_ "weaken node(" <-> prettyNodeId i <-> keyword_ ")"
     Weaken (WeakenGoal g) -> keyword_ "weaken goal(" <-> prettyGoal g <-> keyword_ ")"
+    Cut (CutEl fs) -> keyword_ "cut(" <-> fsep (intersperse comma (map prettyGuarded $ S.toList fs)) <-> keyword_ ")"
 
 -- | Pretty-print a diff proof method.
 prettyDiffProofMethod :: HighlightDocument d => DiffProofMethod -> d
