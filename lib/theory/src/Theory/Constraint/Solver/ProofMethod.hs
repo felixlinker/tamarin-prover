@@ -267,8 +267,6 @@ execProofMethod ctxt method sys =
       case method of
         Sorry _                                -> return M.empty
         Solved
-          -- TODO: Map to `Unfinishable`?
-          | L.get sIsWeakened sys -> Nothing
           | null (openGoals sys)
             && finishedSubterms ctxt sys       -> return M.empty
           | otherwise                          -> Nothing
@@ -1292,7 +1290,7 @@ smartDiffRanking ctxt sys =
 prettyProofMethod :: HighlightDocument d => ProofMethod -> d
 prettyProofMethod method = case method of
     Solved               -> keyword_ "SOLVED" <-> lineComment_ "trace found"
-    Unfinishable         -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm"
+    Unfinishable         -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm or solved after weakening"
     Induction            -> keyword_ "induction"
     Sorry reason         ->
         fsep [keyword_ "sorry", maybe emptyDoc closedComment_ reason]

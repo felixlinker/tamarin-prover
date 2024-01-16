@@ -1044,9 +1044,10 @@ proveSystemDFS heuristic tactics ctxt =
   where
     prove !depth sys =
         case rankProofMethods (useHeuristic heuristic depth) tactics ctxt sys of
-          [] | finishedSubterms ctxt sys -> node Solved M.empty
-          []                             -> node Unfinishable M.empty
-          (method, (cases, _expl)):_     -> node method cases
+          []  | L.get sIsWeakened sys     -> node Unfinishable M.empty
+              | finishedSubterms ctxt sys -> node Solved M.empty
+              | otherwise                 -> node Unfinishable M.empty
+          (method, (cases, _expl)):_      -> node method cases
       where
 
         node method cases =
