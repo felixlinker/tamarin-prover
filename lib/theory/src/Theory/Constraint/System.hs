@@ -247,11 +247,7 @@ module Theory.Constraint.System (
   , getLoopLeaves
   , getLoopRoots
   , getLoopExits
-  , isCorrectRenamingUpTo
   , isProgressingRenaming
-  , isCorrectRenamingM
-  , isProgressingRenamingM
-  , isValidRenamingM
   , allNodeRenamings
 
   -- * Formula simplification
@@ -277,7 +273,7 @@ import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
 import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy, permutations, uncons)
 import qualified Data.Map                             as M
-import           Data.Maybe                           (fromJust, fromMaybe, mapMaybe, isJust)
+import           Data.Maybe                           (fromJust, fromMaybe, mapMaybe, isJust, listToMaybe)
 -- import           Data.Monoid                          (Monoid(..))
 import qualified Data.Monoid                             as Mono
 import qualified Data.Set                             as S
@@ -308,6 +304,7 @@ import           Theory.Tools.InjectiveFactInstances
 import           System.FilePath
 import           Text.Show.Functions()
 import           Utils.Misc 
+import Control.Monad.Trans.Maybe (MaybeT (runMaybeT))
 
 ----------------------------------------------------------------------
 -- ClassifiedRules
@@ -1950,60 +1947,38 @@ instance Renamable Node LNSubst where
 
 -- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
 --    and everything else a potentially correct renaming.
-type CorrectUpTo = Maybe (S.Set LNGuarded)
+type UpToFormulasT = MaybeT WithMaude (S.Set LNGuarded)
 
-isCorrectRenamingUpTo :: System -> System -> Renaming LNSubst -> CorrectUpTo
-isCorrectRenamingUpTo cycleTgt cycleCnd renaming =
-  let tgtNodes = M.keysSet (L.get sNodes cycleTgt)
-      lessInTgt = S.mapMonotonic (\(a, b, _) -> (a, b)) $ L.get sLessAtoms cycleTgt
-      lessInCnd = S.mapMonotonic (\(a,b,_) -> (a, b)) $ L.get sLessAtoms cycleCnd
-      correctOnNodes =
-        applyRenaming renaming (L.get sEdges cycleTgt) == L.get sEdges cycleCnd &&
-        applyRenaming renaming (S.filter (bothInSet tgtNodes) lessInTgt) `S.isSubsetOf` lessInCnd &&
-        -- TODO: I should be able to ignore sLastAtom or raise an error
-        applyRenaming renaming (L.get sLastAtom cycleTgt) == L.get sLastAtom cycleCnd
-      correctOnSolved = applyRenaming renaming (L.get sSolvedFormulas cycleTgt) `S.isSubsetOf` L.get sFormulas cycleCnd
-      correctExcept = applyRenaming renaming (L.get sFormulas cycleTgt) `S.difference` L.get sFormulas cycleCnd
-  in do
-      guard (correctOnNodes && correctOnSolved)
-      return correctExcept
-  where
-    bothInSet :: S.Set NodeId -> (NodeId, NodeId) -> Bool
-    bothInSet s (a, b) = a `S.member` s && b `S.member` s
+computeUpToFormulas :: UpToFormulasT -> MaudeHandle -> Maybe (S.Set LNGuarded)
+computeUpToFormulas mr = runReader $ runMaybeT mr
 
-isCorrectRenamingM :: System -> System -> MaybeRenaming LNSubst -> MaybeRenaming LNSubst
-isCorrectRenamingM cycleTgt cycleCnd rM = do
-  correctExcept <- isCorrectRenamingUpTo cycleTgt cycleCnd <$> rM
-  guard (isJust correctExcept)
-  rM
+-- TODO: Handle last
+isSubSysUpToFormulas :: System -> System -> MaybeRenaming LNSubst -> UpToFormulasT
+isSubSysUpToFormulas smaller larger renamingT = do
+  renaming <- renamingT
+  guard (applyRenaming renaming (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
+  guard (applyRenaming renaming (L.get sLessAtoms smaller) `S.isSubsetOf` L.get sLessAtoms larger)
+  guard (applyRenaming renaming (L.get sSolvedFormulas smaller) `S.isSubsetOf` L.get sSolvedFormulas larger)
+  return (applyRenaming renaming (L.get sFormulas smaller) `S.difference` L.get sFormulas larger)
 
 isProgressingRenaming :: System -> Renaming LNSubst -> Bool
 isProgressingRenaming sys r =
   let renamedTPs = renamedTimePoints r
-      chainStarts = M.keysSet (L.get sNodes sys) S.\\ S.map (snd . e2t) (L.get sEdges sys)
-  in not $ S.null $ allProgressing sys renamedTPs
-
-isProgressingRenamingM :: System -> MaybeRenaming LNSubst -> MaybeRenaming LNSubst
-isProgressingRenamingM sys rM = do
-  isProgressing <- isProgressingRenaming sys <$> rM
-  guard isProgressing
-  rM
+  in not $ S.null $ filterProgressing sys renamedTPs
 
 e2t ::Edge -> (NodeId, NodeId)
 e2t (Edge (src, _) (tgt, _)) = (src, tgt)
 
-isValidRenamingM :: System -> System -> MaybeRenaming LNSubst -> MaybeRenaming LNSubst
-isValidRenamingM cycleTgt cycleCnd rM =  do
-  isCorrect <- isCorrectRenamingUpTo cycleTgt cycleCnd <$> rM
-  isProgressing <- isProgressingRenaming cycleCnd <$> rM
-  guard ((isJust isCorrect) && isProgressing)
-  rM
+isProgressingAndSubSysUpToFormulas :: System -> System -> MaybeRenaming LNSubst -> UpToFormulasT
+isProgressingAndSubSysUpToFormulas smaller larger rM =  do
+  isProgressing <- isProgressingRenaming larger <$> rM
+  guard isProgressing
+  isSubSysUpToFormulas smaller larger rM
 
 allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
--- NOTE: We try to make cycleTgt be contained in cycleCnd
-allNodeRenamings cycleTgt cycleCnd = 
-  let nidsCycleTgt = gatherRules $ getNodes cycleTgt
-      nidsCycleCnd = gatherRules $ getNodes cycleCnd
+allNodeRenamings smaller larger =
+  let nidsCycleTgt = gatherRules $ getNodes smaller
+      nidsCycleCnd = gatherRules $ getNodes larger
       -- TODO: Apply heuristic whether to search for renamings
       -- TODO: Fix search for renaming to account for implicit weakening
       -- NOTE: Idea; I could memorize progress-candidates
@@ -2022,7 +1997,7 @@ allNodeRenamings cycleTgt cycleCnd =
         rec foldAcc ruleRenamings = foldAcc ++ renamingsByRule t1 t2 ruleRenamings
 
     allRenamings :: [Node] -> [Node] -> MaybeRenaming LNSubst -> [MaybeRenaming LNSubst]
-    allRenamings ns1 ns2 acc = if length ns1 /= length ns2
+    allRenamings ns1 ns2 acc = if length ns1 > length ns2
       then []
       else map ((~><~ acc) . (ns1 ~>)) (permutations ns2)
 
@@ -2033,15 +2008,15 @@ allNodeRenamings cycleTgt cycleCnd =
     gatherRules = groupBy (\n1 n2 -> get_rInfo n1 == get_rInfo n2) . S.toAscList
       where get_rInfo = L.get rInfo . nrule
 
-instance Renamable System LNSubst where
-  cycleTgt ~> cycleCnd = msum $ map (isValidRenamingM cycleTgt cycleCnd) (allNodeRenamings cycleTgt cycleCnd)
+isContainedInModRenamingUpToFormulas :: System -> System -> UpToFormulasT
+isContainedInModRenamingUpToFormulas smaller larger = msum $ map (isProgressingAndSubSysUpToFormulas smaller larger) (allNodeRenamings smaller larger)
 
-getCycleRenamings :: ProofContext -> System -> [(Renaming LNSubst, System)]
-getCycleRenamings ctx candidate =
+getCycleRenamings :: ProofContext -> System -> [(S.Set LNGuarded, System)]
+getCycleRenamings ctx leaf =
   let hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
-  in  mapMaybe (\tgt -> (,tgt) <$> computeRenaming (tgt ~> candidate) hnd) $ L.get sCycleTargets candidate
+  in  mapMaybe (\inner -> (,inner) <$> computeUpToFormulas (isContainedInModRenamingUpToFormulas inner leaf) hnd) $ L.get sCycleTargets leaf
 
-getCycleRenaming :: ProofContext -> System -> Maybe (Renaming LNSubst)
+getCycleRenaming :: ProofContext -> System -> Maybe (S.Set LNGuarded)
 getCycleRenaming ctx = peak . getCycleRenamings ctx
   where peak = (fst . fst <$>) . uncons
 
@@ -2075,8 +2050,8 @@ getLoopRoots ctxt sys =
 getLoopExits :: ProofContext -> System -> S.Set NodeId
 getLoopExits = getLoopNodesWhere LoopExit (const True)
 
-allProgressing :: System -> [(LVar, LVar)] -> S.Set NodeId
-allProgressing sys renamings =
+filterProgressing :: System -> [(LVar, LVar)] -> S.Set NodeId
+filterProgressing sys renamings =
   let srcs = S.fromList $ map snd renamings
       tgts = S.fromList $ map fst renamings
       sorting = topologicalSortingAsc (S.map e2t (L.get sEdges sys) <> S.mapMonotonic (\(a,b,_) -> (a,b)) (L.get sLessAtoms sys))

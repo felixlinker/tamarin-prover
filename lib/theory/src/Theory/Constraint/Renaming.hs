@@ -15,20 +15,17 @@ module Theory.Constraint.Renaming
   , (~><~)
   , MaybeMaude
   , MaybeRenaming
-  , computeRenaming
   ) where
 
 import Data.Label as L ( get, mkLabels )
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Term.LTerm (Term (LIT, FAPP), Lit (Var, Con), IsVar, IsConst, LVar(..), LSort(..), VTerm, Name, varOccurences)
+import Term.LTerm (Term (LIT), Lit (Var), IsVar, IsConst, LVar(..), LSort(..), VTerm, Name, varOccurences)
 import Control.Monad (guard, MonadPlus (mzero))
 import Extension.Data.Label (modA)
 import Theory.Model.Rule (RuleACInst, getRuleRenaming)
 import Term.Unification (Apply (apply), SubstVFresh(..), WithMaude, LNSubstVFresh, LNSubst, Subst(..), emptySubst)
 import Control.Monad.Trans.Maybe (MaybeT(..), mapMaybeT)
-import Control.Monad.Trans.Reader (runReader)
-import Term.Maude.Process (MaudeHandle)
 
 newtype Renaming s = Renaming { _giSubst  :: s } deriving Show
 
@@ -117,5 +114,3 @@ instance Renamable RuleACInst LNSubst where
 instance (IsConst c, IsVar v, Renamable d (Subst c v)) => Renamable [d] (Subst c v) where
   l1 ~> l2 = foldl (~><~) idRenaming $ zipWith (~>) l1 l2
 
-computeRenaming :: MaybeRenaming s -> MaudeHandle -> Maybe (Renaming s)
-computeRenaming mr = runReader $ runMaybeT mr
