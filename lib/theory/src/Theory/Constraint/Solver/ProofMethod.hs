@@ -274,11 +274,13 @@ execProofMethod ctxt method sys =
         Sorry _                                -> return M.empty
         Solved
           | null (openGoals sys)
-            && finishedSubterms ctxt sys       -> return M.empty
+            && finishedSubterms ctxt sys
+            && not (L.get sIsWeakened sys)     -> return M.empty
           | otherwise                          -> Nothing
         Unfinishable
           | null (openGoals sys)
-            && not (finishedSubterms ctxt sys) -> return M.empty
+            && (not (finishedSubterms ctxt sys)
+              || L.get sIsWeakened sys)       -> return M.empty
           | otherwise                          -> Nothing
         SolveGoal goal
           | goal `M.member` L.get sGoals sys   -> process $ solve goal
