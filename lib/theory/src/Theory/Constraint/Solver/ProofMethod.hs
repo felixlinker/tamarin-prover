@@ -42,9 +42,9 @@ import           Data.Binary
 import           Data.Function                             (on)
 import           Data.Label                                hiding (get)
 import qualified Data.Label                                as L
-import           Data.List                                 (intersperse,partition,groupBy,sortBy,isPrefixOf,findIndex,intercalate)
+import           Data.List                                 (intersperse,partition,groupBy,sortBy,isPrefixOf,findIndex,intercalate, uncons)
 import qualified Data.Map                                  as M
-import           Data.Maybe                                (catMaybes, fromMaybe, isJust, mapMaybe)
+import           Data.Maybe                                (catMaybes, fromMaybe, isJust, mapMaybe, isNothing)
 -- import           Data.Monoid
 import           Data.Ord                                  (comparing)
 import qualified Data.Set                                  as S
@@ -72,6 +72,7 @@ import           Theory.Constraint.System
 import           Theory.Model
 import           Theory.Text.Pretty
 import qualified Extension.Data.Label as L
+import Control.Monad.Disj (disjunctionOfList)
 
 
 
@@ -280,145 +281,127 @@ execProofMethod ctxt method sys =
             && not (finishedSubterms ctxt sys) -> return M.empty
           | otherwise                          -> Nothing
         SolveGoal goal
-          | goal `M.member` L.get sGoals sys   -> execSolveGoal goal
+          | goal `M.member` L.get sGoals sys   -> process $ solve goal
           | otherwise                          -> Nothing
-        Simplify                               -> singleCase simplifySystem
-        Induction                              -> M.map cleanupSystem <$> execInduction
+        -- process simplifies
+        Simplify                               -> process $ return "simplify"
+        Induction                              -> getInductionCases sys >>= process . induction
         Contradiction _
           | null (contradictions ctxt sys)     -> Nothing
           | otherwise                          -> Just M.empty
-        Weaken el                              -> singleCase $ weaken el >> setCycleTarget ctxt sys
-        Cut el                                 -> Just $ M.map cleanupSystem $ execCut el
+        Weaken el                              -> guardWeaken sys el >>= process . weaken
+        Cut el                                 -> process $ cut el
   where
-    -- at this point it is safe to remove the free substitution, as all
-    -- systems have it fully applied (by the virtue of a call to
-    -- simplifySystem). We also reset the variable indices here.
-    cleanupSystem =
-         (`Precise.evalFresh` Precise.nothingUsed)
-       . renamePrecise
-       . set sSubst emptySubst
-
-
-    -- expect only one or no subcase in the given case distinction
-    singleCase m =
-        case    removeRedundantCases ctxt [] id . map (cleanupSystem . fst)
-              . getDisj $ execReduction m ctxt sys (avoid sys) of
-          []                  -> return M.empty
-          [sys'] | check sys' -> return $ M.singleton "" sys'
-                 | otherwise  -> mzero
-          syss                ->
-               return $ M.fromList (zip (map show [(1::Int)..]) syss)
-      where check sys' = cleanupSystem sys /= sys'
+    process :: Reduction CaseName -> Maybe (M.Map CaseName System)
+    process m =
+      let cases =   removeRedundantCases ctxt [] snd
+                  . map fst
+                  . getDisj $ runReduction cleanup ctxt sys (avoid sys)
+      in case cases of
+        []            -> Just M.empty
+        [(_, s)]
+          | equiv s sys -> Nothing
+          | otherwise   -> Just $ M.singleton "" s
+        _             -> Just $ M.fromList cases
+      where
+        cleanup :: Reduction CaseName
+        cleanup = do
+          name <- m
+          simplifySystem
+          L.setM sSubst emptySubst
+          St.modify ((`Precise.evalFresh` Precise.nothingUsed) . renamePrecise)
+          setCycleTarget ctxt sys
+          return name
 
     -- solve the given goal
     -- PRE: Goal must be valid in this system.
-    execSolveGoal :: Goal -> Maybe (M.Map CaseName System)
-    execSolveGoal goal =
-        return . makeCaseNames . removeRedundantCases ctxt [] snd
-               . map (second cleanupSystem) . map fst . getDisj
-               $ reduc
-      where
-        reduc  = runReduction solver ctxt sys (avoid sys)
-        ths    = L.get pcSources ctxt
-        solver = do name <- maybe (solveGoal goal)
-                                  (fmap $ concat . intersperse "_")
-                                  (solveWithSource ctxt ths goal)
-                    simplifySystem
-                    setCycleTarget ctxt sys
-                    return name
+    solve :: Goal -> Reduction CaseName
+    solve goal =
+      let ths = L.get pcSources ctxt
+      in maybe  (solveGoal goal)
+                (intercalate "_" <$>)
+                (solveWithSource ctxt ths goal)
 
-        makeCaseNames =
-            M.fromListWith (error "case names not unique")
-          . uniqueListBy (comparing fst) id distinguish
-          where
-            distinguish n =
-                [ (\(x,y) -> (x ++ "_case_" ++ pad (show i), y))
-                | i <- [(1::Int)..] ]
-              where
-                l      = length (show n)
-                pad cs = replicate (l - length cs) '0' ++ cs
-
-    -- Apply induction: possible if the system contains only
+    -- Induction is only possible if the system contains only
     -- a single, last-free, closed formula.
-    execInduction
-      | sys == sys0 =
-          case S.toList $ L.get sFormulas sys of
-            [gf] -> case ginduct gf of
-                      Right (bc, sc) -> Just $ insCase "empty_trace"     bc
-                                             $ insCase "non_empty_trace" sc
-                                             $ M.empty
-                      _              -> Nothing
-            _    -> Nothing
+    getInductionCases :: System -> Maybe (LNGuarded, LNGuarded)
+    getInductionCases s = do
+      guard (M.null $ L.get sNodes s)
+      guard (S.null $ L.get sSolvedFormulas s)
+      guard (M.null $ L.get sGoals s)
+      (h, t) <- uncons $ S.toList $ L.get sFormulas s
+      guard (null t)
+      either (const Nothing) Just (ginduct h)
 
-      | otherwise = Nothing
-      where
-        sys0 = set sFormulas (L.get sFormulas sys)
-             $ set sLemmas (L.get sLemmas sys)
-             $ emptySystem (L.get sSourceKind sys) (L.get sDiffSystem sys)
+    induction :: (LNGuarded, LNGuarded) -> Reduction CaseName
+    induction (baseCase, stepCase) = do
+      (caseName, caseFormula) <- disjunctionOfList [("empty_trace", baseCase), ("non_empty_trace", stepCase)]
+      L.setM sFormulas (S.singleton caseFormula)
+      return caseName
 
-        insCase name gf = M.insert name (set sFormulas (S.singleton gf) sys)
+    -- TODO: I think I can drop this guard and instead establish this invariant
+    -- when generated the weakening goals.
+    guardWeaken :: System -> WeakenEl -> Maybe WeakenEl
+    guardWeaken s el@(WeakenGoal g) = do
+      guard (not $ L.get sDiffSystem s)
+      status <- M.lookup g $ L.get sGoals s
+      guard (not $ L.get gsSolved status)
+      return el
+    guardWeaken s el@(WeakenNode i) = do
+      guard (not $ L.get sDiffSystem s)
+      guard (M.member i $ L.get sNodes s)
+      guard (isNothing $ L.get sLastAtom s)
+      return el
 
     -- NOTE: It is not good to return @Reduction@ here. The documentation of
     -- @Reduction@ notes that this should indeed reduce a constraint system such
     -- that the solutions stay the same.
-    weaken :: WeakenEl -> Reduction ()
-    weaken (WeakenGoal g)
-      | L.get sDiffSystem sys = return ()
-      | otherwise = do
-        status <- M.lookup g <$> L.getM sGoals
-        when  (maybe True (not . L.get gsSolved) status)
-              (L.modM sGoals (M.delete g))
-    weaken (WeakenNode i)
-      | L.get sDiffSystem sys = return ()
-      | not $ M.member i $ L.get sNodes sys = return ()
-      | otherwise =
-          let keepGoal :: Goal -> GoalStatus -> Bool
-              keepGoal (PremiseG (i', _) _) st = i /= i' || L.get gsSolved st
-              keepGoal _ _ = True
-          in do
-          L.setM sIsWeakened True
-          L.modM sNodes $ M.delete i
-          L.modM sGoals $ M.filterWithKey keepGoal
-          -- Add premise goals for about-to-be-deleted, outgoing edges
-          toDeleteOutgoing <- S.filter ((== i) . fst . eSrc) <$> L.getM sEdges
-          mapM_ (insertPrem . eTgt) $ S.toList toDeleteOutgoing
-          L.modM sLessAtoms (S.filter $ neqForAny i [fst3, snd3])
-          L.modM sEdges (S.filter $ neqForAny i [fst . eSrc, fst . eTgt])
-          -- TODO: Probably we need to find a new latom? Must we perform a case split on
-          -- all maximal facts?
-          -- TODO: Just drop this; we will not use cyclic induction and other
-          -- in parallel. However, this still might have implications on the
-          -- paper.
-          L.modM sLastAtom (\mlatom -> do
-            latom <- mlatom
-            guard (latom /= i)
-            return latom)
-          return ()
-        where
-          fst3 :: (a, b, c) -> a
-          fst3 (a, _, _) = a
+    weaken :: WeakenEl -> Reduction CaseName
+    weaken (WeakenGoal g) =do
+      L.setM sIsWeakened True
+      L.modM sGoals (M.delete g)
+      return ""
+    weaken (WeakenNode i) =
+      let keepGoal :: Goal -> GoalStatus -> Bool
+          keepGoal (PremiseG (i', _) _) st = i /= i' || L.get gsSolved st
+          keepGoal _ _ = True
+      in do
+        L.setM sIsWeakened True
+        L.modM sNodes $ M.delete i
+        L.modM sGoals $ M.filterWithKey keepGoal
+        (toKeep, toDeleteOutgoing) <- S.partition ((/= i) . fst . eSrc) <$> L.getM sEdges
+        L.setM sEdges (S.filter ((/= i) . fst . eTgt) toKeep)
+        L.modM sLessAtoms (S.filter $ neqForAny i [fst3, snd3])
 
-          snd3 :: (a, b, c) -> b
-          snd3 (_, b, _) = b
-
-          neqForAny :: Eq a => a -> [(b -> a)] -> b -> Bool
-          neqForAny i cs b = any (/= i) $ map ($ b) cs
-
-          insertPrem :: NodePrem -> Reduction ()
-          insertPrem prem@(nid, pix) = do
-            nodes <- L.getM sNodes
-            let r = M.findWithDefault (error "edge points to nothing") nid nodes
-            let breakers = ruleInfo (L.get praciLoopBreakers) (const []) $ L.get rInfo r
-            overwriteGoal (PremiseG prem $ L.get (rPrem pix) r) (pix `elem` breakers)
-
-    execCut :: CutEl -> M.Map CaseName System
-    execCut (CutEl phis) =
-      let phisL = S.toList phis
-          conj = gconj phisL
-      in    M.singleton "cut" (insertFormula conj sys)
-        <>  M.fromList (zip (map (\i -> "case_" ++ show i) [0..]) (map (\phi -> insertFormula (gnot phi) sys) phisL))
+        -- Add premise goals for about-to-be-deleted, outgoing edges
+        mapM_ (return . insertPrem . eTgt) $ S.toList toDeleteOutgoing
+        return ""
       where
-        insertFormula phi = L.modify sFormulas (S.insert phi)
+        fst3 :: (a, b, c) -> a
+        fst3 (a, _, _) = a
+
+        snd3 :: (a, b, c) -> b
+        snd3 (_, b, _) = b
+
+        neqForAny :: Eq a => a -> [b -> a] -> b -> Bool
+        neqForAny i' cs b = any ((/= i') . ($ b)) cs
+
+        insertPrem :: NodePrem -> Reduction ()
+        insertPrem prem@(nid, pix) = do
+          nodes <- L.getM sNodes
+          let r = M.findWithDefault (error "edge points to nothing") nid nodes
+          let breakers = ruleInfo (L.get praciLoopBreakers) (const []) $ L.get rInfo r
+          overwriteGoal (PremiseG prem $ L.get (rPrem pix) r) (pix `elem` breakers)
+
+    cut :: CutEl -> Reduction CaseName
+    cut (CutEl phis) =
+      let phisL = S.toList phis
+      in do
+        (caseName, caseFormula) <- disjunctionOfList (("cut", gconj phisL):zipWith neg [(0 :: Int)..] phisL)
+        L.modM sFormulas (S.insert caseFormula)
+        return caseName
+      where
+        neg i phi = ("negate_" ++ show i, gnot phi)
 
 -- @execDiffMethod rules method se@ checks first if the @method@ is applicable to
 -- the sequent @se@. Then, it applies the @method@ to the sequent under the
