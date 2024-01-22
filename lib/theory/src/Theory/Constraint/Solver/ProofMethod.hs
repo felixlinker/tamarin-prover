@@ -192,7 +192,7 @@ type CaseName = String
 data WeakenEl = WeakenNode NodeId | WeakenGoal Goal | WeakenEdge Edge
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
-data CutEl = CutEl (S.Set LNGuarded)
+newtype CutEl = CutEl UpTo
   deriving ( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | Sound transformations of sequents.
@@ -379,12 +379,16 @@ execProofMethod ctxt method sys =
 
     cut :: CutEl -> Reduction CaseName
     cut (CutEl phis) =
-      let phisL = S.toList phis
+      let phisL = map toFormula $ S.toList phis
       in do
         (caseName, caseFormula) <- disjunctionOfList (("cut", gconj phisL):zipWith neg [(0 :: Int)..] phisL)
         L.modM sFormulas (S.insert caseFormula)
         return caseName
       where
+        toFormula :: Either LNGuarded LessAtom -> LNGuarded
+        toFormula = either id lessAtomToFormula
+
+        neg :: Int -> LNGuarded -> (String, LNGuarded)
         neg i phi = ("negate_" ++ show i, gnot phi)
 
 -- @execDiffMethod rules method se@ checks first if the @method@ is applicable to
@@ -1294,7 +1298,7 @@ prettyProofMethod method = case method of
     Weaken (WeakenNode i) -> keyword_ "weaken node(" <-> prettyNodeId i <-> keyword_ ")"
     Weaken (WeakenGoal g) -> keyword_ "weaken goal(" <-> prettyGoal g <-> keyword_ ")"
     Weaken (WeakenEdge e) -> keyword_ "weaken edge(" <-> prettyEdge e <-> keyword_ ")"
-    Cut (CutEl fs) -> keyword_ "cut(" <-> fsep (intersperse comma (map prettyGuarded $ S.toList fs)) <-> keyword_ ")"
+    Cut (CutEl ut) -> keyword_ "cut(" <-> prettyUpTo ut <-> keyword_ ")"
 
 -- | Pretty-print a diff proof method.
 prettyDiffProofMethod :: HighlightDocument d => DiffProofMethod -> d

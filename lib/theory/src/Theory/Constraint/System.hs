@@ -238,6 +238,9 @@ module Theory.Constraint.System (
   , sDiffSystem
   
   -- * Cyclic Proofs
+  , UpTo
+  , upToToFormulas
+  , prettyUpTo
   , sIsWeakened
   , sCycleTargets
   , sIsCycleTarget
@@ -1955,11 +1958,22 @@ instance Ord Node where
 instance Renamable Node LNSubst where
   (Node nid1 r1) ~> (Node nid2 r2) = mapVarM nid1 nid2 (r1 ~> r2)
 
+type UpTo = S.Set (Either LNGuarded LessAtom)
+
+upToToFormulas :: UpTo -> [LNGuarded]
+upToToFormulas = (map toFormula) . S.toList
+  where
+    toFormula :: Either LNGuarded LessAtom -> LNGuarded
+    toFormula = either id lessAtomToFormula
+
+prettyUpTo :: HighlightDocument d => UpTo -> d
+prettyUpTo = fsep . intersperse comma . map prettyGuarded . upToToFormulas
+
 -- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
 --    and everything else a potentially correct renaming.
-type UpToFormulasT = MaybeT WithMaude (S.Set LNGuarded)
+type UpToFormulasT = MaybeT WithMaude UpTo
 
-computeUpToFormulas :: UpToFormulasT -> MaudeHandle -> Maybe (S.Set LNGuarded)
+computeUpToFormulas :: UpToFormulasT -> MaudeHandle -> Maybe UpTo
 computeUpToFormulas mr = runReader $ runMaybeT mr
 
 -- TODO: Handle last
@@ -1967,9 +1981,10 @@ isSubSysUpToFormulas :: System -> System -> MaybeRenaming LNSubst -> UpToFormula
 isSubSysUpToFormulas smaller larger renamingT = do
   renaming <- renamingT
   guard (applyRenaming renaming (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
-  guard (applyRenaming renaming (L.get sLessAtoms smaller) `S.isSubsetOf` L.get sLessAtoms larger)
+  let diffLessAtoms = applyRenaming renaming (L.get sLessAtoms smaller) `S.difference` L.get sLessAtoms larger
   guard (applyRenaming renaming (L.get sSolvedFormulas smaller) `S.isSubsetOf` L.get sSolvedFormulas larger)
-  return (applyRenaming renaming (L.get sFormulas smaller) `S.difference` L.get sFormulas larger)
+  let diffFormulas = applyRenaming renaming (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
+  return $ S.map Right diffLessAtoms <> S.map Left diffFormulas
 
 isProgressingRenaming :: System -> Renaming LNSubst -> Bool
 isProgressingRenaming sys r =
@@ -2021,12 +2036,12 @@ allNodeRenamings smaller larger =
 isContainedInModRenamingUpToFormulas :: System -> System -> UpToFormulasT
 isContainedInModRenamingUpToFormulas smaller larger = msum $ map (isProgressingAndSubSysUpToFormulas smaller larger) (allNodeRenamings smaller larger)
 
-getCycleRenamings :: ProofContext -> System -> [(S.Set LNGuarded, System)]
+getCycleRenamings :: ProofContext -> System -> [(UpTo, System)]
 getCycleRenamings ctx leaf =
   let hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
   in  mapMaybe (\inner -> (,inner) <$> computeUpToFormulas (isContainedInModRenamingUpToFormulas inner leaf) hnd) $ L.get sCycleTargets leaf
 
-getCycleRenaming :: ProofContext -> System -> Maybe (S.Set LNGuarded)
+getCycleRenaming :: ProofContext -> System -> Maybe UpTo
 getCycleRenaming ctx = peak . getCycleRenamings ctx
   where peak = (fst . fst <$>) . uncons
 
