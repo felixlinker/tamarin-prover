@@ -349,9 +349,9 @@ execProofMethod ctxt method sys =
       L.setM sIsWeakened True
       L.modM sGoals (M.delete g)
       return ""
-    weaken (WeakenEdge e@(Edge (src, _) (tgt, _))) = do
+    weaken (WeakenEdge e) = do
       L.modM sEdges (S.delete e)
-      L.modM sLessAtoms (S.insert (src, tgt, KeepWeakened))
+      L.modM sLessAtoms (S.insert (lessAtomFromEdge KeepWeakened e))
       return ""
     weaken (WeakenNode i) =
       let keepGoal :: Goal -> GoalStatus -> Bool

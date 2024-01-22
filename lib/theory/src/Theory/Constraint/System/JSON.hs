@@ -46,6 +46,7 @@ import qualified Data.ByteString.Lazy.Char8 as BC (unpack)
 import           Text.PrettyPrint.Class     -- for Doc and the pretty printing functions 
 import           Theory.Constraint.System   
 import           Theory.Model
+import Theory.Constraint.System (sLessAtoms)
 
 -------------------------------------------------------------------------------------------------
 -- Data structure for JSON graphs                                                              --
@@ -393,7 +394,7 @@ sequentToJSONGraphs pretty label se =
                           ++ (map (unsolvedActionAtomsToJSONGraphNode pretty) $ unsolvedActionAtoms se)
                           ++ (missingNodesToJSONGraphNodes se $ S.toList $ L.get sEdges se)
               , jgEdges = (map (edgeToJSONGraphEdge se) $ S.toList $ L.get sEdges se)
-                          ++ (map lessAtomsToJSONGraphEdge $ S.toList $ getLessAtoms se)
+                          ++ (map lessAtomsToJSONGraphEdge $ getLessRel $ S.toList $ L.get sLessAtoms se)
                           ++ (map unsolvedchainToJSONGraphEdge $ unsolvedChains se)
               } 
           ] 

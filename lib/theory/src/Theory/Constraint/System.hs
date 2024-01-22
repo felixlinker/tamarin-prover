@@ -193,7 +193,6 @@ module Theory.Constraint.System (
   , sLessAtoms
 
   , getLessAtoms
-  , getLessReason
   , rawLessRel
   , rawEdgeRel
 
@@ -272,7 +271,7 @@ import           GHC.Generics                         (Generic)
 import           Data.Binary
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
-import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy, permutations, uncons)
+import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy, permutations, uncons, intersperse)
 import qualified Data.Map                             as M
 import           Data.Maybe                           (fromJust, fromMaybe, mapMaybe, isJust, listToMaybe)
 -- import           Data.Monoid                          (Monoid(..))
@@ -400,7 +399,7 @@ data System = System
     -- to maintain the `_sLeaf` set when adding nodes and edges, but then we 
     -- would need to refactor every write to `_sNodes` and `_sEdges`.
     , _sEdges          :: S.Set Edge
-    , _sLessAtoms      :: S.Set (NodeId, NodeId, Reason)
+    , _sLessAtoms      :: S.Set LessAtom
     , _sLastAtom       :: Maybe NodeId
     , _sSubtermStore   :: SubtermStore
     , _sEqStore        :: EqStore
@@ -1443,11 +1442,11 @@ getAllMatchingPrems _   _     []  = []
 
 -- | Given a system and a node, gives the list of all nodes that have a "less" edge to this node
 getAllLessPreds :: System -> NodeId -> [NodeId]
-getAllLessPreds sys nid = map fst3 $ filter (\(_, y, _) -> nid == y) (S.toList (L.get sLessAtoms sys))
+getAllLessPreds sys nid = map (L.get laSmaller) $ filter ((nid ==) . L.get laLarger) (S.toList (L.get sLessAtoms sys))
 
 -- | Given a system and a node, gives the list of all nodes that have a "less" edge to this node
 getAllLessSucs :: System -> NodeId -> [NodeId]
-getAllLessSucs sys nid = map snd3 $ filter (\(x, _, _) -> nid == x) (S.toList (L.get sLessAtoms sys))
+getAllLessSucs sys nid = map (L.get laLarger) $ filter ((nid ==) . L.get laSmaller) (S.toList (L.get sLessAtoms sys))
 
 -- | Given a system, returns all node premises that have no incoming edge
 getOpenNodePrems :: System -> [NodePrem]
@@ -1628,18 +1627,10 @@ rawEdgeRel sys = map (nodeConcNode *** nodePremNode) $
 -- (possibly using the 'Less' relation) from @from@ to @to@ in @se@ without
 -- appealing to transitivity.
 rawLessRel :: System -> [(NodeId,NodeId)]
-rawLessRel se = getLessRel (S.toList (L.get sLessAtoms se) )++ rawEdgeRel se
-
--- | Gets the relation of the lesses
-getLessRel :: [Less] -> [(NodeId, NodeId)]
-getLessRel = map (\(x,y,_)->(x,y))
+rawLessRel se = (getLessRel $ S.toList (L.get sLessAtoms se)) ++ rawEdgeRel se
 
 getLessAtoms :: System -> S.Set (NodeId, NodeId)
-getLessAtoms sys = S.fromList $ map (\(x,y,_) -> (x,y)) 
-                  ( S.toList $ L.get sLessAtoms sys)
--- | Gets the reason of a less
-getLessReason :: Less -> Reason
-getLessReason = thd3
+getLessAtoms = S.fromList . getLessRel . S.toList . L.get sLessAtoms
 
 -- | Returns a predicate that is 'True' iff the first argument happens before
 -- the second argument in all models of the sequent.
@@ -2072,7 +2063,7 @@ filterProgressing :: System -> [(LVar, LVar)] -> S.Set NodeId
 filterProgressing sys renamings =
   let srcs = S.fromList $ map snd renamings
       tgts = S.fromList $ map fst renamings
-      sorting = topologicalSortingAsc (S.map e2t (L.get sEdges sys) <> S.mapMonotonic (\(a,b,_) -> (a,b)) (L.get sLessAtoms sys))
+      sorting = topologicalSortingAsc (S.map e2t (L.get sEdges sys) <> getLessAtoms sys)
   in S.intersection tgts $ go srcs sorting where
     go :: S.Set NodeId -> [(NodeId, NodeId)] -> S.Set NodeId
     go acc [] = acc

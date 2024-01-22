@@ -240,7 +240,7 @@ dotSystemLoose se =
         mapM_ dotNode     $ M.keys   $ get sNodes     se
         mapM_ dotEdge     $ S.toList $ get sEdges     se
         mapM_ dotChain    $            unsolvedChains se
-        mapM_ dotLess     $ S.toList (reasonToColor  $ get sLessAtoms    se)
+        mapM_ dotLess     $ S.toList (reasonToColor $ get sLessAtoms se)
   where
     dotEdge  (Edge src tgt)  = do
         mayNid <- M.lookup (src,tgt) `liftM` getM dsSingles
@@ -468,10 +468,10 @@ dotSystemCompact boringStyle showAutosource se =
 
 
 -- | To get the color style for each less 
-reasonToColor :: S.Set (NodeId, NodeId, Reason)
+reasonToColor :: S.Set LessAtom
                 -> S.Set (NodeId, NodeId, String)
-reasonToColor l = S.fromList ( map getAllRToC $
-                  groupOn  (\(x,y,_)->(x,y)) $ S.toList l)
+reasonToColor l = S.fromList (map getAllRToC $
+                  groupOn  (\(LessAtom x y _) -> (x, y)) $ S.toList l)
     where
         toColor :: Reason -> String
         toColor r = case r of
@@ -481,16 +481,17 @@ reasonToColor l = S.fromList ( map getAllRToC $
              KeepWeakened   -> "grey"
              InjectiveFacts -> "purple"
              NormalForm     -> "darkorange3"
-        allRtoColors :: [Reason] -> String
-        allRtoColors r = intercalate ":" (map toColor r)++per
+        -- TODO: This function had very weird functionality previously and I
+        -- should check that I maintain it
+        allRtoColors :: S.Set Reason -> String
+        allRtoColors r = intercalate ":" (map toColor $ S.toList r) ++ per
             where
-                len = length r
-                per = if len >1 then ";" ++ show ((1 :: Double)/fromIntegral len) else ""
+                len = S.size r
+                per = if len > 1 then ";" ++ show ((1 :: Double)/fromIntegral len) else ""
         -- to show all the reasons with their colors
-        getAllRToC :: [Less]-> (NodeId,NodeId,String)
+        getAllRToC :: [LessAtom]-> (NodeId,NodeId,String)
         getAllRToC [] = error "empty list"
-        getAllRToC (x:xs) = (fst3 x, snd3 x,
-                        allRtoColors (reverse (sort $ map thd3 (x:xs))))
+        getAllRToC ls@(LessAtom sml lrg _:_) = (sml, lrg, allRtoColors $ S.fromList $ map (get laReason) ls)
 
         -- |Or else, to show only the most important reason, we can use
         -- |the function below, at the same time, we need remove function
@@ -511,7 +512,7 @@ dropEntailedOrdConstraints se =
     modify sLessAtoms (S.filter (not . entailed)) se
   where
     edges               = rawEdgeRel se
-    entailed (from, to, _) = to `S.member` D.reachableSet [from] edges
+    entailed (LessAtom from to _) = to `S.member` D.reachableSet [from] edges
 
 -- | Unsound compression of the sequent that drops fully connected learns and
 -- knows nodes.
@@ -543,13 +544,9 @@ transitiveReduction sys totalRed=
     where
         oldLessesWithR = S.toList $ get sLessAtoms sys
         oldLesses = rawLessRel sys
-        newLesses =
-            case totalRed of
-                True ->[(x,y,z)| (x,y,z)<- oldLessesWithR,
-                            (x,y) `elem` (D.transRed oldLesses) ]
-                False ->[(x,y,z)| (x,y,z)<- oldLessesWithR,
-                            (x,y) `elem` (D.transRed oldLesses) || z == Formula]
-
+        newLesses = [ LessAtom x y z
+                    | LessAtom x y z <- oldLessesWithR,
+                      (x,y) `elem` D.transRed oldLesses || (not totalRed && z == Formula) ]
 
 -- | @hideTransferNode v se@ hides node @v@ in sequent @se@ if it is a
 -- transfer node; i.e., a node annotated with a rule that is one of the
@@ -576,8 +573,8 @@ tryHideNodeId v se = fromMaybe se $ do
     hideAction = do
         guard $  not (null kuActions)
               && all eligibleTerm kuActions
-              && all (\(i, j, _) -> not (i == j)) lNews
-              && notOccursIn (standardActionAtoms)
+              && all (\(LessAtom i j _) -> i /= j) lNews
+              && notOccursIn standardActionAtoms
               && notOccursIn (get sLastAtom)
               && notOccursIn (get sEdges)
 
@@ -594,9 +591,9 @@ tryHideNodeId v se = fromMaybe se $ do
 
         removeAction m (i, fa, _) = M.delete (ActionG i fa) m
 
-        lIns  = selectPart sLessAtoms ((v ==) . snd3)
-        lOuts = selectPart sLessAtoms ((v ==) . fst3)
-        lNews = [ (i, j, r) | (i, _, _) <- lIns, (_, j, r) <- lOuts ]
+        lIns  = selectPart sLessAtoms ((v ==) . get laSmaller)
+        lOuts = selectPart sLessAtoms ((v ==) . get laLarger)
+        lNews = [ LessAtom i j r | LessAtom i _ _ <- lIns, LessAtom _ j r <- lOuts ]
 
     -- hide a rule, if it is not "too complicated"
     hideRule :: RuleACInst -> Maybe System
