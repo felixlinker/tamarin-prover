@@ -189,7 +189,7 @@ unmarkPremiseG annGoal                        = annGoal
 -- | Every case in a proof is uniquely named.
 type CaseName = String
 
-data WeakenEl = WeakenNode NodeId | WeakenGoal Goal
+data WeakenEl = WeakenNode NodeId | WeakenGoal Goal | WeakenEdge Edge
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 data CutEl = CutEl (S.Set LNGuarded)
@@ -291,7 +291,7 @@ execProofMethod ctxt method sys =
         Contradiction _
           | null (contradictions ctxt sys)     -> Nothing
           | otherwise                          -> Just M.empty
-        Weaken el                              -> guardWeaken sys el >>= process . weaken
+        Weaken el                              -> process $ weaken el
         Cut el                                 -> process $ cut el
   where
     process :: Reduction CaseName -> Maybe (M.Map CaseName System)
@@ -341,20 +341,6 @@ execProofMethod ctxt method sys =
       L.setM sFormulas (S.singleton caseFormula)
       return caseName
 
-    -- TODO: I think I can drop this guard and instead establish this invariant
-    -- when generated the weakening goals.
-    guardWeaken :: System -> WeakenEl -> Maybe WeakenEl
-    guardWeaken s el@(WeakenGoal g) = do
-      guard (not $ L.get sDiffSystem s)
-      status <- M.lookup g $ L.get sGoals s
-      guard (not $ L.get gsSolved status)
-      return el
-    guardWeaken s el@(WeakenNode i) = do
-      guard (not $ L.get sDiffSystem s)
-      guard (M.member i $ L.get sNodes s)
-      guard (isNothing $ L.get sLastAtom s)
-      return el
-
     -- NOTE: It is not good to return @Reduction@ here. The documentation of
     -- @Reduction@ notes that this should indeed reduce a constraint system such
     -- that the solutions stay the same.
@@ -362,6 +348,10 @@ execProofMethod ctxt method sys =
     weaken (WeakenGoal g) =do
       L.setM sIsWeakened True
       L.modM sGoals (M.delete g)
+      return ""
+    weaken (WeakenEdge e@(Edge (src, _) (tgt, _))) = do
+      L.modM sEdges (S.delete e)
+      L.modM sLessAtoms (S.insert (src, tgt, KeepWeakened))
       return ""
     weaken (WeakenNode i) =
       let keepGoal :: Goal -> GoalStatus -> Bool
@@ -372,22 +362,14 @@ execProofMethod ctxt method sys =
         L.modM sNodes $ M.delete i
         L.modM sGoals $ M.filterWithKey keepGoal
         (toKeep, toDeleteOutgoing) <- S.partition ((/= i) . fst . eSrc) <$> L.getM sEdges
-        L.setM sEdges (S.filter ((/= i) . fst . eTgt) toKeep)
-        L.modM sLessAtoms (S.filter $ neqForAny i [fst3, snd3])
+        let (_, toDeleteIncoming) = S.partition ((/= i) . fst . eTgt) toKeep
+        mapM_ (weaken . WeakenEdge) toDeleteOutgoing
+        mapM_ (weaken . WeakenEdge) toDeleteIncoming
 
         -- Add premise goals for about-to-be-deleted, outgoing edges
         mapM_ (return . insertPrem . eTgt) $ S.toList toDeleteOutgoing
         return ""
       where
-        fst3 :: (a, b, c) -> a
-        fst3 (a, _, _) = a
-
-        snd3 :: (a, b, c) -> b
-        snd3 (_, b, _) = b
-
-        neqForAny :: Eq a => a -> [b -> a] -> b -> Bool
-        neqForAny i' cs b = any ((/= i') . ($ b)) cs
-
         insertPrem :: NodePrem -> Reduction ()
         insertPrem prem@(nid, pix) = do
           nodes <- L.getM sNodes
@@ -564,27 +546,34 @@ rankGoals ctxt ranking tacticsList = case ranking of
 rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> System
                  -> [(ProofMethod, (M.Map CaseName System, String))]
 rankProofMethods ranking tactics ctxt sys =
-  let nodesToWeaken = map WeakenNode $ S.toList $ getLoopLeaves ctxt sys <> getLoopExits ctxt sys
-      goalsToWeaken = map WeakenGoal $ filter canDrop $ M.keys $ L.get sGoals sys
+  let isDiff        = L.get sDiffSystem sys
+      lExits        = getLoopExits ctxt sys
+      nodesToWeaken = map WeakenNode $ S.toList $ getLoopLeaves ctxt sys <> lExits
+      edgesToWeaken = map WeakenEdge $ filter (touchesOneOf lExits) $ S.toList $ L.get sEdges sys
+      goalsToWeaken = map (WeakenGoal . fst) $ filter (uncurry canWeaken) $ M.toList $ L.get sGoals sys
       methods =       (contradiction <$> contradictions ctxt sys)
                   ++  (case L.get pcUseInduction ctxt of
                         AvoidInduction -> [(Simplify, ""), (Induction, "")]
                         UseInduction   -> [(Induction, ""), (Simplify, "")]
                       )
                   ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
-      weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ goalsToWeaken)
+      weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ edgesToWeaken ++ goalsToWeaken)
       cutMethods = maybe [] ((:[]) . (,"") . Cut . CutEl) (getCycleRenaming ctxt sys)
-  in if null methods then [] else execMethods $ methods ++ cutMethods ++ weakenMethods
+      cyclicMethods = if isDiff then [] else cutMethods ++ weakenMethods
+  in if null methods then [] else execMethods $ methods ++ cyclicMethods
   where
     execMethods = mapMaybe execMethod
     execMethod (m, expl) = do
       cases <- execProofMethod ctxt m sys
       return (m, (cases, expl))
 
-    canDrop :: Goal -> Bool
-    canDrop (ActionG _ _) = True
-    canDrop (ChainG _ _)  = True
-    canDrop _             = False
+    touchesOneOf :: Foldable t => t NodeId -> Edge -> Bool
+    touchesOneOf nids (Edge (src, _) (tgt, _)) = any (\n -> src == n || tgt == n) nids
+
+    canWeaken :: Goal -> GoalStatus -> Bool
+    canWeaken (ActionG _ _) = not . L.get gsSolved
+    canWeaken (ChainG _ _)  = not . L.get gsSolved
+    canWeaken _             = const False
 
     contradiction c                    = (Contradiction (Just c), "")
 
@@ -1304,6 +1293,7 @@ prettyProofMethod method = case method of
             ]
     Weaken (WeakenNode i) -> keyword_ "weaken node(" <-> prettyNodeId i <-> keyword_ ")"
     Weaken (WeakenGoal g) -> keyword_ "weaken goal(" <-> prettyGoal g <-> keyword_ ")"
+    Weaken (WeakenEdge e) -> keyword_ "weaken edge(" <-> prettyEdge e <-> keyword_ ")"
     Cut (CutEl fs) -> keyword_ "cut(" <-> fsep (intersperse comma (map prettyGuarded $ S.toList fs)) <-> keyword_ ")"
 
 -- | Pretty-print a diff proof method.

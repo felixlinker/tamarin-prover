@@ -73,6 +73,12 @@ goal = asum
         symbol_ "splitEqs"
         parens $ (SplitG . SplitId . fromIntegral) <$> natural
 
+edge :: Parser Edge
+edge = parens (do
+  c <- nodeConc
+  _ <- symbol ">-->"
+  p <- nodePrem
+  return $ Edge c p)
 
 -- | Parse a proof method.
 proofMethod :: Parser ProofMethod
@@ -85,6 +91,7 @@ proofMethod = asum
   , symbol "UNFINISHABLE"       *> pure Unfinishable
   , symbol "weaken node"        *> (Weaken . WeakenNode <$> parens nodevar)
   , symbol "weaken goal"        *> (Weaken . WeakenGoal <$> parens goal)
+  , symbol "weaken edge"        *> (Weaken . WeakenEdge <$> parens edge)
   , symbol "cut"                *> (Cut . CutEl . S.fromList <$> parens (commaSep guardedFormula))
   ]
 
