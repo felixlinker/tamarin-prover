@@ -562,7 +562,10 @@ rankProofMethods ranking tactics ctxt sys =
                       )
                   ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
       weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ edgesToWeaken ++ goalsToWeaken)
-      cutMethods = maybe [] ((:[]) . (,"") . Cut . CutEl) (getCycleRenaming ctxt sys)
+      cutMethods = fromMaybe [] (do
+        upTo <- getCycleRenamingOnPath ctxt sys
+        guard (not $ S.null upTo)
+        return [(Cut (CutEl upTo), "")])
       cyclicMethods = if isDiff then [] else cutMethods ++ weakenMethods
   in if null methods then [] else execMethods $ methods ++ cyclicMethods
   where
