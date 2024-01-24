@@ -32,6 +32,7 @@ import           GHC.Generics                   (Generic)
 import           Data.Binary
 import qualified Data.DAG.Simple                as D (cyclic, reachableSet)
 import qualified Data.Foldable                  as F
+import           Data.Functor                   (($>))
 import           Data.List
 import qualified Data.Map                       as M
 import           Data.Maybe                     (fromMaybe, listToMaybe)
@@ -82,36 +83,37 @@ data Contradiction =
 
 
 -- | 'True' if the constraint system is contradictory.
-contradictorySystem :: ProofContext -> System -> Bool
+contradictorySystem :: ProofContext -> [System] -> Bool
 contradictorySystem ctxt = not . null . contradictions ctxt
 
 -- | All CR-rules reducing a constraint system to *⟂* represented as a list of
 -- trivial contradictions. Note that some constraint systems are also removed
 -- because they have no unifier. This is part of unification. Note also that
 -- *S_{¬,\@}* is handled as part of *S_∀*.
-contradictions :: ProofContext -> System -> [Contradiction]
-contradictions ctxt sys = F.asum
+contradictions :: ProofContext -> [System] -> [Contradiction]
+contradictions _ [] = error "unreachable"
+contradictions ctxt syss@(sys:_) = F.asum
     -- CR-rule **
-    [ guard (D.cyclic $ rawLessRel sys)                            *> pure CyclicTimePoints
+    [ guard (D.cyclic $ rawLessRel sys)             $> CyclicTimePoints
     -- CR-rule *S_Subterm-Chain-Fail*
-    , guard (L.get isContradictory subtermStore)                   *> pure SubtermCyclic
+    , guard (L.get isContradictory subtermStore)    $> SubtermCyclic
     -- CR-rule *N1*
-    , guard (hasNonNormalTerms sig sys)                            *> pure NonNormalTerms
+    , guard (hasNonNormalTerms sig sys)             $> NonNormalTerms
     -- FIXME: add CR-rule
-    , guard (hasForbiddenKD sys)                                   *> pure ForbiddenKD
+    , guard (hasForbiddenKD sys)                    $> ForbiddenKD
     -- FIXME: add CR-rule
-    , guard (hasImpossibleChain ctxt sys)                          *> pure ImpossibleChain
+    , guard (hasImpossibleChain ctxt sys)           $> ImpossibleChain
     -- CR-rule *N7*
-    , guard (enableDH msig && hasForbiddenExp sys)                 *> pure ForbiddenExp
+    , guard (enableDH msig && hasForbiddenExp sys)  $> ForbiddenExp
     -- FIXME: add CR-rule
-    , guard (enableBP msig && hasForbiddenBP sys)                  *> pure ForbiddenBP
+    , guard (enableBP msig && hasForbiddenBP sys)   $> ForbiddenBP
     -- New CR-Rule *N6'*
-    , guard (hasForbiddenChain sys)                                *> pure ForbiddenChain
+    , guard (hasForbiddenChain sys)                 $> ForbiddenChain
     -- CR-rules *S_≐* and *S_≈* are implemented via the equation store
-    , guard (eqsIsFalse $ L.get sEqStore sys)                      *> pure IncompatibleEqs
+    , guard (eqsIsFalse $ L.get sEqStore sys)       $> IncompatibleEqs
     -- CR-rules *S_⟂*, *S_{¬,last,1}*, *S_{¬,≐}*, *S_{¬,≈}*
-    , guard (S.member gfalse $ L.get sFormulas sys)                *> pure FormulasFalse
-    , guard (canCloseCycle ctxt sys)                               *> pure Cyclic
+    , guard (S.member gfalse $ L.get sFormulas sys) $> FormulasFalse
+    , guard (canCloseCycle ctxt syss)               $> Cyclic
     ]
     ++
     -- This rule is not yet documented. It removes constraint systems that

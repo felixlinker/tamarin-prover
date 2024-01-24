@@ -94,20 +94,19 @@ applyMethodAtPath :: ClosedTheory -> String -> ProofPath
                   -> Maybe ClosedTheory
 applyMethodAtPath thy lemmaName proofPath prover i = do
     lemma <- lookupLemma lemmaName thy
-    subProof <- get lProof lemma `atPath` proofPath
+    (_, sysPath) <- get lProof lemma `atPath` proofPath
     let ctxt  = getProofContext lemma thy
-        sys   = psInfo (root subProof)
         heuristic = selectHeuristic prover ctxt
         ranking = useHeuristic heuristic (length proofPath)
         tactic = selectTactic prover ctxt
-    methods <- (map fst . rankProofMethods ranking tactic ctxt) <$> sys
+    let methods = map fst $ rankProofMethods ranking tactic ctxt sysPath
     method <- if length methods >= i then Just (methods !! (i-1)) else Nothing
     applyProverAtPath thy lemmaName proofPath
-      (oneStepProver method                            `mappend`
-       replaceSorryProver (oneStepProver Simplify)     `mappend`
-       replaceSorryProver (contradictionProver)        `mappend`
-       replaceSorryProver (oneStepProver Unfinishable) `mappend`
-       replaceSorryProver (oneStepProver Solved)
+      (   oneStepProver method
+       <> replaceSorryProver (oneStepProver Simplify)
+       <> replaceSorryProver contradictionProver
+       <> replaceSorryProver (oneStepProver Unfinishable)
+       <> replaceSorryProver (oneStepProver Solved)
       )
 
 applyMethodAtPathDiff :: ClosedDiffTheory -> Side -> String -> ProofPath
@@ -116,20 +115,19 @@ applyMethodAtPathDiff :: ClosedDiffTheory -> Side -> String -> ProofPath
                       -> Maybe ClosedDiffTheory
 applyMethodAtPathDiff thy s lemmaName proofPath prover i = do
     lemma <- lookupLemmaDiff s lemmaName thy
-    subProof <- get lProof lemma `atPath` proofPath
+    (_, sysPath) <- get lProof lemma `atPath` proofPath
     let ctxt  = getProofContextDiff s lemma thy
-        sys   = psInfo (root subProof)
         heuristic = selectHeuristic prover ctxt
         ranking = useHeuristic heuristic (length proofPath)
         tactic = selectTactic prover ctxt
-    methods <- (map fst . rankProofMethods ranking tactic ctxt) <$> sys
+    let methods = map fst (rankProofMethods ranking tactic ctxt sysPath)
     method <- if length methods >= i then Just (methods !! (i-1)) else Nothing
     applyProverAtPathDiff thy s lemmaName proofPath
-      (oneStepProver method                            `mappend`
-       replaceSorryProver (oneStepProver Simplify)     `mappend`
-       replaceSorryProver (contradictionProver)        `mappend`
-       replaceSorryProver (oneStepProver Unfinishable) `mappend`
-       replaceSorryProver (oneStepProver Solved)
+      (   oneStepProver method
+       <> replaceSorryProver (oneStepProver Simplify)
+       <> replaceSorryProver (contradictionProver)
+       <> replaceSorryProver (oneStepProver Unfinishable)
+       <> replaceSorryProver (oneStepProver Solved)
       )
 
 applyDiffMethodAtPath :: ClosedDiffTheory -> String -> ProofPath
@@ -138,20 +136,19 @@ applyDiffMethodAtPath :: ClosedDiffTheory -> String -> ProofPath
                       -> Maybe ClosedDiffTheory
 applyDiffMethodAtPath thy lemmaName proofPath prover i = do
     lemma <- lookupDiffLemma lemmaName thy
-    subProof <- get lDiffProof lemma `atPathDiff` proofPath
+    (_, sysPath) <- get lDiffProof lemma `atPathDiff` proofPath
     let ctxt  = getDiffProofContext lemma thy
-        sys   = dpsInfo (root subProof)
         heuristic = selectDiffHeuristic prover ctxt
         ranking = useHeuristic heuristic (length proofPath)
         tactic = selectDiffTactic prover ctxt
-    methods <- (map fst . rankDiffProofMethods ranking tactic ctxt) <$> sys
+    let methods = map fst $ rankDiffProofMethods ranking tactic ctxt sysPath
     method <- if length methods >= i then Just (methods !! (i-1)) else Nothing
     applyDiffProverAtPath thy lemmaName proofPath
-      (oneStepDiffProver method                        `mappend`
-       replaceDiffSorryProver (oneStepDiffProver (DiffBackwardSearchStep Simplify)) `mappend`
-       replaceDiffSorryProver (contradictionDiffProver)    `mappend`
-       replaceDiffSorryProver (oneStepDiffProver DiffMirrored)    `mappend`
-       replaceDiffSorryProver (oneStepDiffProver DiffUnfinishable)
+      (   oneStepDiffProver method                                 
+       <> replaceDiffSorryProver (oneStepDiffProver (DiffBackwardSearchStep Simplify))
+       <> replaceDiffSorryProver contradictionDiffProver
+       <> replaceDiffSorryProver (oneStepDiffProver DiffMirrored)
+       <> replaceDiffSorryProver (oneStepDiffProver DiffUnfinishable)
       )
 
 applyProverAtPath :: ClosedTheory -> String -> ProofPath
@@ -513,31 +510,30 @@ subProofSnippet :: HtmlDocument d
                 -> ProofPath                 -- ^ The proof path.
                 -> ProofContext              -- ^ The proof context.
                 -> IncrementalProof          -- ^ The sub-proof.
+                -> [System]
                 -> d
-subProofSnippet renderUrl tidx ti lemma proofPath ctxt prf =
-    case psInfo $ root prf of
-      Nothing -> text $ "no annotated constraint system / " ++ nCases ++ " sub-case(s)"
-      Just se -> vcat $
-        prettyApplicableProofMethods se
-        ++
-        [ text ""
-        , withTag "h3" [] (text "Constraint system")
-        ] ++
-        [ refDotPath renderUrl tidx (TheoryProof lemma proofPath)
-        | nonEmptyGraph se ]
-        ++
-        [ preformatted (Just "sequent") (prettyNonGraphSystem se)
-        , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
-        ] ++
-        subCases
+subProofSnippet _ _ _ _ _ _ _ [] = text "no annotated constraint system"
+subProofSnippet renderUrl tidx ti lemma proofPath ctxt prf syss@(se:_) = vcat $
+  prettyApplicableProofMethods
+  ++
+  [ text ""
+  , withTag "h3" [] (text "Constraint system")
+  ] ++
+  [ refDotPath renderUrl tidx (TheoryProof lemma proofPath)
+  | nonEmptyGraph se ]
+  ++
+  [ preformatted (Just "sequent") (prettyNonGraphSystem se)
+  , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
+  ] ++
+  subCases
   where
-    prettyApplicableProofMethods sys = case proofMethods sys of
-        [] | finishedSubterms ctxt sys  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
+    prettyApplicableProofMethods = case proofMethods syss of
+        [] | finishedSubterms ctxt se   -> [ withTag "h3" [] (text "Constraint System is Solved") ]
         []                              -> [ withTag "h3" [] (text "Constraint System is Unfinishable") ]
         pms ->
           [ withTag "h3" [] (text "Applicable Proof Methods:" <->
                              comment_ (goalRankingName ranking))
-          , preformatted (Just "methods") (numbered' $ map prettyPM $ zip [1..] pms)
+          , preformatted (Just "methods") (numbered' $ zipWith prettyPM [1..] pms)
           , autoProverLinks 'a' ""         emptyDoc      0
           , autoProverLinks 'b' "bounded-" boundDesc bound
           , autoProverLinks 's' "all-"     allProve      0
@@ -565,7 +561,7 @@ subProofSnippet renderUrl tidx ti lemma proofPath ctxt prf =
       , linkToPath renderUrl
             (AutoProverR tidx CutDFS bound (TheoryProof lemma proofPath))
             [classPrefix ++ "autoprove"]
-            (keyword_ $ "autoprove")
+            (keyword_ "autoprove")
       , parens $
           text (toUpper key : ".") <->
           linkToPath renderUrl
@@ -575,7 +571,7 @@ subProofSnippet renderUrl tidx ti lemma proofPath ctxt prf =
       , nameSuffix
       ]
 
-    prettyPM (i, (m, (_cases, expl))) =
+    prettyPM i (m, (_cases, expl)) =
       linkToPath renderUrl
         (TheoryPathMR tidx (TheoryMethod lemma proofPath i))
         ["proof-method"] (prettyProofMethod m)
@@ -606,26 +602,25 @@ subProofDiffSnippet :: HtmlDocument d
                     -> ProofPath                 -- ^ The proof path.
                     -> ProofContext              -- ^ The proof context.
                     -> IncrementalProof          -- ^ The sub-proof.
+                    -> [System]
                     -> d
-subProofDiffSnippet renderUrl tidx ti s lemma proofPath ctxt prf =
-    case psInfo $ root prf of
-      Nothing -> text $ "no annotated constraint system / " ++ nCases ++ " sub-case(s)"
-      Just se -> vcat $
-        prettyApplicableProofMethods se
-        ++
-        [ text ""
-        , withTag "h3" [] (text "Constraint system")
-        ] ++
-        [ refDotDiffPath renderUrl tidx (DiffTheoryProof s lemma proofPath) False
-        | nonEmptyGraph se ]
-        ++
-        [ preformatted (Just "sequent") (prettyNonGraphSystem se)
-        , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
-        ] ++
-        subCases
+subProofDiffSnippet _ _ _ _ _ _ _ _ [] = text "no annotated constraint system"
+subProofDiffSnippet renderUrl tidx ti s lemma proofPath ctxt prf syss@(se:_) = vcat $
+  prettyApplicableProofMethods
+  ++
+  [ text ""
+  , withTag "h3" [] (text "Constraint system")
+  ] ++
+  [ refDotDiffPath renderUrl tidx (DiffTheoryProof s lemma proofPath) False
+  | nonEmptyGraph se ]
+  ++
+  [ preformatted (Just "sequent") (prettyNonGraphSystem se)
+  , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
+  ] ++
+  subCases
   where
-    prettyApplicableProofMethods sys = case proofMethods sys of
-        [] | finishedSubterms ctxt sys  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
+    prettyApplicableProofMethods = case proofMethods syss of
+        [] | finishedSubterms ctxt se   -> [ withTag "h3" [] (text "Constraint System is Solved") ]
         []                              -> [ withTag "h3" [] (text "Constraint System is Unfinishable") ]
         pms ->
           [ withTag "h3" [] (text "Applicable Proof Methods:" <->
@@ -699,91 +694,89 @@ subDiffProofSnippet :: HtmlDocument d
                     -> ProofPath                 -- ^ The proof path.
                     -> DiffProofContext          -- ^ The proof context.
                     -> IncrementalDiffProof      -- ^ The sub-proof.
+                    -> [DiffSystem]
                     -> d
-subDiffProofSnippet renderUrl tidx ti lemma proofPath ctxt prf =
-    case dpsInfo $ root prf of
-      Nothing -> text $ "no annotated constraint system / " ++ nCases ++ " sub-case(s)"
-      Just se -> vcat $
-        prettyApplicableDiffProofMethods se
-        ++
-        [ text ""
-        , withTag "h3" [] (text "Constraint system")
-        ] ++
-        [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) False
-        | nonEmptyGraphDiff se ]
-        ++
-        mirrorSystem
-        ++
-        [ preformatted (Just "sequent") (prettyNonGraphSystemDiff ctxt se)
-        , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
-        ] ++
-        subCases
+subDiffProofSnippet _ _ _ _ _ _ _ [] = text "no annotated constraint system"
+subDiffProofSnippet renderUrl tidx ti lemma proofPath ctxt prf syss@(se:_) = vcat $
+  prettyApplicableDiffProofMethods
+  ++
+  [ text ""
+  , withTag "h3" [] (text "Constraint system")
+  ] ++
+  [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) False
+  | nonEmptyGraphDiff se ]
+  ++
+  mirrorSystem
+  ++
+  [ preformatted (Just "sequent") (prettyNonGraphSystemDiff ctxt se)
+  , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
+  ] ++
+  subCases
   where
-    prettyApplicableDiffProofMethods sys = case (diffProofMethods sys, get dsSide sys, get dsSystem sys) of
-        ([], Nothing, _)                                                                  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
-        ([], _, Nothing)                                                                  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
-        ([], Just side, Just sys') | finishedSubterms (eitherProofContext ctxt side) sys' -> [ withTag "h3" [] (text "Constraint System is Solved") ]
-        ([], _, _)                                                                           -> [ withTag "h3" [] (text "Constraint System is Unfinishable") ]
-        (pms, _, _) ->
-          [ withTag "h3" [] (text "Applicable Proof Methods:" <->
-                             comment_ (goalRankingName ranking))
-          , preformatted (Just "methods") (numbered' $ map prettyPM $ zip [1..] pms)
-          , autoProverLinks 'a' ""         emptyDoc      0
-          , autoProverLinks 'b' "bounded-" boundDesc bound
-          , autoProverLinks 's' "all-"     allProve      0
-          ]
+    prettyApplicableDiffProofMethods =
+      let methods = diffProofMethods syss
+      in  if null methods
+          then [ withTag "h3" [] (text (fromMaybe "Constraint System is Solved" (do
+            s <- get dsSide se
+            se' <- get dsSystem se
+            guard (not $ finishedSubterms (eitherProofContext ctxt s) se')
+            return "Constraint System is Unfinishable"))) ]
+          else  [ withTag "h3" [] (text "Applicable Proof Methods:" <-> comment_ (goalRankingName ranking))
+                , preformatted (Just "methods") (numbered' $ zipWith prettyPM [1..] methods)
+                , autoProverLinks 'a' ""         emptyDoc      0
+                , autoProverLinks 'b' "bounded-" boundDesc bound
+                , autoProverLinks 's' "all-"     allProve      0 ]
         where
           boundDesc = text $ " with proof-depth bound " ++ show bound
           bound     = fromMaybe 5 $ apBound $ dtiAutoProver ti
-          allProve  = text $ " for all lemmas "
+          allProve  = text " for all lemmas "
 
-    mirrorSystem =
-        if dpsMethod (root prf) == DiffMirrored
-           then [ text "", withTag "h3" [] (text "mirror:") ] ++
-                [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True ] ++
-                [ text "" ]
-        else if dpsMethod (root prf) == DiffAttack
-           then [ text "", withTag "h3" [] (text "attack:") ] ++
-                [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True ] ++
-                [ text "(If no attack graph is shown, the current graph has no mirrors. If one of the mirror graphs violates a restriction, this graph is shown.)" ] ++
-                [ text "" ]
-        else if dpsMethod (root prf) == DiffUnfinishable
-           then [ text "", withTag "h3" [] (text "mirror:") ] ++
-                [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True ] ++
-                [ text "The proof cannot be finished as there are reducible operators at the top of subterms in the subterm store." ] ++
-                [ text "" ]
-           else []
+    mirrorSystem
+      | dpsMethod (root prf) == DiffMirrored =
+        [ text ""
+        , withTag "h3" [] (text "mirror:")
+        , refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True
+        , text "" ]
+      | dpsMethod (root prf) == DiffAttack =
+        [ text "", withTag "h3" [] (text "attack:")
+        , refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True
+        , text "(If no attack graph is shown, the current graph has no mirrors. If one of the mirror graphs violates a restriction, this graph is shown.)"
+        , text "" ]
+      | dpsMethod (root prf) == DiffUnfinishable =
+        [ text "", withTag "h3" [] (text "mirror:")
+        , refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True
+        , text "The proof cannot be finished as there are reducible operators at the top of subterms in the subterm store."
+        , text "" ]
+      | otherwise = []
 
     autoProverLinks key "all-" nameSuffix bound = hsep
       [ text (key : ".")
       , linkToPath renderUrl
             (AutoProverAllDiffR tidx CutDFS bound)
             ["autoprove-all"]
-            (keyword_ $ "autoprove")
+            (keyword_ "autoprove")
       , parens $
           text (toUpper key : ".") <->
           linkToPath renderUrl
               (AutoProverAllDiffR tidx CutNothing bound)
               ["characterization-all"]
               (keyword_ "for all solutions")
-      , nameSuffix
-      ]
+      , nameSuffix ]
     autoProverLinks key classPrefix nameSuffix bound = hsep
       [ text (key : ".")
       , linkToPath renderUrl
             (AutoDiffProverR tidx CutDFS bound (DiffTheoryDiffProof lemma proofPath))
             [classPrefix ++ "autoprove"]
-            (keyword_ $ "autoprove")
+            (keyword_ "autoprove")
       , parens $
           text (toUpper key : ".") <->
           linkToPath renderUrl
               (AutoDiffProverR tidx CutNothing bound (DiffTheoryDiffProof lemma proofPath))
               [classPrefix ++ "characterization"]
               (keyword_ "for all solutions")
-      , nameSuffix
-      ]
+      , nameSuffix ]
 
-    prettyPM (i, (m, (_cases, expl))) =
+    prettyPM i (m, (_cases, expl)) =
       linkToPath renderUrl
         (TheoryPathDiffMR tidx (DiffTheoryDiffMethod lemma proofPath i))
         ["proof-method"] (prettyDiffProofMethod m)
@@ -984,8 +977,8 @@ htmlThyPath :: RenderUrl    -- ^ The function for rendering Urls.
             -> TheoryInfo   -- ^ The info of the theory to render
             -> TheoryPath   -- ^ Path to render
             ->  Html
-htmlThyPath renderUrl info path =
-  go path
+htmlThyPath renderUrl info =
+  go
   where
     thy  = tiTheory info
     tidx = tiIndex  info
@@ -1006,7 +999,7 @@ htmlThyPath renderUrl info path =
     go (TheoryProof l p)       = pp $
         fromMaybe (text "No such lemma or proof path.") $ do
            lemma <- lookupLemma l thy
-           subProofSnippet renderUrl tidx info l p (getProofContext lemma thy)
+           uncurry (subProofSnippet renderUrl tidx info l p (getProofContext lemma thy))
              <$> resolveProofPath thy l p
 
     go (TheoryLemma _)         = pp $ text "Implement lemma pretty printing!"
@@ -1142,13 +1135,13 @@ htmlDiffThyPath renderUrl info path =
     go (DiffTheoryProof s l p)         = pp $
         fromMaybe (text "No such lemma or proof path.") $ do
            lemma <- lookupLemmaDiff s l thy
-           subProofDiffSnippet renderUrl tidx info s l p (getProofContextDiff s lemma thy)
+           uncurry (subProofDiffSnippet renderUrl tidx info s l p (getProofContextDiff s lemma thy))
              <$> resolveProofPathDiff thy s l p
 
     go (DiffTheoryDiffProof l p)       = pp $
         fromMaybe (text "No such lemma or proof path.") $ do
            lemma <- lookupDiffLemma l thy
-           subDiffProofSnippet renderUrl tidx info l p (getDiffProofContext lemma thy)
+           uncurry (subDiffProofSnippet renderUrl tidx info l p (getDiffProofContext lemma thy))
              <$> resolveProofPathDiffLemma thy l p
 
     go (DiffTheoryLemma _ _)           = pp $ text "Implement lemma pretty printing!"
@@ -1317,14 +1310,14 @@ imgThyPath imgFormat (graphChoice, graphCommand) cacheDir_ compact showJsonGraph
     -- Get dot code for proof path in lemma
     proofPathDotCode lemma proofPath =
       prefixedShowDot $ fromMaybe (return ()) $ do
-        subProof <- resolveProofPath thy lemma proofPath
+        (subProof, _) <- resolveProofPath thy lemma proofPath
         sequent <- psInfo $ root subProof
         return $ compact sequent
 
    -- Get JSON for proof path in lemma
     proofPathJsonCode lemma proofPath =
       fromMaybe ("") $ do
-        subProof <- resolveProofPath thy lemma proofPath
+        (subProof, _) <- resolveProofPath thy lemma proofPath
         sequent <- psInfo $ root subProof
         return $ showJsonGraphFunct ("Theory: " ++ (get thyName thy) ++ " Lemma: " ++ lemma) sequent
 
@@ -1437,24 +1430,22 @@ imgDiffThyPath imgFormat dotCommand cacheDir_ compact simplificationLevel abbrev
     -- Get dot code for proof path in lemma
     proofPathDotCode s lemma proofPath =
       D.showDot $ fromMaybe (return ()) $ do
-        subProof <- resolveProofPathDiff thy s lemma proofPath
+        (subProof, _) <- resolveProofPathDiff thy s lemma proofPath
         sequent <- psInfo $ root subProof
         return $ compact sequent
 
     -- Get dot code for proof path in lemma
     proofPathDotCodeDiff lemma proofPath mir =
       D.showDot $ fromMaybe (return ()) $ do
-        subProof <- resolveProofPathDiffLemma thy lemma proofPath
+        (subProof, _) <- resolveProofPathDiffLemma thy lemma proofPath
         diffSequent <- dpsInfo $ root subProof
         if mir
           then do
             lem <- lookupDiffLemma lemma thy
             let ctxt = getDiffProofContext lem thy
-            side <- get dsSide diffSequent
-            let isSolved s sys' = (rankProofMethods GoalNrRanking [defaultTactic] (eitherProofContext ctxt s) sys') == [] -- checks if the system is solved
             nsequent <- get dsSystem diffSequent
             -- Here we can potentially get Nothing if there is no mirror DG
-            let sequentList = snd $ getMirrorDGandEvaluateRestrictions ctxt diffSequent (isSolved side nsequent)
+            let sequentList = snd $ getMirrorDGandEvaluateRestrictions ctxt diffSequent (solved nsequent)
             if null sequentList then Nothing else return $ compact $ head sequentList
           else do
             sequent <- get dsSystem diffSequent
@@ -1532,7 +1523,7 @@ titleThyPath thy path = go path
     methodName l p =
       case resolveProofPath thy l p of
         Nothing -> "None"
-        Just proof -> renderHtmlDoc $ prettyProofMethod $ psMethod $ root proof
+        Just (proof, _) -> renderHtmlDoc $ prettyProofMethod $ psMethod $ root proof
 
 -- | Get title to display for a given proof path.
 titleDiffThyPath :: ClosedDiffTheory -> DiffTheoryPath -> String
@@ -1560,42 +1551,44 @@ titleDiffThyPath thy path = go path
     methodName s l p =
       case resolveProofPathDiff thy s l p of
         Nothing -> "None"
-        Just proof -> renderHtmlDoc $ prettyProofMethod $ psMethod $ root proof
+        Just (proof, _) -> renderHtmlDoc $ prettyProofMethod $ psMethod $ root proof
 
     diffMethodName l p =
       case resolveProofPathDiffLemma thy l p of
         Nothing -> "None"
-        Just proof -> renderHtmlDoc $ prettyDiffProofMethod $ dpsMethod $ root proof
+        Just (proof, _) -> renderHtmlDoc $ prettyDiffProofMethod $ dpsMethod $ root proof
 
 
 -- | Resolve a proof path.
 resolveProofPath :: ClosedTheory            -- ^ Theory to resolve in
                  -> String                  -- ^ Name of lemma
                  -> ProofPath               -- ^ Path to resolve
-                 -> Maybe IncrementalProof
+                 -> Maybe (IncrementalProof, [System])
 resolveProofPath thy lemmaName path = do
   lemma <- lookupLemma lemmaName thy
-  get lProof lemma `atPath` path
+  (prf, p) <- get lProof lemma `atPath` path
+  return (prf, p)
 
 -- | Resolve a diff proof path.
 resolveProofPathDiff :: ClosedDiffTheory       -- ^ Theory to resolve in
                     -> Side                    -- ^ Side of lemma
                     -> String                  -- ^ Name of lemma
                     -> ProofPath               -- ^ Path to resolve
-                    -> Maybe IncrementalProof
+                    -> Maybe (IncrementalProof, [System])
 resolveProofPathDiff thy s lemmaName path = do
   lemma <- lookupLemmaDiff s lemmaName thy
-  get lProof lemma `atPath` path
+  (prf, p) <- get lProof lemma `atPath` path
+  return (prf, p)
 
 -- | Resolve a proof path for a diff lemma.
 resolveProofPathDiffLemma :: ClosedDiffTheory       -- ^ Theory to resolve in
                     -> String                  -- ^ Name of lemma
                     -> ProofPath               -- ^ Path to resolve
-                    -> Maybe IncrementalDiffProof
+                    -> Maybe (IncrementalDiffProof, [DiffSystem])
 resolveProofPathDiffLemma thy lemmaName path = do
   lemma <- lookupDiffLemma lemmaName thy
-  get lDiffProof lemma `atPathDiff` path
-
+  (prf, p) <- get lDiffProof lemma `atPathDiff` path
+  return (prf, p)
 
 ------------------------------------------------------------------------------
 -- Moving to next/prev proof path

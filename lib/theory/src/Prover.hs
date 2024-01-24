@@ -272,7 +272,7 @@ proveTheory selector prover thy =
       where
         ctxt    = getProofContext lem thy
         sys     = mkSystem ctxt (theoryRestrictions thy) preItems $ L.get lFormula lem
-        add prf = fromMaybe prf $ runProver prover ctxt 0 sys prf
+        add prf = fromMaybe prf $ runProver prover ctxt 0 [sys] prf
 
 -- | Prove both the assertion soundness as well as all lemmas of the theory. If
 -- the prover fails on a lemma, then its proof remains unchanged.
@@ -299,7 +299,7 @@ proveDiffTheory selector prover diffprover thy =
       where
         ctxt    = getProofContextDiff s lem thy
         sys     = mkSystemDiff s ctxt (diffTheoryRestrictions thy) preItems $ L.get lFormula lem
-        add prf = fromMaybe prf $ runProver prover ctxt 0 sys prf
+        add prf = fromMaybe prf $ runProver prover ctxt 0 [sys] prf
 
     proveDiffLemma lem preItems
       | selector lem = modify lDiffProof add lem
@@ -307,7 +307,7 @@ proveDiffTheory selector prover diffprover thy =
       where
         ctxt    = getDiffProofContext lem thy
         sys     = mkDiffSystem ctxt (diffTheoryRestrictions thy) preItems
-        add prf = fromMaybe prf $ runDiffProver diffprover ctxt 0 sys prf
+        add prf = fromMaybe prf $ runDiffProver diffprover ctxt 0 [sys] prf
 
 -- | Construct a constraint system for verifying the given formula.
 mkSystem :: ProofContext -> [Restriction] -> [TheoryItem r p s]
@@ -487,7 +487,7 @@ modifyLemmaProof prover name thy =
     change preItems (LemmaItem lem) = do
          let ctxt = getProofContext lem thy
              sys  = mkSystem ctxt (theoryRestrictions thy) preItems $ L.get lFormula lem
-         lem' <- modA lProof (runProver prover ctxt 0 sys) lem
+         lem' <- modA lProof (runProver prover ctxt 0 [sys]) lem
          return $ LemmaItem lem'
     change _ _ = error "LemmaProof: change: impossible"
 
@@ -512,7 +512,7 @@ modifyLemmaProofDiff s prover name thy =
           do
             let ctxt = getProofContextDiff s'' lem thy
                 sys  = mkSystemDiff s'' ctxt (diffTheoryRestrictions thy) preItems $ L.get lFormula lem
-            lem' <- modA lProof (runProver prover ctxt 0 sys) lem
+            lem' <- modA lProof (runProver prover ctxt 0 [sys]) lem
             return $ EitherLemmaItem (s''', lem')
         else
           error "LemmaProof: change: impossible"
@@ -539,7 +539,7 @@ modifyDiffLemmaProof prover name thy = -- error $ show $ -- name ++ show thy
             -- I don't get why we need this here, but anyway the empty system does not seem to be a problem.
             let ctxt = getDiffProofContext lem thy
                 sys  = mkDiffSystem ctxt (diffTheoryRestrictions thy) preItems
-            lem' <- modA lDiffProof (runDiffProver prover ctxt 0 sys) lem
+            lem' <- modA lDiffProof (runDiffProver prover ctxt 0 [sys]) lem
             return $ DiffLemmaItem lem'
     change _ _ = error "DiffLemmaProof: change: impossible"
 

@@ -123,6 +123,7 @@ module Theory.Constraint.System (
   , System
   , DiffProofType(..)
   , DiffSystem
+  , solved
   , equiv
 
   -- ** Construction
@@ -242,10 +243,8 @@ module Theory.Constraint.System (
   , upToToFormulas
   , prettyUpTo
   , sIsWeakened
-  , sCycleTargets
-  , sIsCycleTarget
-  , getCycleRenamings
-  , getCycleRenaming
+  , getCycleRenamingsOnPath
+  , getCycleRenamingOnPath
   , canCloseCycle
   , getLoopLeaves
   , getLoopRoots
@@ -413,16 +412,19 @@ data System = System
     , _sNextGoalNr     :: Integer
     , _sSourceKind     :: SourceKind
     , _sDiffSystem     :: Bool
-    , _sIsWeakened     :: Bool
-    , _sCycleTargets   :: [System]
-    , _sIsCycleTarget  :: Bool
-    }
+    , _sIsWeakened     :: Bool }
     -- NOTE: Don't forget to update 'substSystem' in
     -- "Constraint.Solver.Reduction" when adding further fields to the
     -- constraint system.
     deriving( Eq, Ord, Generic, NFData, Binary )
 
 $(mkLabels [''System, ''GoalStatus])
+
+solved :: System -> Bool
+solved = null . filter (unsolved . snd) . M.toList . L.get sGoals
+  where
+    unsolved :: GoalStatus -> Bool
+    unsolved = not . L.get gsSolved
 
 equiv :: System -> System -> Bool
 equiv s1 s2 = and
@@ -838,7 +840,7 @@ emptySystem :: SourceKind -> Bool -> System
 emptySystem d isdiff = System
     M.empty S.empty S.empty Nothing emptySubtermStore emptyEqStore
     S.empty S.empty S.empty
-    M.empty 0 d isdiff False [] False
+    M.empty 0 d isdiff False
 
 -- | The empty diff constraint system.
 emptyDiffSystem :: DiffSystem
@@ -1827,13 +1829,13 @@ instance Apply LNSubst SourceKind where
     apply = const id
 
 instance Apply LNSubst System where
-    apply subst (System a b c d e f g h i j k l m n o p) =
+    apply subst (System a b c d e f g h i j k l m n) =
         System (apply subst a)
         -- we do not apply substitutions to node variables, so we do not apply them to the edges either
         b
         (apply subst c) (apply subst d)
         (apply subst e) (apply subst f) (apply subst g) (apply subst h) (apply subst i)
-        j k (apply subst l) (apply subst m) n o p
+        j k (apply subst l) (apply subst m) n
 
 instance HasFrees SourceKind where
     foldFrees = const mempty
@@ -1846,7 +1848,7 @@ instance HasFrees GoalStatus where
     mapFrees  = const pure
 
 instance HasFrees System where
-    foldFrees fun (System a b c d e f g h i j k l m n o p) =
+    foldFrees fun (System a b c d e f g h i j k l m n) =
         foldFrees fun a `mappend`
         foldFrees fun b `mappend`
         foldFrees fun c `mappend`
@@ -1860,11 +1862,9 @@ instance HasFrees System where
         foldFrees fun k `mappend`
         foldFrees fun l `mappend`
         foldFrees fun m `mappend`
-        foldFrees fun n `mappend`
-        foldFrees fun o `mappend`
-        foldFrees fun p
+        foldFrees fun n
 
-    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n _o _p) =
+    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n) =
         foldFreesOcc fun ("a":ctx') a {- `mappend`
         foldFreesCtx fun ("b":ctx') b `mappend`
         foldFreesCtx fun ("c":ctx') c `mappend`
@@ -1878,7 +1878,7 @@ instance HasFrees System where
         foldFreesCtx fun ("k":ctx') k -}
       where ctx' = "system":ctx
 
-    mapFrees fun (System a b c d e f g h i j k l m n o p) =
+    mapFrees fun (System a b c d e f g h i j k l m n) =
         System <$> mapFrees fun a
                <*> mapFrees fun b
                <*> mapFrees fun c
@@ -1893,8 +1893,6 @@ instance HasFrees System where
                <*> mapFrees fun l
                <*> mapFrees fun m
                <*> mapFrees fun n
-               <*> mapFrees fun o
-               <*> mapFrees fun p
 
 instance HasFrees Source where
     foldFrees f th =
@@ -1927,11 +1925,11 @@ compareNodesUpToNewVars n1 n2 = compareListsUpToNewVars (M.toAscList n1) (M.toAs
 compareSystemsUpToNewVars :: System -> System -> Ordering
 -- when we have trace systems, we can ignore new variable instantiations
 compareSystemsUpToNewVars
-   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _ _ _)
-   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _ _ _)
+   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _)
+   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _)
        = if compareNodes == EQ then
-            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False False [] False)
-                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False False [] False)
+            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False False)
+                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False False)
          else
             compareNodes
         where
@@ -2036,17 +2034,18 @@ allNodeRenamings smaller larger =
 isContainedInModRenamingUpToFormulas :: System -> System -> UpToFormulasT
 isContainedInModRenamingUpToFormulas smaller larger = msum $ map (isProgressingAndSubSysUpToFormulas smaller larger) (allNodeRenamings smaller larger)
 
-getCycleRenamings :: ProofContext -> System -> [(UpTo, System)]
-getCycleRenamings ctx leaf =
+getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, System)]
+getCycleRenamingsOnPath _ [] = []
+getCycleRenamingsOnPath ctx (leaf:candidates) =
   let hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
-  in  mapMaybe (\inner -> (,inner) <$> computeUpToFormulas (isContainedInModRenamingUpToFormulas inner leaf) hnd) $ L.get sCycleTargets leaf
+  in  mapMaybe (\inner -> (,inner) <$> computeUpToFormulas (isContainedInModRenamingUpToFormulas inner leaf) hnd) candidates
 
-getCycleRenaming :: ProofContext -> System -> Maybe UpTo
-getCycleRenaming ctx = peak . getCycleRenamings ctx
+getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe UpTo
+getCycleRenamingOnPath ctx = peak . getCycleRenamingsOnPath ctx
   where peak = (fst . fst <$>) . uncons
 
-canCloseCycle :: ProofContext -> System -> Bool
-canCloseCycle ctx = maybe False S.null . getCycleRenaming ctx
+canCloseCycle :: ProofContext -> [System] -> Bool
+canCloseCycle ctx = maybe False S.null . getCycleRenamingOnPath ctx
 
 guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
 guardLoopType ctxt typ nid r =

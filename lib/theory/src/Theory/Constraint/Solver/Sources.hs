@@ -174,7 +174,7 @@ solveAllSafeGoals ths' openChainsLimit =
     solve ths caseNames lastChainTerm chainsLeft = do
         simplifySystem
         ctxt <- ask
-        contradictoryIf =<< (gets (contradictorySystem ctxt))
+        contradictoryIf =<< gets (contradictorySystem ctxt . (:[]))
         goals  <- gets openGoals
         chains <- gets unsolvedChains
         -- Filter out chain goals where the term in the conclusion is identical to one we just solved,

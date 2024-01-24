@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections   #-}
 {-# LANGUAGE ViewPatterns    #-}
 {-# LANGUAGE DeriveGeneric   #-}
@@ -39,14 +38,11 @@ module Theory.Constraint.Solver.ProofMethod (
   
 import           GHC.Generics                              (Generic)
 import           Data.Binary
-import           Data.Function                             (on)
-import           Data.Label                                hiding (get)
 import qualified Data.Label                                as L
-import           Data.List                                 (intersperse,partition,groupBy,sortBy,isPrefixOf,findIndex,intercalate, uncons)
+import           Data.List                                 (intersperse,partition,groupBy,isPrefixOf,findIndex,intercalate, uncons)
 import qualified Data.Map                                  as M
-import           Data.Maybe                                (catMaybes, fromMaybe, isJust, mapMaybe, isNothing)
+import           Data.Maybe                                (catMaybes, fromMaybe, mapMaybe, isNothing, isJust)
 -- import           Data.Monoid
-import           Data.Ord                                  (comparing)
 import qualified Data.Set                                  as S
 import           Extension.Prelude                         (sortOn)
 import qualified Data.ByteString.Char8 as BC
@@ -79,26 +75,6 @@ import Control.Monad.Disj (disjunctionOfList)
 ------------------------------------------------------------------------------
 -- Utilities
 ------------------------------------------------------------------------------
-
--- | @uniqueListBy eq changes xs@ zips the @changes@ with all sequences equal
--- elements in the list.
---
--- > uniqueListBy compare id (const [ (++ show i) | i <- [1..] ]) ["a","b","a"] =
--- > ["a1","b","a2"]
---
-uniqueListBy :: (a -> a -> Ordering) -> (a -> a) -> (Int -> [a -> a]) -> [a] -> [a]
-uniqueListBy ord single distinguish xs0 =
-      map fst
-    $ sortBy (comparing snd)
-    $ concat $ map uniquify $ groupBy (\x y -> ord (fst x) (fst y) == EQ)
-    $ sortBy (ord `on` fst)
-    $ zip xs0 [(0::Int)..]
-  where
-    uniquify []      = error "impossible"
-    uniquify [(x,i)] = [(single x, i)]
-    uniquify xs      = zipWith (\f (x,i) -> (f x, i)) dist xs
-      where
-        dist = distinguish $ length xs
 
 isNonLoopBreakerProtoFactGoal :: (Goal, (a, Usefulness)) -> Bool
 isNonLoopBreakerProtoFactGoal (PremiseG _ fa, (_, Useful)) =
@@ -246,21 +222,6 @@ instance HasFrees DiffProofMethod where
 -- Proof method execution
 -------------------------
 
-setCycleTarget :: ProofContext -> System -> Reduction ()
-setCycleTarget ctxt sys = do
-  isCycleTarget <- L.getM sIsCycleTarget
-  diffSystem <- L.getM sDiffSystem
-  let loopLeaves = getLoopLeaves ctxt sys
-  unless  (isCycleTarget || diffSystem || null loopLeaves)
-          (L.modM sCycleTargets (prepCycleTarget sys:))
-  where
-    prepCycleTarget :: System -> System
-    prepCycleTarget =
-        set sIsCycleTarget True
-      . set sGoals M.empty
-      . set sLemmas S.empty
-      . set sCycleTargets []
-
 -- @execMethod rules method se@ checks first if the @method@ is applicable to
 -- the sequent @se@. Then, it applies the @method@ to the sequent under the
 -- assumption that the @rules@ describe all rewriting rules in scope.
@@ -268,31 +229,32 @@ setCycleTarget ctxt sys = do
 -- NOTE that the returned systems have their free substitution fully applied
 -- and all variable indices reset.
 execProofMethod :: ProofContext
-                -> ProofMethod -> System -> Maybe (M.Map CaseName System)
-execProofMethod ctxt method sys =
-      case method of
-        Sorry _                                -> return M.empty
-        Solved
-          | null (openGoals sys)
-            && finishedSubterms ctxt sys
-            && not (L.get sIsWeakened sys)     -> return M.empty
-          | otherwise                          -> Nothing
-        Unfinishable
-          | null (openGoals sys)
-            && (not (finishedSubterms ctxt sys)
-              || L.get sIsWeakened sys)       -> return M.empty
-          | otherwise                          -> Nothing
-        SolveGoal goal
-          | goal `M.member` L.get sGoals sys   -> process $ solve goal
-          | otherwise                          -> Nothing
-        -- process simplifies
-        Simplify                               -> process $ return "simplify"
-        Induction                              -> getInductionCases sys >>= process . induction
-        Contradiction _
-          | null (contradictions ctxt sys)     -> Nothing
-          | otherwise                          -> Just M.empty
-        Weaken el                              -> process $ weaken el
-        Cut el                                 -> process $ cut el
+                -> ProofMethod -> [System] -> Maybe (M.Map CaseName System)
+execProofMethod _ _ [] = error "unreachable"
+execProofMethod ctxt method syss@(sys:_) =
+    case method of
+      Sorry _                              -> return M.empty
+      Solved
+        | null (openGoals sys)
+          && finishedSubterms ctxt sys
+          && not (L.get sIsWeakened sys)   -> return M.empty
+        | otherwise                        -> Nothing
+      Unfinishable
+        | null (openGoals sys)
+          && (not (finishedSubterms ctxt sys) || L.get sIsWeakened sys)
+                                           -> return M.empty
+        | otherwise                        -> Nothing
+      SolveGoal goal
+        | goal `M.member` L.get sGoals sys -> process $ solve goal
+        | otherwise                        -> Nothing
+      -- process simplifies
+      Simplify                             -> process $ return "simplify"
+      Induction                            -> getInductionCases sys >>= process . induction
+      Contradiction _
+        | null (contradictions ctxt syss)  -> Nothing
+        | otherwise                        -> Just M.empty
+      Weaken el                            -> process $ weaken el
+      Cut el                               -> process $ cut el
   where
     process :: Reduction CaseName -> Maybe (M.Map CaseName System)
     process m =
@@ -300,11 +262,11 @@ execProofMethod ctxt method sys =
                   . map fst
                   . getDisj $ runReduction cleanup ctxt sys (avoid sys)
       in case cases of
-        []            -> Just M.empty
+        []              -> Just M.empty
         [(_, s)]
           | equiv s sys -> Nothing
           | otherwise   -> Just $ M.singleton "" s
-        _             -> Just $ M.fromList cases
+        _               -> Just $ M.fromList cases
       where
         cleanup :: Reduction CaseName
         cleanup = do
@@ -312,7 +274,6 @@ execProofMethod ctxt method sys =
           simplifySystem
           L.setM sSubst emptySubst
           St.modify ((`Precise.evalFresh` Precise.nothingUsed) . renamePrecise)
-          setCycleTarget ctxt sys
           return name
 
     -- solve the given goal
@@ -398,64 +359,73 @@ execProofMethod ctxt method sys =
 -- NOTE that the returned systems have their free substitution fully applied
 -- and all variable indices reset.
 execDiffProofMethod :: DiffProofContext
-                -> DiffProofMethod -> DiffSystem -> Maybe (M.Map CaseName DiffSystem)
-execDiffProofMethod ctxt method sys = -- error $ show ctxt ++ show method ++ show sys -- return M.empty
-      case method of
-        DiffSorry _                                           -> return M.empty
-        DiffBackwardSearch
-          | (L.get dsProofType sys) == (Just RuleEquivalence) -> case (L.get dsCurrentRule sys, L.get dsSide sys) of
-                                                                      (Just rule, Nothing) -> Just $ startBackwardSearch rule
-                                                                      (_ , _)              -> Nothing
-          | otherwise                                         -> Nothing
-        DiffBackwardSearchStep meth
-          | (L.get dsProofType sys) == (Just RuleEquivalence)
-            && (meth /= Induction)
-            && (meth /= (Contradiction (Just ForbiddenKD)))   -> case (L.get dsCurrentRule sys, L.get dsSide sys, L.get dsSystem sys) of
-                                                                      (Just _, Just s, Just sys') -> applyStep meth s sys'
-                                                                      (_ , _ , _)                 -> Nothing
-          | otherwise                                         -> Nothing
-        DiffMirrored
-          | (L.get dsProofType sys) == (Just RuleEquivalence) -> case (L.get dsCurrentRule sys, L.get dsSide sys, L.get dsSystem sys) of
-                                                                      (Just _, Just s, Just sys') -> if isTrivial sys' && allSubtermsFinished && (fst (evaluateRestrictions ctxt sys mirrorSyss (isSolved s sys')) == TTrue)
-                                                                                                        then return M.empty
-                                                                                                        else Nothing
-                                                                                                    where
-                                                                                                        mirrorSyss = getMirrorDG ctxt s sys'
-                                                                                                        mirrorCtxt = eitherProofContext ctxt (opposite s)
-                                                                                                        allSubtermsFinished = finishedSubterms (eitherProofContext ctxt s) sys' && all (finishedSubterms mirrorCtxt) mirrorSyss
-                                                                      (_ , _ , _)                 -> Nothing                                                       
-          | otherwise                                         -> Nothing
-        DiffAttack
-          | (L.get dsProofType sys) == (Just RuleEquivalence) -> case (L.get dsCurrentRule sys, L.get dsSide sys, L.get dsSystem sys) of
-                                                                      (Just _, Just s, Just sys') -> if (isSolved s sys' || (isTrivial sys' && not (contradictorySystem (eitherProofContext ctxt s) sys'))) &&
-                                                                                                        (allSubtermsFinished && (fst (evaluateRestrictions ctxt sys mirrorSyss (isSolved s sys')) == TFalse))
-                                                                                                      then return M.empty
-                                                                                                        -- In the second case, the system is trivial, has no mirror and restrictions do not get in the way.
-                                                                                                        -- If we solve arbitrarily the last remaining trivial goals,
-                                                                                                        -- then there will be an attack.                                                                                                        then 
-                                                                                                      else Nothing
-                                                                                                        where
-                                                                                                          mirrorSyss = getMirrorDG ctxt s sys'
-                                                                                                          mirrorCtxt = eitherProofContext ctxt (opposite s)
-                                                                                                          allSubtermsFinished = finishedSubterms (eitherProofContext ctxt s) sys' && all (finishedSubterms mirrorCtxt) mirrorSyss
-                                                                      (_ , _ , _)                 -> Nothing
-          | otherwise                                         -> Nothing
-        DiffRuleEquivalence
-          | (L.get dsProofType sys) == Nothing                -> Just ruleEquivalence
-          | otherwise                                         -> Nothing
-        DiffUnfinishable
-          | (L.get dsProofType sys) == (Just RuleEquivalence) -> case (L.get dsCurrentRule sys, L.get dsSide sys, L.get dsSystem sys) of
-                                                                      (Just _, Just s, Just sys') -> if isSolved s sys' && not allSubtermsFinished
-                                                                                                        then return M.empty
-                                                                                                        else Nothing
-                                                                                                      where
-                                                                                                        mirrorSyss = getMirrorDG ctxt s sys'
-                                                                                                        mirrorCtxt = eitherProofContext ctxt (opposite s)
-                                                                                                        allSubtermsFinished = finishedSubterms (eitherProofContext ctxt s) sys' && all (finishedSubterms mirrorCtxt) mirrorSyss
-                                                                      (_ , _ , _)                 -> Nothing
-          | otherwise                                         -> Nothing
-          
+                -> DiffProofMethod -> [DiffSystem] -> Maybe (M.Map CaseName DiffSystem)
+execDiffProofMethod ctxt method sysPath =
+  case method of
+    DiffSorry _ -> return M.empty
+    DiffBackwardSearch -> do
+      guard (L.get dsProofType sys == Just RuleEquivalence)
+      rule <- L.get dsCurrentRule sys
+      guard (isNothing $ L.get dsSide sys)
+      return $ startBackwardSearch rule
+    DiffBackwardSearchStep meth -> do
+      guard (L.get dsProofType sys == Just RuleEquivalence)
+      guard (meth /= Induction)
+      guard (meth /= Contradiction (Just ForbiddenKD))
+      _ <- L.get dsCurrentRule sys
+      s <- L.get dsSide sys
+      applyStep meth s =<< sequents
+    DiffMirrored -> do
+      guard (L.get dsProofType sys == Just RuleEquivalence)
+      guard (isJust $ L.get dsCurrentRule sys)
+      isTrivial <- trivial <$> msys'
+      guard isTrivial
+      allSubtermsFinished <- mallSubtermsFinished
+      guard allSubtermsFinished
+      mirrorSyss <- mmirrorSyss
+      isSolved <- solved <$> msys'
+      guard (fst (evaluateRestrictions ctxt sys mirrorSyss isSolved) == TTrue)
+      return M.empty
+    DiffAttack -> do
+      guard (L.get dsProofType sys == Just RuleEquivalence)
+      guard (isJust $ L.get dsCurrentRule sys)
+      s <- L.get dsSide sys
+      isSolved <- solved <$> msys'
+      sys' <- L.get dsSystem sys
+      notContradictory <- not . contradictorySystem (eitherProofContext ctxt s) <$> sequents
+      -- In the second case, the system is trivial, has no mirror and restrictions do not get in the way.
+      -- If we solve arbitrarily the last remaining trivial goals,
+      -- then there will be an attack.
+      guard (isSolved || (trivial sys' && notContradictory))
+      allSubtermsFinished <- mallSubtermsFinished
+      guard allSubtermsFinished
+      mirrorSyss <- mmirrorSyss
+      guard (fst (evaluateRestrictions ctxt sys mirrorSyss isSolved) == TFalse)
+      return M.empty
+    DiffRuleEquivalence -> do
+      guard (isNothing $ L.get dsProofType sys)
+      return ruleEquivalence
+    DiffUnfinishable -> do
+      guard (L.get dsProofType sys == Just RuleEquivalence)
+      guard (isJust $ L.get dsCurrentRule sys)
+      isSolved <- solved <$> msys'
+      allSubtermsFinished <- mallSubtermsFinished
+      guard isSolved
+      guard (not allSubtermsFinished)
+      return M.empty
   where
+    sys                  = head sysPath
+    sequents             = mapM (L.get dsSystem) sysPath
+    mside                = L.get dsSide sys
+    msys'                = L.get dsSystem sys
+    mmirrorSyss          = getMirrorDG ctxt <$> mside <*> msys'
+    mctxt                = eitherProofContext ctxt <$> mside
+    mmirrorCtxt          = eitherProofContext ctxt <$> (opposite <$> mside)
+    mallSubtermsFinished = do
+      finished <- finishedSubterms <$> mctxt <*> msys'
+      finishedMirrored <- all <$> (finishedSubterms <$> mmirrorCtxt) <*> mmirrorSyss
+      return $ finished && finishedMirrored
+
     protoRules       = L.get dpcProtoRules  ctxt
     destrRules       = L.get dpcDestrRules  ctxt
     constrRules      = L.get dpcConstrRules ctxt
@@ -463,29 +433,29 @@ execDiffProofMethod ctxt method sys = -- error $ show ctxt ++ show method ++ sho
     protoRulesAC :: Side -> [RuleAC]
     protoRulesAC LHS = filter (\x -> getRuleNameDiff x /= "IntrRecv") $ L.get crProtocol $ L.get pcRules (L.get dpcPCLeft  ctxt)
     protoRulesAC RHS = filter (\x -> getRuleNameDiff x /= "IntrRecv") $ L.get crProtocol $ L.get pcRules (L.get dpcPCRight ctxt)
-    
+
     ruleEquivalenceSystem :: String -> DiffSystem
     ruleEquivalenceSystem rule = L.set dsCurrentRule (Just rule) 
       $ L.set dsConstrRules (S.fromList constrRules) 
       $ L.set dsDestrRules (S.fromList destrRules) 
       $ L.set dsProtoRules (S.fromList protoRules) 
       $ L.set dsProofType (Just RuleEquivalence) sys
-      
+
     formula :: String -> LNFormula
     formula rulename = Qua Ex ("i", LSortNode) (Ato (Action (LIT (Var (Bound 0))) (Fact (ProtoFact Linear ("Diff" ++ rulename) 0) S.empty [])))
-    
+
     ruleEquivalenceCase :: M.Map CaseName DiffSystem -> RuleAC -> M.Map CaseName DiffSystem
     ruleEquivalenceCase m rule = M.insert ("Rule_" ++ (getRuleName rule) ++ "") (ruleEquivalenceSystem (getRuleNameDiff rule)) m
-    
+
     -- Not checking construction rules is sound, as they are 'trivial' !
     -- Note that we use the protoRulesAC, as we also want to include the ISEND rule as it is labelled with an action that might show up in restrictions.
     -- LHS or RHS is not important in this case as we only need the names of the rules.
     ruleEquivalence :: M.Map CaseName DiffSystem
     ruleEquivalence = foldl ruleEquivalenceCase (foldl ruleEquivalenceCase {-(foldl ruleEquivalenceCase-} M.empty {-constrRules)-} destrRules) (protoRulesAC LHS)
-    
-    isTrivial :: System -> Bool
-    isTrivial sys' = (dgIsNotEmpty sys') && (allOpenGoalsAreSimpleFacts ctxt sys') && (allOpenFactGoalsAreIndependent sys')
-    
+
+    trivial :: System -> Bool
+    trivial sys' = (dgIsNotEmpty sys') && (allOpenGoalsAreSimpleFacts ctxt sys') && (allOpenFactGoalsAreIndependent sys')
+
     backwardSearchSystem :: Side -> DiffSystem -> String -> DiffSystem
     backwardSearchSystem s sys' rulename = L.set dsSide (Just s)
       $ L.set dsSystem (Just ruleSys) sys'
@@ -495,15 +465,11 @@ execDiffProofMethod ctxt method sys = -- error $ show ctxt ++ show method ++ sho
 
     startBackwardSearch :: String -> M.Map CaseName DiffSystem
     startBackwardSearch rulename = M.insert ("LHS") (backwardSearchSystem LHS sys rulename) $ M.insert ("RHS") (backwardSearchSystem RHS sys rulename) $ M.empty
-    
-    applyStep :: ProofMethod -> Side -> System -> Maybe (M.Map CaseName DiffSystem)
-    applyStep m s sys' = case (execProofMethod (eitherProofContext ctxt s) m sys') of
-                           Nothing    -> Nothing
-                           Just cases -> Just $ M.map (\x -> L.set dsSystem (Just x) sys) cases
 
-    isSolved :: Side -> System -> Bool
-    isSolved s sys' = (rankProofMethods GoalNrRanking [defaultTactic] (eitherProofContext ctxt s) sys') == [] -- checks if the system is solved
-
+    applyStep :: ProofMethod -> Side -> [System] -> Maybe (M.Map CaseName DiffSystem)
+    applyStep m s syss = do
+      cases <- execProofMethod (eitherProofContext ctxt s) m syss
+      return $ M.map (\x -> L.set dsSystem (Just x) sys) cases
 
 -- | returns True if there are no reducible operators on top of a right side of a subterm in the subterm store
 finishedSubterms :: ProofContext -> System -> Bool
@@ -547,15 +513,16 @@ rankGoals ctxt ranking tacticsList = case ranking of
 -- 'ProofMethod's and their corresponding results in this 'ProofContext' and
 -- for this 'System'. If the resulting list is empty, then the constraint
 -- system is solved.
-rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> System
+rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> [System]
                  -> [(ProofMethod, (M.Map CaseName System, String))]
-rankProofMethods ranking tactics ctxt sys =
+rankProofMethods _ _ _ [] = error "unreachable"
+rankProofMethods ranking tactics ctxt syss@(sys:_) =
   let isDiff        = L.get sDiffSystem sys
       lExits        = getLoopExits ctxt sys
       nodesToWeaken = map WeakenNode $ S.toList $ getLoopLeaves ctxt sys <> lExits
       edgesToWeaken = map WeakenEdge $ filter (touchesOneOf lExits) $ S.toList $ L.get sEdges sys
       goalsToWeaken = map (WeakenGoal . fst) $ filter (uncurry canWeaken) $ M.toList $ L.get sGoals sys
-      methods =       (contradiction <$> contradictions ctxt sys)
+      methods =       (contradiction <$> contradictions ctxt syss)
                   ++  (case L.get pcUseInduction ctxt of
                         AvoidInduction -> [(Simplify, ""), (Induction, "")]
                         UseInduction   -> [(Induction, ""), (Simplify, "")]
@@ -563,7 +530,7 @@ rankProofMethods ranking tactics ctxt sys =
                   ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
       weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ edgesToWeaken ++ goalsToWeaken)
       cutMethods = fromMaybe [] (do
-        upTo <- getCycleRenamingOnPath ctxt sys
+        upTo <- getCycleRenamingOnPath ctxt syss
         guard (not $ S.null upTo)
         return [(Cut (CutEl upTo), "")])
       cyclicMethods = if isDiff then [] else cutMethods ++ weakenMethods
@@ -571,7 +538,7 @@ rankProofMethods ranking tactics ctxt sys =
   where
     execMethods = mapMaybe execMethod
     execMethod (m, expl) = do
-      cases <- execProofMethod ctxt m sys
+      cases <- execProofMethod ctxt m syss
       return (m, (cases, expl))
 
     touchesOneOf :: Foldable t => t NodeId -> Edge -> Bool
@@ -601,24 +568,21 @@ rankProofMethods ranking tactics ctxt sys =
 -- 'ProofMethod's and their corresponding results in this 'DiffProofContext' and
 -- for this 'DiffSystem'. If the resulting list is empty, then the constraint
 -- system is solved.
-rankDiffProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> DiffProofContext -> DiffSystem
+rankDiffProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> DiffProofContext -> [DiffSystem]
                  -> [(DiffProofMethod, (M.Map CaseName DiffSystem, String))]
-rankDiffProofMethods ranking tactics ctxt sys = do
+rankDiffProofMethods ranking tactics ctxt syss = do
     (m, expl) <-
             [(DiffRuleEquivalence, "Prove equivalence using rule equivalence")]
         <|> [(DiffMirrored, "Backward search completed")]
         <|> [(DiffAttack, "Found attack")]
         <|> [(DiffUnfinishable, "Proof cannot be finished")]
         <|> [(DiffBackwardSearch, "Do backward search from rule")]
-        <|> (case (L.get dsSide sys, L.get dsSystem sys) of
-                  (Just s, Just sys') -> map (\x -> (DiffBackwardSearchStep (fst x), "Do backward search step"))
-                                          $ filter (isDiffApplicable . fst)
-                                          $ rankProofMethods ranking tactics (eitherProofContext ctxt s) sys'
-                  (_     , _        ) -> [])
-    case execDiffProofMethod ctxt m sys of
-      Just cases -> return (m, (cases, expl))
-      Nothing    -> []
+        <|> maybe []
+              (map (\x -> (DiffBackwardSearchStep (fst x), "Do backward search step")) . filter (isDiffApplicable . fst))
+              (rankProofMethods ranking tactics <$> (eitherProofContext ctxt <$> L.get dsSide (head syss)) <*> syss')
+    maybe [] (return . (m,) . (,expl)) (execDiffProofMethod ctxt m syss)
   where
+    syss' = mapM (L.get dsSystem) syss
     -- TODO: There might be more elegant ways to handle this; especially, it
     -- seems silly to maintain the set of leaves, etc.
     isDiffApplicable Induction = False
