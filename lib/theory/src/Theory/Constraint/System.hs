@@ -2071,8 +2071,11 @@ getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (UpTo, SystemId)
 getCycleRenamingOnPath ctx = peak . getCycleRenamingsOnPath ctx
   where peak = (fst <$>) . uncons
 
-canCloseCycle :: ProofContext -> [System] -> Bool
-canCloseCycle ctx = maybe False (S.null . fst) . getCycleRenamingOnPath ctx
+canCloseCycle :: ProofContext -> [System] -> Maybe SystemId
+canCloseCycle ctx p = do
+  (upTo, sid) <- getCycleRenamingOnPath ctx p
+  guard (S.null upTo)
+  return sid
 
 guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
 guardLoopType ctxt typ nid r =

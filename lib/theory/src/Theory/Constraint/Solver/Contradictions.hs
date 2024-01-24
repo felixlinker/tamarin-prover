@@ -78,7 +78,7 @@ data Contradiction =
   | FormulasFalse                  -- ^ False in formulas
   | SuperfluousLearn LNTerm NodeId -- ^ A term is derived both before and after a learn
   | NodeAfterLast (NodeId, NodeId) -- ^ There is a node after the last node.
-  | Cyclic                         -- ^ Cyclic proof
+  | Cyclic SystemId                -- ^ Cyclic proof
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 
@@ -113,7 +113,7 @@ contradictions ctxt syss@(sys:_) = F.asum
     , guard (eqsIsFalse $ L.get sEqStore sys)       $> IncompatibleEqs
     -- CR-rules *S_⟂*, *S_{¬,last,1}*, *S_{¬,≐}*, *S_{¬,≈}*
     , guard (S.member gfalse $ L.get sFormulas sys) $> FormulasFalse
-    , guard (canCloseCycle ctxt syss)               $> Cyclic
+    , maybe [] ((:[]) . Cyclic) $ canCloseCycle ctxt syss
     ]
     ++
     -- This rule is not yet documented. It removes constraint systems that
@@ -450,7 +450,7 @@ prettyContradiction contra = case contra of
     ForbiddenChain               -> text "forbidden chain"
     ImpossibleChain              -> text "impossible chain"
     NonInjectiveFactInstance cex -> text $ "non-injective facts " ++ show cex
-    Cyclic                       -> text $ "cyclic proof"
+    Cyclic sid                   -> text $ "cyclic proof with CS id " ++ show sid
     FormulasFalse                -> text "from formulas"
     SuperfluousLearn m v         ->
         doubleQuotes (prettyLNTerm m) <->
