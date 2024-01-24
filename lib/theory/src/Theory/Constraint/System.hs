@@ -1996,20 +1996,20 @@ prettyUpTo = fsep . intersperse comma . map prettyGuarded . upToToFormulas
 
 -- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
 --    and everything else a potentially correct renaming.
-type UpToFormulasT = MaybeT WithMaude UpTo
+type RenamingUpToT = MaybeT WithMaude (UpTo, Renaming LNSubst)
 
-computeUpToFormulas :: UpToFormulasT -> MaudeHandle -> Maybe UpTo
-computeUpToFormulas mr = runReader $ runMaybeT mr
+computeRenamingUpTo :: RenamingUpToT -> MaudeHandle -> Maybe (UpTo, Renaming LNSubst)
+computeRenamingUpTo mr = runReader $ runMaybeT mr
 
 -- TODO: Handle last
-isSubSysUpToFormulas :: System -> System -> MaybeRenaming LNSubst -> UpToFormulasT
-isSubSysUpToFormulas smaller larger renamingT = do
+isSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToT
+isSubSysUpTo smaller larger renamingT = do
   renaming <- renamingT
   guard (applyRenaming renaming (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
   let diffLessAtoms = applyRenaming renaming (L.get sLessAtoms smaller) `S.difference` L.get sLessAtoms larger
   guard (applyRenaming renaming (L.get sSolvedFormulas smaller) `S.isSubsetOf` L.get sSolvedFormulas larger)
   let diffFormulas = applyRenaming renaming (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
-  return $ S.map Right diffLessAtoms <> S.map Left diffFormulas
+  return (S.map Right diffLessAtoms <> S.map Left diffFormulas, renaming)
 
 isProgressingRenaming :: System -> Renaming LNSubst -> Bool
 isProgressingRenaming sys r =
@@ -2019,11 +2019,11 @@ isProgressingRenaming sys r =
 e2t ::Edge -> (NodeId, NodeId)
 e2t (Edge (src, _) (tgt, _)) = (src, tgt)
 
-isProgressingAndSubSysUpToFormulas :: System -> System -> MaybeRenaming LNSubst -> UpToFormulasT
-isProgressingAndSubSysUpToFormulas smaller larger rM =  do
+isProgressingAndSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToT
+isProgressingAndSubSysUpTo smaller larger rM =  do
   isProgressing <- isProgressingRenaming larger <$> rM
   guard isProgressing
-  isSubSysUpToFormulas smaller larger rM
+  isSubSysUpTo smaller larger rM
 
 allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
 allNodeRenamings smaller larger =
@@ -2058,24 +2058,27 @@ allNodeRenamings smaller larger =
     gatherRules = groupBy (\n1 n2 -> get_rInfo n1 == get_rInfo n2) . S.toAscList
       where get_rInfo = L.get rInfo . nrule
 
-isContainedInModRenamingUpToFormulas :: System -> System -> UpToFormulasT
-isContainedInModRenamingUpToFormulas smaller larger = msum $ map (isProgressingAndSubSysUpToFormulas smaller larger) (allNodeRenamings smaller larger)
+isContainedInModRenamingUpTo :: System -> System -> RenamingUpToT
+isContainedInModRenamingUpTo smaller larger = msum $ map (isProgressingAndSubSysUpTo smaller larger) (allNodeRenamings smaller larger)
 
-getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, SystemId)]
+getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, SystemId, Renaming LNSubst)]
 getCycleRenamingsOnPath _ [] = []
-getCycleRenamingsOnPath ctx (leaf:candidates) =
-  let hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
-  in  mapMaybe (\inner -> (,L.get sId inner) <$> computeUpToFormulas (isContainedInModRenamingUpToFormulas inner leaf) hnd) candidates
+getCycleRenamingsOnPath ctx (leaf:candidates) = mapMaybe tryRenaming candidates
+  where
+    hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
+    tryRenaming inner = do
+      (upTo, renaming) <- computeRenamingUpTo (isContainedInModRenamingUpTo inner leaf) hnd
+      return (upTo, L.get sId inner, renaming)
 
-getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (UpTo, SystemId)
+getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (UpTo, SystemId, Renaming LNSubst)
 getCycleRenamingOnPath ctx = peak . getCycleRenamingsOnPath ctx
   where peak = (fst <$>) . uncons
 
-canCloseCycle :: ProofContext -> [System] -> Maybe SystemId
+canCloseCycle :: ProofContext -> [System] -> Maybe (SystemId, Renaming LNSubst)
 canCloseCycle ctx p = do
-  (upTo, sid) <- getCycleRenamingOnPath ctx p
+  (upTo, sid, renaming) <- getCycleRenamingOnPath ctx p
   guard (S.null upTo)
-  return sid
+  return (sid, renaming)
 
 guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
 guardLoopType ctxt typ nid r =

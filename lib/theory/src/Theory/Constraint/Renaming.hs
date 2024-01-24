@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveGeneric   #-}
+{-# LANGUAGE DeriveAnyClass  #-}
 module Theory.Constraint.Renaming
   ( applyRenaming
   , renamedTimePoints
@@ -26,8 +28,13 @@ import Extension.Data.Label (modA)
 import Theory.Model.Rule (RuleACInst, getRuleRenaming)
 import Term.Unification (Apply (apply), SubstVFresh(..), WithMaude, LNSubstVFresh, LNSubst, Subst(..), emptySubst)
 import Control.Monad.Trans.Maybe (MaybeT(..), mapMaybeT)
+import GHC.Generics (Generic)
+import Data.Binary
+import Control.DeepSeq
 
-newtype Renaming s = Renaming { _giSubst  :: s } deriving Show
+newtype Renaming s = Renaming
+  { _giSubst  :: s }
+  deriving ( Eq, Ord, Show, Generic, NFData, Binary )
 
 $(mkLabels [''Renaming])
 

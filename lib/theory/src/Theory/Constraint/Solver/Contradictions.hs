@@ -49,6 +49,7 @@ import qualified Extension.Data.Label           as L
 import           Extension.Prelude
 
 import           Theory.Constraint.System
+import           Theory.Constraint.Renaming
 import           Theory.Model
 import           Theory.Tools.IntruderRules
 import           Theory.Text.Pretty
@@ -78,7 +79,8 @@ data Contradiction =
   | FormulasFalse                  -- ^ False in formulas
   | SuperfluousLearn LNTerm NodeId -- ^ A term is derived both before and after a learn
   | NodeAfterLast (NodeId, NodeId) -- ^ There is a node after the last node.
-  | Cyclic SystemId                -- ^ Cyclic proof
+  | Cyclic (SystemId, Renaming LNSubst)
+    -- ^ Cyclic proof
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 
