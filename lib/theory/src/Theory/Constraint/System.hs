@@ -239,10 +239,13 @@ module Theory.Constraint.System (
   , sDiffSystem
   
   -- * Cyclic Proofs
+  , SystemId(..)
+  , idRange
   , UpTo
   , upToToFormulas
   , prettyUpTo
   , sIsWeakened
+  , sId
   , getCycleRenamingsOnPath
   , getCycleRenamingOnPath
   , canCloseCycle
@@ -271,11 +274,13 @@ import           Prelude                              hiding (id, (.))
 import           GHC.Generics                         (Generic)
 
 import           Data.Binary
+import qualified Data.Word                            as W
+import qualified Data.Bits                            as B
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
 import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy, permutations, uncons, intersperse)
 import qualified Data.Map                             as M
-import           Data.Maybe                           (fromJust, fromMaybe, mapMaybe, isJust, listToMaybe)
+import           Data.Maybe                           (fromMaybe, mapMaybe)
 -- import           Data.Monoid                          (Monoid(..))
 import qualified Data.Monoid                             as Mono
 import qualified Data.Set                             as S
@@ -306,6 +311,7 @@ import           Theory.Tools.InjectiveFactInstances
 import           System.FilePath
 import           Text.Show.Functions()
 import Control.Monad.Trans.Maybe (MaybeT (runMaybeT))
+import Numeric (showHex)
 
 ----------------------------------------------------------------------
 -- ClassifiedRules
@@ -391,6 +397,26 @@ data GoalStatus = GoalStatus
     }
     deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
+data SystemId = SystemId Int W.Word32
+  deriving ( Eq, Ord, Generic, NFData, Binary )
+
+instance Show SystemId where
+  show (SystemId off sid) = showHex off $ "#" ++ showHex sid ""
+
+instance Semigroup SystemId where
+  (SystemId off1 id1) <> (SystemId off2 id2) = SystemId (off1 + off2) (id1 B..|. B.shift id2 off1)
+
+instance Monoid SystemId where
+  mempty = SystemId 0 B.zeroBits
+
+idRange :: Int -> [SystemId]
+idRange 1 = [SystemId 1 B.zeroBits]
+idRange rng
+  | rng < 1 = error "cannot generate empty range"
+  | otherwise =
+    let width = ceiling (logBase (fromIntegral 2) (fromIntegral rng))
+    in map (SystemId width . fromIntegral) [0..rng - 1]
+
 -- | A constraint system.
 data System = System
     { _sNodes          :: M.Map NodeId RuleACInst
@@ -411,7 +437,8 @@ data System = System
     , _sNextGoalNr     :: Integer
     , _sSourceKind     :: SourceKind
     , _sDiffSystem     :: Bool
-    , _sIsWeakened     :: Bool }
+    , _sIsWeakened     :: Bool
+    , _sId             :: SystemId }
     -- NOTE: Don't forget to update 'substSystem' in
     -- "Constraint.Solver.Reduction" when adding further fields to the
     -- constraint system.
@@ -839,7 +866,7 @@ emptySystem :: SourceKind -> Bool -> System
 emptySystem d isdiff = System
     M.empty S.empty S.empty Nothing emptySubtermStore emptyEqStore
     S.empty S.empty S.empty
-    M.empty 0 d isdiff False
+    M.empty 0 d isdiff False mempty
 
 -- | The empty diff constraint system.
 emptyDiffSystem :: DiffSystem
@@ -1828,13 +1855,13 @@ instance Apply LNSubst SourceKind where
     apply = const id
 
 instance Apply LNSubst System where
-    apply subst (System a b c d e f g h i j k l m n) =
+    apply subst (System a b c d e f g h i j k l m n o) =
         System (apply subst a)
         -- we do not apply substitutions to node variables, so we do not apply them to the edges either
         b
         (apply subst c) (apply subst d)
         (apply subst e) (apply subst f) (apply subst g) (apply subst h) (apply subst i)
-        j k (apply subst l) (apply subst m) n
+        j k (apply subst l) (apply subst m) n o
 
 instance HasFrees SourceKind where
     foldFrees = const mempty
@@ -1847,7 +1874,7 @@ instance HasFrees GoalStatus where
     mapFrees  = const pure
 
 instance HasFrees System where
-    foldFrees fun (System a b c d e f g h i j k l m n) =
+    foldFrees fun (System a b c d e f g h i j k l m n _) =
         foldFrees fun a `mappend`
         foldFrees fun b `mappend`
         foldFrees fun c `mappend`
@@ -1863,7 +1890,7 @@ instance HasFrees System where
         foldFrees fun m `mappend`
         foldFrees fun n
 
-    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n) =
+    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n _o) =
         foldFreesOcc fun ("a":ctx') a {- `mappend`
         foldFreesCtx fun ("b":ctx') b `mappend`
         foldFreesCtx fun ("c":ctx') c `mappend`
@@ -1877,7 +1904,7 @@ instance HasFrees System where
         foldFreesCtx fun ("k":ctx') k -}
       where ctx' = "system":ctx
 
-    mapFrees fun (System a b c d e f g h i j k l m n) =
+    mapFrees fun (System a b c d e f g h i j k l m n o) =
         System <$> mapFrees fun a
                <*> mapFrees fun b
                <*> mapFrees fun c
@@ -1892,6 +1919,7 @@ instance HasFrees System where
                <*> mapFrees fun l
                <*> mapFrees fun m
                <*> mapFrees fun n
+               <*> pure o
 
 instance HasFrees Source where
     foldFrees f th =
@@ -1924,11 +1952,11 @@ compareNodesUpToNewVars n1 n2 = compareListsUpToNewVars (M.toAscList n1) (M.toAs
 compareSystemsUpToNewVars :: System -> System -> Ordering
 -- when we have trace systems, we can ignore new variable instantiations
 compareSystemsUpToNewVars
-   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _)
-   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _)
+   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _ _)
+   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _ _)
        = if compareNodes == EQ then
-            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False False)
-                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False False)
+            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False False mempty)
+                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False False mempty)
          else
             compareNodes
         where
@@ -2033,18 +2061,18 @@ allNodeRenamings smaller larger =
 isContainedInModRenamingUpToFormulas :: System -> System -> UpToFormulasT
 isContainedInModRenamingUpToFormulas smaller larger = msum $ map (isProgressingAndSubSysUpToFormulas smaller larger) (allNodeRenamings smaller larger)
 
-getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, System)]
+getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, SystemId)]
 getCycleRenamingsOnPath _ [] = []
 getCycleRenamingsOnPath ctx (leaf:candidates) =
   let hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
-  in  mapMaybe (\inner -> (,inner) <$> computeUpToFormulas (isContainedInModRenamingUpToFormulas inner leaf) hnd) candidates
+  in  mapMaybe (\inner -> (,L.get sId inner) <$> computeUpToFormulas (isContainedInModRenamingUpToFormulas inner leaf) hnd) candidates
 
-getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe UpTo
+getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (UpTo, SystemId)
 getCycleRenamingOnPath ctx = peak . getCycleRenamingsOnPath ctx
-  where peak = (fst . fst <$>) . uncons
+  where peak = (fst <$>) . uncons
 
 canCloseCycle :: ProofContext -> [System] -> Bool
-canCloseCycle ctx = maybe False S.null . getCycleRenamingOnPath ctx
+canCloseCycle ctx = maybe False (S.null . fst) . getCycleRenamingOnPath ctx
 
 guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
 guardLoopType ctxt typ nid r =

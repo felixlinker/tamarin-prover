@@ -261,12 +261,14 @@ execProofMethod ctxt method syss@(sys:_) =
       let cases =   removeRedundantCases ctxt [] snd
                   . map fst
                   . getDisj $ runReduction cleanup ctxt sys (avoid sys)
+          ids = idRange $ length cases
+          newCases = Just $ M.fromList $ zipWith (\r sid -> L.modify sId (<> sid) <$> r) cases ids
       in case cases of
         []              -> Just M.empty
         [(_, s)]
           | equiv s sys -> Nothing
-          | otherwise   -> Just $ M.singleton "" s
-        _               -> Just $ M.fromList cases
+          | otherwise   -> newCases
+        _               -> newCases
       where
         cleanup :: Reduction CaseName
         cleanup = do
@@ -530,7 +532,7 @@ rankProofMethods ranking tactics ctxt syss@(sys:_) =
                   ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
       weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ edgesToWeaken ++ goalsToWeaken)
       cutMethods = fromMaybe [] (do
-        upTo <- getCycleRenamingOnPath ctxt syss
+        (upTo, _) <- getCycleRenamingOnPath ctxt syss
         guard (not $ S.null upTo)
         return [(Cut (CutEl upTo), "")])
       cyclicMethods = if isDiff then [] else cutMethods ++ weakenMethods

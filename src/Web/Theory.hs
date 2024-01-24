@@ -83,6 +83,7 @@ import           TheoryObject
 
 import           Web.Settings
 import           Web.Types
+import Theory.Constraint.System (sId)
 
 ------------------------------------------------------------------------------
 -- Various other functions
@@ -517,7 +518,7 @@ subProofSnippet renderUrl tidx ti lemma proofPath ctxt prf syss@(se:_) = vcat $
   prettyApplicableProofMethods
   ++
   [ text ""
-  , withTag "h3" [] (text "Constraint system")
+  , withTag "h3" [] (text $ "Constraint system (id: " ++ show (get sId se) ++ ")")
   ] ++
   [ refDotPath renderUrl tidx (TheoryProof lemma proofPath)
   | nonEmptyGraph se ]
