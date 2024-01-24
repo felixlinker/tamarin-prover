@@ -46,7 +46,6 @@ import qualified Data.ByteString.Lazy.Char8 as BC (unpack)
 import           Text.PrettyPrint.Class     -- for Doc and the pretty printing functions 
 import           Theory.Constraint.System   
 import           Theory.Model
-import Theory.Constraint.System (sLessAtoms)
 
 -------------------------------------------------------------------------------------------------
 -- Data structure for JSON graphs                                                              --

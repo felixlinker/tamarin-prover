@@ -22,7 +22,7 @@ import           Data.Char                (isSpace)
 import           Data.Color
 import qualified Data.DAG.Simple          as D
 import qualified Data.Foldable            as F
-import           Data.List                (find,foldl',intersect,isPrefixOf, intercalate,sort)
+import           Data.List                (find,foldl',intersect,isPrefixOf, intercalate)
 import qualified Data.Map                 as M
 import           Data.Maybe
 import           Data.Monoid              (Any(..))
@@ -44,7 +44,6 @@ import           Theory.Constraint.System
 import           Theory.Model
 import           Theory.Text.Pretty       (opAction)
 
-import           Utils.Misc
 -- | 'True' iff the dotted system will be a non-empty graph.
 nonEmptyGraph :: System -> Bool
 nonEmptyGraph sys = not $

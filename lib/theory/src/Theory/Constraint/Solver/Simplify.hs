@@ -52,9 +52,6 @@ import           Theory.Model
 import           Theory.Text.Pretty
 import           Theory.Tools.InjectiveFactInstances
 
-import           Utils.Misc
-
-
 -- | Apply CR-rules that don't result in case splitting until the constraint
 -- system does not change anymore.
 simplifySystem :: Reduction ()

@@ -305,7 +305,6 @@ import           Theory.Tools.InjectiveFactInstances
 
 import           System.FilePath
 import           Text.Show.Functions()
-import           Utils.Misc 
 import Control.Monad.Trans.Maybe (MaybeT (runMaybeT))
 
 ----------------------------------------------------------------------

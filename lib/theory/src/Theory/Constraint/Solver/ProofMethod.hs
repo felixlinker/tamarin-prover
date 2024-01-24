@@ -39,7 +39,7 @@ module Theory.Constraint.Solver.ProofMethod (
 import           GHC.Generics                              (Generic)
 import           Data.Binary
 import qualified Data.Label                                as L
-import           Data.List                                 (intersperse,partition,groupBy,isPrefixOf,findIndex,intercalate, uncons)
+import           Data.List                                 (partition,groupBy,isPrefixOf,findIndex,intercalate, uncons)
 import qualified Data.Map                                  as M
 import           Data.Maybe                                (catMaybes, fromMaybe, mapMaybe, isNothing, isJust)
 -- import           Data.Monoid

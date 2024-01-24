@@ -106,7 +106,6 @@ import           Logic.Connectives
 import           Theory.Constraint.Solver.Contradictions
 import           Theory.Constraint.System
 import           Theory.Model
-import           Utils.Misc
 
 ------------------------------------------------------------------------------
 -- The constraint reduction monad
