@@ -244,6 +244,9 @@ module Theory.Constraint.System (
   , UpTo
   , upToToFormulas
   , prettyUpTo
+  , ProgressingVars
+  , pvProgresses
+  , pvPreserves
   , sIsWeakened
   , sId
   , getCycleRenamingsOnPath
@@ -252,7 +255,6 @@ module Theory.Constraint.System (
   , getLoopLeaves
   , getLoopRoots
   , getLoopExits
-  , isProgressingRenaming
   , allNodeRenamings
 
   -- * Formula simplification
@@ -1985,6 +1987,16 @@ instance Renamable Node LNSubst where
 
 type UpTo = S.Set (Either LNGuarded LessAtom)
 
+data ProgressingVars = ProgressingVars
+  { _pvProgresses :: S.Set NodeId
+    -- ^ To be understood as <. Hence, is subset of pvPreserves.
+  , _pvPreserves :: S.Set NodeId
+    -- ^ to be understood as <=.
+  }
+  deriving( Eq, Ord, Show, Generic, NFData, Binary )
+
+$(mkLabels [''ProgressingVars])
+
 upToToFormulas :: UpTo -> [LNGuarded]
 upToToFormulas = (map toFormula) . S.toList
   where
@@ -1996,9 +2008,10 @@ prettyUpTo = fsep . intersperse comma . map prettyGuarded . upToToFormulas
 
 -- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
 --    and everything else a potentially correct renaming.
-type RenamingUpToT = MaybeT WithMaude (UpTo, Renaming LNSubst)
+type RenamingUpToT = MaybeT WithMaude UpTo
+type RenamingUpToWithVarsT = MaybeT WithMaude (UpTo, ProgressingVars)
 
-computeRenamingUpTo :: RenamingUpToT -> MaudeHandle -> Maybe (UpTo, Renaming LNSubst)
+computeRenamingUpTo :: RenamingUpToWithVarsT -> MaudeHandle -> Maybe (UpTo, ProgressingVars)
 computeRenamingUpTo mr = runReader $ runMaybeT mr
 
 -- TODO: Handle last
@@ -2009,21 +2022,18 @@ isSubSysUpTo smaller larger renamingT = do
   let diffLessAtoms = applyRenaming renaming (L.get sLessAtoms smaller) `S.difference` L.get sLessAtoms larger
   guard (applyRenaming renaming (L.get sSolvedFormulas smaller) `S.isSubsetOf` L.get sSolvedFormulas larger)
   let diffFormulas = applyRenaming renaming (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
-  return (S.map Right diffLessAtoms <> S.map Left diffFormulas, renaming)
-
-isProgressingRenaming :: System -> Renaming LNSubst -> Bool
-isProgressingRenaming sys r =
-  let renamedTPs = renamedTimePoints r
-  in not $ S.null $ filterProgressing sys renamedTPs
+  return $ S.map Right diffLessAtoms <> S.map Left diffFormulas
 
 e2t ::Edge -> (NodeId, NodeId)
 e2t (Edge (src, _) (tgt, _)) = (src, tgt)
 
-isProgressingAndSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToT
+isProgressingAndSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToWithVarsT
 isProgressingAndSubSysUpTo smaller larger rM =  do
-  isProgressing <- isProgressingRenaming larger <$> rM
-  guard isProgressing
-  isSubSysUpTo smaller larger rM
+  renamed <- renamedTimePoints <$> rM
+  let withVars = getProgressingVars larger renamed
+  guard (not $ S.null $ L.get pvProgresses withVars)
+  r <- isSubSysUpTo smaller larger rM
+  return (r, withVars)
 
 allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
 allNodeRenamings smaller larger =
@@ -2058,10 +2068,10 @@ allNodeRenamings smaller larger =
     gatherRules = groupBy (\n1 n2 -> get_rInfo n1 == get_rInfo n2) . S.toAscList
       where get_rInfo = L.get rInfo . nrule
 
-isContainedInModRenamingUpTo :: System -> System -> RenamingUpToT
+isContainedInModRenamingUpTo :: System -> System -> RenamingUpToWithVarsT
 isContainedInModRenamingUpTo smaller larger = msum $ map (isProgressingAndSubSysUpTo smaller larger) (allNodeRenamings smaller larger)
 
-getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, SystemId, Renaming LNSubst)]
+getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, SystemId, ProgressingVars)]
 getCycleRenamingsOnPath _ [] = []
 getCycleRenamingsOnPath ctx (leaf:candidates) = mapMaybe tryRenaming candidates
   where
@@ -2070,15 +2080,15 @@ getCycleRenamingsOnPath ctx (leaf:candidates) = mapMaybe tryRenaming candidates
       (upTo, renaming) <- computeRenamingUpTo (isContainedInModRenamingUpTo inner leaf) hnd
       return (upTo, L.get sId inner, renaming)
 
-getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (UpTo, SystemId, Renaming LNSubst)
+getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (UpTo, SystemId, ProgressingVars)
 getCycleRenamingOnPath ctx = peak . getCycleRenamingsOnPath ctx
   where peak = (fst <$>) . uncons
 
-canCloseCycle :: ProofContext -> [System] -> Maybe (SystemId, Renaming LNSubst)
+canCloseCycle :: ProofContext -> [System] -> Maybe (SystemId, ProgressingVars)
 canCloseCycle ctx p = do
-  (upTo, sid, renaming) <- getCycleRenamingOnPath ctx p
+  (upTo, sid, progressingVars) <- getCycleRenamingOnPath ctx p
   guard (S.null upTo)
-  return (sid, renaming)
+  return (sid, progressingVars)
 
 guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
 guardLoopType ctxt typ nid r =
@@ -2106,12 +2116,13 @@ getLoopRoots ctxt sys =
 getLoopExits :: ProofContext -> System -> S.Set NodeId
 getLoopExits = getLoopNodesWhere LoopExit (const True)
 
-filterProgressing :: System -> [(LVar, LVar)] -> S.Set NodeId
-filterProgressing sys renamings =
+getProgressingVars :: System -> [(LVar, LVar)] -> ProgressingVars
+getProgressingVars sys renamings =
   let srcs = S.fromList $ map snd renamings
       tgts = S.fromList $ map fst renamings
-      sorting = topologicalSortingAsc (S.map e2t (L.get sEdges sys) <> getLessAtoms sys)
-  in S.intersection tgts $ go srcs sorting where
+      sorting = topologicalSortingAsc $ S.fromList $ rawLessRel sys
+      progressing = S.intersection tgts $ go srcs sorting
+  in ProgressingVars progressing (M.keysSet $ L.get sNodes sys) where
     go :: S.Set NodeId -> [(NodeId, NodeId)] -> S.Set NodeId
     go acc [] = acc
     go acc ((from, to):es) = go (if from `S.member` acc then S.insert to acc else acc) es
