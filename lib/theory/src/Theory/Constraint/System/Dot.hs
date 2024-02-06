@@ -425,11 +425,11 @@ dotNodeCompact boringStyle showAutosource v = dotOnce dsNodes v $ do
 
 -- | Dot a sequent in compact form (one record per rule), if there is anything
 -- to draw.
-dotSystemCompact :: BoringNodeStyle ->Bool -> System -> D.Dot ()
+dotSystemCompact :: BoringNodeStyle -> Bool -> System -> D.Dot ()
 dotSystemCompact boringStyle showAutosource se =
     (`evalStateT` DotState M.empty M.empty M.empty M.empty) $
     (`runReaderT` (se, nodeColorMap (M.elems $ get sNodes se))) $ do
-        liftDot $ setDefaultAttributes
+        liftDot setDefaultAttributes
         mapM_ (dotNodeCompact boringStyle showAutosource) $ M.keys $ get sNodes       se
         mapM_ (dotNodeCompact boringStyle showAutosource . fst) $ unsolvedActionAtoms se
         F.mapM_ dotEdge                            $ get sEdges        se

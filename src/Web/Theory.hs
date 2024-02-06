@@ -83,7 +83,6 @@ import           TheoryObject
 
 import           Web.Settings
 import           Web.Types
-import Theory.Constraint.System (sId)
 
 ------------------------------------------------------------------------------
 -- Various other functions
@@ -1273,7 +1272,7 @@ imgThyPath :: ImageFormat
            -> ClosedTheory
            -> TheoryPath
            -> IO FilePath
-imgThyPath imgFormat (graphChoice, graphCommand) cacheDir_ compact showJsonGraphFunct simplificationLevel abbreviate thy path = go path
+imgThyPath imgFormat (graphChoice, graphCommand) cacheDir_ compact showJsonGraphFunct simplificationLevel abbreviate thy = go
   where
     go (TheorySource k i j)   = case graphChoice of
                                   "json"  -> renderGraphCode "json" (casesJsonCode k i j)
@@ -1446,7 +1445,7 @@ imgDiffThyPath imgFormat dotCommand cacheDir_ compact simplificationLevel abbrev
             let ctxt = getDiffProofContext lem thy
             nsequent <- get dsSystem diffSequent
             -- Here we can potentially get Nothing if there is no mirror DG
-            let sequentList = snd $ getMirrorDGandEvaluateRestrictions ctxt diffSequent (solved nsequent)
+            let sequentList = snd $ getMirrorDGandEvaluateRestrictions ctxt diffSequent (isSolved nsequent)
             if null sequentList then Nothing else return $ compact $ head sequentList
           else do
             sequent <- get dsSystem diffSequent

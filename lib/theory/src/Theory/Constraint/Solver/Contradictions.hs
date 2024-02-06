@@ -49,7 +49,6 @@ import qualified Extension.Data.Label           as L
 import           Extension.Prelude
 
 import           Theory.Constraint.System
-import           Theory.Constraint.Renaming
 import           Theory.Model
 import           Theory.Tools.IntruderRules
 import           Theory.Text.Pretty

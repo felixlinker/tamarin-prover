@@ -123,7 +123,7 @@ module Theory.Constraint.System (
   , System
   , DiffProofType(..)
   , DiffSystem
-  , solved
+  , isSolved
   , equiv
 
   -- ** Construction
@@ -282,7 +282,7 @@ import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
 import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy, permutations, uncons, intersperse)
 import qualified Data.Map                             as M
-import           Data.Maybe                           (fromMaybe, mapMaybe)
+import           Data.Maybe                           (fromMaybe, mapMaybe, isJust)
 -- import           Data.Monoid                          (Monoid(..))
 import qualified Data.Monoid                             as Mono
 import qualified Data.Set                             as S
@@ -448,8 +448,8 @@ data System = System
 
 $(mkLabels [''System, ''GoalStatus])
 
-solved :: System -> Bool
-solved = null . filter (unsolved . snd) . M.toList . L.get sGoals
+isSolved :: System -> Bool
+isSolved = not . any (unsolved . snd) . M.toList . L.get sGoals
   where
     unsolved :: GoalStatus -> Bool
     unsolved = not . L.get gsSolved
@@ -1169,7 +1169,7 @@ impliedFormulas hnd sys gf0 = res
     sysActions = do (i, fa) <- allActions sys
                     return (skolemizeTerm (varTerm i), skolemizeFact fa)
 
-    candidateSubsts subst []               = return $ subst
+    candidateSubsts subst []               = return subst
     candidateSubsts subst ((GAction a fa):as) = do
         sysAct <- sysActions
         subst' <- (`runReader` hnd) $ matchAction sysAct (applySkAction subst (a, fa))
@@ -1177,9 +1177,9 @@ impliedFormulas hnd sys gf0 = res
     candidateSubsts subst ((GEqE s' t'):as)   = do
         let s = applySkTerm subst s'
             t = applySkTerm subst t'
-            (term,pat) | frees s == [] = (s,t)
-                       | frees t == [] = (t,s)
-                       | otherwise     = error $ "impliedFormulas: impossible, "
+            (term, pat) | null $ frees s = (s,t)
+                        | null $ frees t = (t,s)
+                        | otherwise      = error $ "impliedFormulas: impossible, "
                                            ++ "equality not guarded as checked"
                                            ++"by 'Guarded.formulaToGuarded'."
         subst' <- (`runReader` hnd) $ matchTerm term pat
@@ -1258,16 +1258,16 @@ data Trivalent = TTrue | TFalse | TUnknown deriving (Show, Eq)
 -- | Computes the mirror dependency graph and evaluates whether the restrictions hold.
 -- Returns Just True and a list of mirrors if all hold, Just False and a list of attacks (if found) if at least one does not hold and Nothing otherwise.
 getMirrorDGandEvaluateRestrictions :: DiffProofContext -> DiffSystem -> Bool -> (Trivalent, [System])
-getMirrorDGandEvaluateRestrictions dctxt dsys isSolved = 
+getMirrorDGandEvaluateRestrictions dctxt dsys solved =
     case (L.get dsSide dsys, L.get dsSystem dsys) of
           (Nothing,   _       ) -> (TFalse, [])
           (Just _ , Nothing   ) -> (TFalse, [])
-          (Just side, Just sys) -> evaluateRestrictions dctxt dsys (getMirrorDG dctxt side sys) isSolved
+          (Just side, Just sys) -> evaluateRestrictions dctxt dsys (getMirrorDG dctxt side sys) solved
 
 -- | Evaluates whether the restrictions hold. Assumes that the mirrors have been correctly computed.
 -- Returns Just True and a list of mirrors if all hold, Just False and a list of attacks (if found) if at least one does not hold and Nothing otherwise.
 evaluateRestrictions :: DiffProofContext -> DiffSystem -> [System] -> Bool -> (Trivalent, [System])
-evaluateRestrictions dctxt dsys mirrors isSolved =
+evaluateRestrictions dctxt dsys mirrors solved =
     case (L.get dsSide dsys, L.get dsSystem dsys) of
         (Nothing,   _       ) -> (TFalse, [])
         (Just _ , Nothing   ) -> (TFalse, [])
@@ -1283,7 +1283,7 @@ evaluateRestrictions dctxt dsys mirrors isSolved =
             where
                 oppositeCtxt = eitherProofContext dctxt (opposite side)
                 restrictions = filterRestrictions oppositeCtxt sys $ restrictions' (opposite side) $ L.get dpcRestrictions dctxt
-                evals = map (\x -> doRestrictionsHold oppositeCtxt x restrictions isSolved) mirrors
+                evals = map (\x -> doRestrictionsHold oppositeCtxt x restrictions solved) mirrors
 
                 restrictions' _  []               = []
                 restrictions' s' ((s'', form):xs) = if s' == s'' then form ++ (restrictions' s' xs) else (restrictions' s' xs)
@@ -1293,14 +1293,14 @@ evaluateRestrictions dctxt dsys mirrors isSolved =
 -- Returns Just True if all hold, Just False if at least one does not hold and Nothing otherwise.
 doRestrictionsHold :: ProofContext -> System -> [LNGuarded] -> Bool -> (Trivalent, [System])
 doRestrictionsHold _    sys []       _        = (TTrue, [sys])
-doRestrictionsHold ctxt sys formulas isSolved = -- Just (True, [sys]) -- FIXME Jannik: This is a temporary simulation of diff-safe restrictions!
+doRestrictionsHold ctxt sys formulas solved = -- Just (True, [sys]) -- FIXME Jannik: This is a temporary simulation of diff-safe restrictions!
   if (all (\(x, _) -> x == gtrue) simplifiedForms)
     then {-trace ("doRestrictionsHold: True " ++ (render. vsep $ map (prettyGuarded) formulas) ++ " - " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) simplifiedForms) ++ " - " ++ (render $ prettySystem sys))-} (TTrue, map snd simplifiedForms)
     else if (any (\(x, _) -> x == gfalse) simplifiedForms)
           then {-trace ("doRestrictionsHold: False " ++ (render. vsep $ map (prettyGuarded) formulas) ++ " - " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) simplifiedForms))-} (TFalse, map snd $ filter (\(x, _) -> x == gfalse) simplifiedForms)
           else {-trace ("doRestrictionsHold: Unkown " ++ (render. vsep $ map (prettyGuarded) formulas) ++ " - " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) simplifiedForms))-} (TUnknown, [sys])
   where
-    simplifiedForms = simplify (map (\x -> (x, sys)) formulas) isSolved
+    simplifiedForms = simplify (map (\x -> (x, sys)) formulas) solved
 
     simplify :: [(LNGuarded, System)] -> Bool -> [(LNGuarded, System)]
     simplify forms solved =
@@ -1553,8 +1553,8 @@ unsolvedPremises sys =
 unsolvedTrivialGoals :: System -> [(Either NodePrem LVar, LNFact)]
 unsolvedTrivialGoals sys = foldl f [] $ M.toList (L.get sGoals sys)
   where
-    f l (PremiseG premidx fa, status) = if ((isTrivialFact fa /= Nothing) && (not $ L.get gsSolved status)) then (Left premidx, fa):l else l
-    f l (ActionG var fa, status)      = if ((isTrivialFact fa /= Nothing) && (isKUFact fa) && (not $ L.get gsSolved status)) then (Right var, fa):l else l
+    f l (PremiseG premidx fa, status) = if isJust (isTrivialFact fa) && not (L.get gsSolved status) then (Left premidx, fa):l else l
+    f l (ActionG var fa, status)      = if isJust (isTrivialFact fa) && isKUFact fa && not (L.get gsSolved status) then (Right var, fa):l else l
     f l (ChainG _ _, _)               = l
     f l (SplitG _, _)                 = l
     f l (DisjG _, _)                  = l
@@ -2023,9 +2023,6 @@ isSubSysUpTo smaller larger renamingT = do
   guard (applyRenaming renaming (L.get sSolvedFormulas smaller) `S.isSubsetOf` L.get sSolvedFormulas larger)
   let diffFormulas = applyRenaming renaming (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
   return $ S.map Right diffLessAtoms <> S.map Left diffFormulas
-
-e2t ::Edge -> (NodeId, NodeId)
-e2t (Edge (src, _) (tgt, _)) = (src, tgt)
 
 isProgressingAndSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToWithVarsT
 isProgressingAndSubSysUpTo smaller larger rM =  do

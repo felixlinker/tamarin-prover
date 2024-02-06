@@ -651,7 +651,7 @@ evalFreshTAvoiding m = evalFreshT m . avoid
 -- | @s `renameAvoiding` t@ replaces all free variables in @s@ by
 --   fresh variables avoiding variables in @t@.
 renameAvoiding :: (HasFrees s, HasFrees t) => s -> t -> s
-renameAvoiding s t = evalFreshAvoiding (rename s) t
+renameAvoiding s = evalFreshAvoiding (rename s)
 
 -- | @s `renameAvoiding` t@ replaces all free variables in @s@ by
 --   fresh variables avoiding variables in @t@.
@@ -687,7 +687,7 @@ renameDropNamehint =
 
 instance HasFrees LVar where
     foldFrees = id
-    foldFreesOcc f c v = f c v
+    foldFreesOcc f = f
     mapFrees (Arbitrary f) = f
     mapFrees (Monotone f)  = f
 

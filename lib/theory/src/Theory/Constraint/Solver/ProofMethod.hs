@@ -385,24 +385,24 @@ execDiffProofMethod ctxt method sysPath =
       allSubtermsFinished <- mallSubtermsFinished
       guard allSubtermsFinished
       mirrorSyss <- mmirrorSyss
-      isSolved <- solved <$> msys'
-      guard (fst (evaluateRestrictions ctxt sys mirrorSyss isSolved) == TTrue)
+      solved <- isSolved <$> msys'
+      guard (fst (evaluateRestrictions ctxt sys mirrorSyss solved) == TTrue)
       return M.empty
     DiffAttack -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
       s <- L.get dsSide sys
-      isSolved <- solved <$> msys'
+      solved <- isSolved <$> msys'
       sys' <- L.get dsSystem sys
       notContradictory <- not . contradictorySystem (eitherProofContext ctxt s) <$> sequents
       -- In the second case, the system is trivial, has no mirror and restrictions do not get in the way.
       -- If we solve arbitrarily the last remaining trivial goals,
       -- then there will be an attack.
-      guard (isSolved || (trivial sys' && notContradictory))
+      guard (solved || (trivial sys' && notContradictory))
       allSubtermsFinished <- mallSubtermsFinished
       guard allSubtermsFinished
       mirrorSyss <- mmirrorSyss
-      guard (fst (evaluateRestrictions ctxt sys mirrorSyss isSolved) == TFalse)
+      guard (fst (evaluateRestrictions ctxt sys mirrorSyss solved) == TFalse)
       return M.empty
     DiffRuleEquivalence -> do
       guard (isNothing $ L.get dsProofType sys)
@@ -410,9 +410,9 @@ execDiffProofMethod ctxt method sysPath =
     DiffUnfinishable -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
-      isSolved <- solved <$> msys'
+      solved <- isSolved <$> msys'
       allSubtermsFinished <- mallSubtermsFinished
-      guard isSolved
+      guard solved
       guard (not allSubtermsFinished)
       return M.empty
   where

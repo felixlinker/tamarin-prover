@@ -346,7 +346,7 @@ applySource ctxt th0 goal = (\th -> (_applySource th, Just th0)) <$> matchToGoal
     _applySource th = do
       markGoalAsSolved "precomputed" goal
       (names, sysTh0) <- disjunctionOfList $ getDisj $ get cdCases th
-      sysTh <- (`evalBindT` keepVarBindings) . someInst $ sysTh0
+      sysTh <- evalBindT (someInst sysTh0) keepVarBindings
       conjoinSystem sysTh
       return names
 
