@@ -399,14 +399,18 @@ data GoalStatus = GoalStatus
     }
     deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
-data SystemId = SystemId Int W.Word32
+data SystemId = SystemId Int W.Word64
   deriving ( Eq, Ord, Generic, NFData, Binary )
 
 instance Show SystemId where
   show (SystemId off sid) = showHex off $ "#" ++ showHex sid ""
 
 instance Semigroup SystemId where
-  (SystemId off1 id1) <> (SystemId off2 id2) = SystemId (off1 + off2) (id1 B..|. B.shift id2 off1)
+  (SystemId off1 id1) <> (SystemId off2 id2) =
+    let newOff = off1 + off2 in
+    if newOff > B.finiteBitSize id1
+    then error "overflow error"
+    else SystemId newOff (B.shift id1 off2 B..|. id2)
 
 instance Monoid SystemId where
   mempty = SystemId 0 B.zeroBits
