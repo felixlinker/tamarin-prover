@@ -69,6 +69,7 @@ import           Theory.Model
 import           Theory.Text.Pretty
 import qualified Extension.Data.Label as L
 import Control.Monad.Disj (disjunctionOfList)
+import Control.Monad.Fresh
 
 
 
@@ -256,11 +257,14 @@ execProofMethod ctxt method syss@(sys:_) =
       Weaken el                            -> process $ weaken el
       Cut el                               -> process $ cut el
   where
+    setFreshState :: (a, System) -> FreshState -> (a, System)
+    setFreshState t st = L.set sFreshState st <$> t
+
     process :: Reduction CaseName -> Maybe (M.Map CaseName System)
     process m =
       let cases =   removeRedundantCases ctxt [] snd
-                  . map fst
-                  . getDisj $ runReduction cleanup ctxt sys (avoid sys)
+                  . map (uncurry setFreshState)
+                  . getDisj $ runReduction cleanup ctxt sys (L.get sFreshState sys)
           ids = idRange $ length cases
           newCases = Just $ M.fromList $ zipWith (\r sid -> L.modify sId (<> sid) <$> r) cases ids
       in case cases of

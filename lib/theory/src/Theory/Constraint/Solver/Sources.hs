@@ -103,6 +103,7 @@ initialSource ctxt restrictions goal =
   where
     polish ((name, se), _) = ([name], se)
     se0   = insertLemmas restrictions $ emptySystem RawSource $ get pcDiffContext ctxt
+    -- TODO: I might need to come up with the FreshState for se0 differently
     cases = polish <$> runReduction instantiate ctxt se0 (avoid (goal, se0))
     instantiate = do
         insertGoal goal False
@@ -127,6 +128,7 @@ refineSource ctxt proofStep th =
     fs         = avoid th
     refinement = do
         (names, se)        <- get cdCases th
+    -- TODO: I might need to come up with the FreshState fs differently
         ((x, names'), se') <- fst <$> runReduction proofStep ctxt se fs
         return (x, (combine names names', se'))
 
