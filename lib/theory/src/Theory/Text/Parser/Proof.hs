@@ -74,11 +74,10 @@ goal = asum
         parens $ (SplitG . SplitId . fromIntegral) <$> natural
 
 edge :: Parser Edge
-edge = parens (do
+edge = do
   c <- nodeConc
   _ <- symbol ">-->"
-  p <- nodePrem
-  return $ Edge c p)
+  Edge c <$> nodePrem
 
 -- | Parse a proof method.
 proofMethod :: Parser ProofMethod
