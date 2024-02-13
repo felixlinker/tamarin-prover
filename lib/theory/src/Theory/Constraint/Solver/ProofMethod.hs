@@ -279,7 +279,6 @@ execProofMethod ctxt method syss@(sys:_) =
           name <- m
           simplifySystem
           L.setM sSubst emptySubst
-          St.modify ((`Precise.evalFresh` Precise.nothingUsed) . renamePrecise)
           return name
 
     -- solve the given goal
