@@ -251,7 +251,7 @@ execProofMethod ctxt method syss@(sys:_) =
         | goal `M.member` L.get sGoals sys -> process $ solve goal
         | otherwise                        -> Nothing
       -- process simplifies
-      Simplify                             -> process $ return "simplify"
+      Simplify                             -> process $ return ""
       Induction                            -> getInductionCases sys >>= process . induction
       Contradiction _
         | null (contradictions ctxt syss)  -> Nothing
