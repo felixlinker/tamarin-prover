@@ -91,7 +91,7 @@ proofMethod = asum
   , symbol "weaken node"        *> (Weaken . WeakenNode <$> parens nodevar)
   , symbol "weaken goal"        *> (Weaken . WeakenGoal <$> parens goal)
   , symbol "weaken edge"        *> (Weaken . WeakenEdge <$> parens edge)
-  , symbol "cut"                *> (Cut . CutEl . S.fromList <$> parens (commaSep (Left <$> guardedFormula)))
+  , symbol "cut"                *> (Cut . CutEl . S.fromList <$> parens (commaSep guardedFormula))
   ]
 
 -- | Start parsing a proof skeleton.

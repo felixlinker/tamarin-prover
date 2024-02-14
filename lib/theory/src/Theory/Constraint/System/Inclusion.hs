@@ -1,9 +1,9 @@
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
+{-# LANGUAGE TupleSections      #-}
 module Theory.Constraint.System.Inclusion
   ( UpTo
-  , upToToFormulas
   , prettyUpTo
   , ProgressingVars
   , pvProgresses
@@ -32,11 +32,11 @@ import Control.Monad.Reader (runReader)
 import Control.Monad
 import GHC.OldList (permutations)
 import Theory.Model.Rule
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 import Theory.Model.Signature (sigmMaudeHandle)
 import GHC.List (uncons)
 
-type UpTo = S.Set (Either LNGuarded LessAtom)
+type UpTo = S.Set LNGuarded
 
 data ProgressingVars = ProgressingVars
   { _pvProgresses :: S.Set NodeId
@@ -48,14 +48,8 @@ data ProgressingVars = ProgressingVars
 
 $(mkLabels [''ProgressingVars])
 
-upToToFormulas :: UpTo -> [LNGuarded]
-upToToFormulas = map toFormula . S.toList
-  where
-    toFormula :: Either LNGuarded LessAtom -> LNGuarded
-    toFormula = either id lessAtomToFormula
-
 prettyUpTo :: HighlightDocument d => UpTo -> d
-prettyUpTo = fsep . intersperse comma . map prettyGuarded . upToToFormulas
+prettyUpTo = fsep . intersperse comma . map prettyGuarded . S.toList
 
 -- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
 --    and everything else a potentially correct renaming.
@@ -70,12 +64,12 @@ isSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToT
 isSubSysUpTo smaller larger renamingT = do
   renaming <- renamingT
   guard (applyRenaming renaming (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
-  let diffLessAtoms = applyRenaming renaming (L.get sLessAtoms smaller) `S.difference` L.get sLessAtoms larger
+  guard (applyRenaming renaming (S.map lessAtomToEdge $ L.get sLessAtoms smaller) `S.isSubsetOf` S.fromList (transitiveLessRel larger))
   let smallerFormulas = applyRenaming renaming (L.get sSolvedFormulas smaller <> L.get sFormulas smaller)
   let largerFormulas = L.get sSolvedFormulas larger <> L.get sFormulas larger
   -- guard (applyRenaming renaming (L.get sSolvedFormulas smaller) `S.isSubsetOf` L.get sSolvedFormulas larger)
   let diffFormulas = smallerFormulas `S.difference` largerFormulas
-  return $ S.map Right diffLessAtoms <> S.map Left diffFormulas
+  return diffFormulas
 
 isProgressingAndSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToWithVarsT
 isProgressingAndSubSysUpTo smaller larger rM =  do
@@ -155,21 +149,37 @@ getProgressingVars :: System -> [(LVar, LVar)] -> ProgressingVars
 getProgressingVars sys renamings =
   let srcs = S.fromList $ map snd renamings
       tgts = S.fromList $ map fst renamings
-      sorting = topologicalSortingAsc $ S.fromList $ rawLessRel sys
-      progressing = S.intersection tgts $ go srcs sorting
+      lessRel = concat $ lessRelTopoSortedAsc sys
+      progressing = S.intersection tgts $ go srcs lessRel
   in ProgressingVars progressing (M.keysSet $ L.get sNodes sys) where
     go :: S.Set NodeId -> [(NodeId, NodeId)] -> S.Set NodeId
     go acc [] = acc
     go acc ((from, to):es) = go (if from `S.member` acc then S.insert to acc else acc) es
 
-topologicalSortingAsc :: S.Set (NodeId, NodeId) -> [(NodeId, NodeId)]
-topologicalSortingAsc s
-  | S.null s  = []
-  | otherwise = let noOutgoing = S.map fst s S.\\ S.map snd s
-                    (mins, rest) = S.partition ((`S.member` noOutgoing) . fst) s
-                in  if   S.null mins
-                    -- TODO: Can be called on cyclic graph, e.g., when there
-                    -- are cyclic timepoints. This is then also a
-                    -- contradiction, but I should establish this invariant.
-                    then error "not a DAG"
-                    else S.toList mins ++ topologicalSortingAsc rest
+transitiveLessRel :: System -> [(NodeId, NodeId)]
+transitiveLessRel se = collect $ go M.empty $ concat $ lessRelTopoSortedAsc se
+  where
+    collect :: M.Map NodeId (S.Set NodeId) -> [(NodeId, NodeId)]
+    collect = concatMap (\(k, vs) -> map (,k) $ S.toList vs) . M.toList
+
+    go :: M.Map NodeId (S.Set NodeId) -> [(NodeId, NodeId)] -> M.Map NodeId (S.Set NodeId)
+    go m [] = m
+    go m ((s,t):es) =
+      let canReachS = fromMaybe S.empty $ M.lookup s m
+          newAcc = M.alter (Just . S.union canReachS . maybe (S.singleton s) (S.insert s)) t m
+      in go newAcc es
+
+lessRelTopoSortedAsc :: System -> [[(NodeId, NodeId)]]
+lessRelTopoSortedAsc = go . S.fromList . rawLessRel
+  where
+    go :: S.Set (NodeId, NodeId) -> [[(NodeId, NodeId)]]
+    go s  | S.null s  = []
+          | otherwise =
+            let noOutgoing = S.map fst s S.\\ S.map snd s
+                (mins, rest) = S.partition ((`S.member` noOutgoing) . fst) s
+            in  if   S.null mins
+                -- TODO: Can be called on cyclic graph, e.g., when there
+                -- are cyclic timepoints. This is then also a
+                -- contradiction, but I should establish this invariant.
+                then error "not a DAG"
+                else S.toList mins : go rest

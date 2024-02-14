@@ -29,7 +29,6 @@ module Theory.Constraint.System.Constraints (
   , laLarger
   , laReason
   , lessAtomFromEdge
-  , lessAtomToFormula
   , lessAtomToEdge
   , getLessRel
 
@@ -135,12 +134,6 @@ instance Ord LessAtom where
 
 lessAtomFromEdge :: Reason -> Edge -> LessAtom
 lessAtomFromEdge r (Edge (src, _) (tgt, _)) = LessAtom src tgt r
-
-lessAtomToFormula :: LessAtom -> LNGuarded
-lessAtomToFormula (LessAtom smaller larger _) = GAto $ Less (toVar smaller) (toVar larger)
-  where
-    toVar :: NodeId -> VTerm Name (BVar LVar)
-    toVar = LIT . Var . Free
 
 lessAtomToEdge :: LessAtom -> (NodeId, NodeId)
 lessAtomToEdge (LessAtom s t _) = (s, t)

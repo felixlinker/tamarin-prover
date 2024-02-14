@@ -347,15 +347,12 @@ execProofMethod ctxt method syss@(sys:_) =
 
     cut :: CutEl -> Reduction CaseName
     cut (CutEl phis) =
-      let phisL = map toFormula $ S.toList phis
+      let phisL = S.toList phis
       in do
         (caseName, caseFormula) <- disjunctionOfList (("cut", gconj phisL):zipWith neg [(0 :: Int)..] phisL)
         L.modM sFormulas (S.insert caseFormula)
         return caseName
       where
-        toFormula :: Either LNGuarded LessAtom -> LNGuarded
-        toFormula = either id lessAtomToFormula
-
         neg :: Int -> LNGuarded -> (String, LNGuarded)
         neg i phi = ("negate_" ++ show i, gnot phi)
 
