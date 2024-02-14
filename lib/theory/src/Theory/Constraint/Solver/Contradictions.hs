@@ -54,6 +54,7 @@ import           Theory.Tools.IntruderRules
 import           Theory.Text.Pretty
 
 import           Term.Rewriting.Norm            (maybeNotNfSubterms, nf')
+import Theory.Constraint.System.Inclusion (ProgressingVars, canCloseCycle)
 
 -- import           Debug.Trace
 

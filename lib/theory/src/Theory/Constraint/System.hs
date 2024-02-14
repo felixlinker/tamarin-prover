@@ -121,6 +121,7 @@ module Theory.Constraint.System (
 
   -- * Constraint systems
   , System
+  , Node(..)
   , DiffProofType(..)
   , DiffSystem
   , sFreshState
@@ -242,21 +243,11 @@ module Theory.Constraint.System (
   -- * Cyclic Proofs
   , SystemId(..)
   , idRange
-  , UpTo
-  , upToToFormulas
-  , prettyUpTo
-  , ProgressingVars
-  , pvProgresses
-  , pvPreserves
   , sWeakenedFrom
   , sId
-  , getCycleRenamingsOnPath
-  , getCycleRenamingOnPath
-  , canCloseCycle
   , getLoopLeaves
   , getLoopRoots
   , getLoopExits
-  , allNodeRenamings
 
   -- * Formula simplification
   , impliedFormulas
@@ -281,7 +272,7 @@ import qualified Data.Word                            as W
 import qualified Data.Bits                            as B
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
-import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy, permutations, uncons, intersperse)
+import           Data.List                            (foldl', partition, intersect,find,intercalate)
 import qualified Data.Map                             as M
 import           Data.Maybe                           (fromMaybe, mapMaybe, isJust)
 -- import           Data.Monoid                          (Monoid(..))
@@ -313,7 +304,6 @@ import           Theory.Tools.InjectiveFactInstances
 
 import           System.FilePath
 import           Text.Show.Functions()
-import Control.Monad.Trans.Maybe (MaybeT (runMaybeT))
 import Numeric (showHex)
 
 ----------------------------------------------------------------------
@@ -1976,9 +1966,6 @@ data Node = Node
   { nnid  :: NodeId
   , nrule :: RuleACInst}
 
-forSys :: System -> NodeId -> Node
-forSys sys nid = Node nid $ L.get sNodes sys M.! nid
-
 instance Eq Node where
   (Node n1 r1)== (Node n2 r2) = n1 == n2 && r1 == r2
 
@@ -1990,108 +1977,6 @@ instance Ord Node where
 
 instance Renamable Node LNSubst where
   (Node nid1 r1) ~> (Node nid2 r2) = mapVarM nid1 nid2 (r1 ~> r2)
-
-type UpTo = S.Set (Either LNGuarded LessAtom)
-
-data ProgressingVars = ProgressingVars
-  { _pvProgresses :: S.Set NodeId
-    -- ^ To be understood as <. Hence, is subset of pvPreserves.
-  , _pvPreserves :: S.Set NodeId
-    -- ^ to be understood as <=.
-  }
-  deriving( Eq, Ord, Show, Generic, NFData, Binary )
-
-$(mkLabels [''ProgressingVars])
-
-upToToFormulas :: UpTo -> [LNGuarded]
-upToToFormulas = (map toFormula) . S.toList
-  where
-    toFormula :: Either LNGuarded LessAtom -> LNGuarded
-    toFormula = either id lessAtomToFormula
-
-prettyUpTo :: HighlightDocument d => UpTo -> d
-prettyUpTo = fsep . intersperse comma . map prettyGuarded . upToToFormulas
-
--- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
---    and everything else a potentially correct renaming.
-type RenamingUpToT = MaybeT WithMaude UpTo
-type RenamingUpToWithVarsT = MaybeT WithMaude (UpTo, ProgressingVars)
-
-computeRenamingUpTo :: RenamingUpToWithVarsT -> MaudeHandle -> Maybe (UpTo, ProgressingVars)
-computeRenamingUpTo mr = runReader $ runMaybeT mr
-
--- TODO: Handle last
-isSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToT
-isSubSysUpTo smaller larger renamingT = do
-  renaming <- renamingT
-  guard (applyRenaming renaming (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
-  let diffLessAtoms = applyRenaming renaming (L.get sLessAtoms smaller) `S.difference` L.get sLessAtoms larger
-  guard (applyRenaming renaming (L.get sSolvedFormulas smaller) `S.isSubsetOf` L.get sSolvedFormulas larger)
-  let diffFormulas = applyRenaming renaming (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
-  return $ S.map Right diffLessAtoms <> S.map Left diffFormulas
-
-isProgressingAndSubSysUpTo :: System -> System -> MaybeRenaming LNSubst -> RenamingUpToWithVarsT
-isProgressingAndSubSysUpTo smaller larger rM =  do
-  renamed <- renamedTimePoints <$> rM
-  let withVars = getProgressingVars larger renamed
-  guard (not $ S.null $ L.get pvProgresses withVars)
-  r <- isSubSysUpTo smaller larger rM
-  return (r, withVars)
-
-allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
-allNodeRenamings smaller larger =
-  let nidsCycleTgt = gatherRules $ getNodes smaller
-      nidsCycleCnd = gatherRules $ getNodes larger
-      -- TODO: Apply heuristic whether to search for renamings
-      -- TODO: Fix search for renaming to account for implicit weakening
-      -- NOTE: Idea; I could memorize progress-candidates
-  in  renamingsByRule nidsCycleTgt nidsCycleCnd [idRenaming]
-  where
-    renamingsByRule :: [[Node]] -> [[Node]] -> [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst]
-    renamingsByRule _ _ []                 = []
-    renamingsByRule [] [] acc              = acc
-    renamingsByRule [] (_:_) acc           = acc
-    renamingsByRule (_:_) [] _             = []
-    renamingsByRule (ns1:t1) (ns2:t2) acc  =
-      let ruleRenamings = map (allRenamings ns1 ns2) acc
-      in  foldl rec [] ruleRenamings
-      where
-        rec :: [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst]
-        rec foldAcc ruleRenamings = foldAcc ++ renamingsByRule t1 t2 ruleRenamings
-
-    allRenamings :: [Node] -> [Node] -> MaybeRenaming LNSubst -> [MaybeRenaming LNSubst]
-    allRenamings ns1 ns2 acc = if length ns1 > length ns2
-      then []
-      else map ((~><~ acc) . (ns1 ~>)) (permutations ns2)
-
-    getNodes :: System -> S.Set Node
-    getNodes sys = S.map (forSys sys) $ M.keysSet (L.get sNodes sys)
-
-    gatherRules :: S.Set Node -> [[Node]]
-    gatherRules = groupBy (\n1 n2 -> get_rInfo n1 == get_rInfo n2) . S.toAscList
-      where get_rInfo = L.get rInfo . nrule
-
-isContainedInModRenamingUpTo :: System -> System -> RenamingUpToWithVarsT
-isContainedInModRenamingUpTo smaller larger = msum $ map (isProgressingAndSubSysUpTo smaller larger) (allNodeRenamings smaller larger)
-
-getCycleRenamingsOnPath :: ProofContext -> [System] -> [(UpTo, SystemId, ProgressingVars)]
-getCycleRenamingsOnPath _ [] = []
-getCycleRenamingsOnPath ctx (leaf:candidates) = mapMaybe tryRenaming candidates
-  where
-    hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
-    tryRenaming inner = do
-      (upTo, renaming) <- computeRenamingUpTo (isContainedInModRenamingUpTo inner leaf) hnd
-      return (upTo, L.get sId inner, renaming)
-
-getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (UpTo, SystemId, ProgressingVars)
-getCycleRenamingOnPath ctx = peak . getCycleRenamingsOnPath ctx
-  where peak = (fst <$>) . uncons
-
-canCloseCycle :: ProofContext -> [System] -> Maybe (SystemId, ProgressingVars)
-canCloseCycle ctx p = do
-  (upTo, sid, progressingVars) <- getCycleRenamingOnPath ctx p
-  guard (S.null upTo)
-  return (sid, progressingVars)
 
 guardLoopType :: ProofContext -> RuleLoopType -> NodeId -> RuleACInst -> Maybe NodeId
 guardLoopType ctxt typ nid r =
@@ -2118,26 +2003,3 @@ getLoopRoots ctxt sys =
 
 getLoopExits :: ProofContext -> System -> S.Set NodeId
 getLoopExits = getLoopNodesWhere LoopExit (const True)
-
-getProgressingVars :: System -> [(LVar, LVar)] -> ProgressingVars
-getProgressingVars sys renamings =
-  let srcs = S.fromList $ map snd renamings
-      tgts = S.fromList $ map fst renamings
-      sorting = topologicalSortingAsc $ S.fromList $ rawLessRel sys
-      progressing = S.intersection tgts $ go srcs sorting
-  in ProgressingVars progressing (M.keysSet $ L.get sNodes sys) where
-    go :: S.Set NodeId -> [(NodeId, NodeId)] -> S.Set NodeId
-    go acc [] = acc
-    go acc ((from, to):es) = go (if from `S.member` acc then S.insert to acc else acc) es
-
-    topologicalSortingAsc :: S.Set (NodeId, NodeId) -> [(NodeId, NodeId)]
-    topologicalSortingAsc s
-      | S.null s  = []
-      | otherwise = let noOutgoing = S.map fst s S.\\ S.map snd s
-                        (mins, rest) = S.partition ((`S.member` noOutgoing) . fst) s
-                    in  if   S.null mins
-                        -- TODO: Can be called on cyclic graph, e.g., when there
-                        -- are cyclic timepoints. This is then also a
-                        -- contradiction, but I should establish this invariant.
-                        then error "not a DAG"
-                        else S.toList mins ++ topologicalSortingAsc rest

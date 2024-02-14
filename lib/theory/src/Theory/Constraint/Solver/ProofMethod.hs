@@ -70,6 +70,7 @@ import           Theory.Text.Pretty
 import qualified Extension.Data.Label as L
 import Control.Monad.Disj (disjunctionOfList)
 import Control.Monad.Fresh
+import Theory.Constraint.System.Inclusion (UpTo, prettyUpTo, getCycleRenamingOnPath)
 
 
 
@@ -536,7 +537,7 @@ rankProofMethods ranking tactics ctxt syss@(sys:_) =
                   ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
       weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ edgesToWeaken ++ goalsToWeaken)
       cutMethods = fromMaybe [] (do
-        (upTo, _, _) <- getCycleRenamingOnPath ctxt syss
+        (_, upTo, _, _) <- getCycleRenamingOnPath ctxt syss
         guard (not $ S.null upTo)
         return [(Cut (CutEl upTo), "")])
       cyclicMethods = if isDiff then [] else cutMethods ++ weakenMethods
