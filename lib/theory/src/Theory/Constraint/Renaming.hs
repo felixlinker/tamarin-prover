@@ -9,6 +9,7 @@ module Theory.Constraint.Renaming
   ( applyRenaming
   , renamedTimePoints
   , Renaming
+  , giSubst
   , idRenaming
   , noRenaming
   , Renamable(..)

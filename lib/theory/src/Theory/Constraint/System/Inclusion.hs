@@ -24,7 +24,7 @@ import Text.PrettyPrint.Highlight (HighlightDocument, comma)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Term.Maude.Process (WithMaude, MaudeHandle)
 import Theory.Constraint.Renaming
-import Term.Substitution (LNSubst)
+import Term.Substitution (LNSubst, Subst (sMap))
 import qualified Data.Map as M
 import Data.List ( intersperse, groupBy )
 import Text.PrettyPrint.Class (fsep)
@@ -91,8 +91,17 @@ allLoopRenamings ctxt smaller larger =
       nidsCycleCnd = gatherRules $ getRenamableNodes larger
       -- TODO: Apply heuristic whether to search for renamings
       -- NOTE: Idea; I could memorize progress-candidates
-  in  renamingsByRule nidsCycleTgt nidsCycleCnd [idRenaming]
+  in map isRenaming $ renamingsByRule nidsCycleTgt nidsCycleCnd [idRenaming]
   where
+    domSmaller :: S.Set (VTerm Name LVar)
+    domSmaller = S.fromList $ map (LIT . Var) $ frees smaller
+
+    isRenaming :: MaybeRenaming LNSubst -> MaybeRenaming LNSubst
+    isRenaming rM = do
+      r <- rM
+      guard (not $ any (`S.member` domSmaller) (M.elems $ sMap $ L.get giSubst r))
+      return r
+
     renamingsByRule :: [[Node]] -> [[Node]] -> [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst]
     renamingsByRule _ _ []                 = []
     renamingsByRule [] [] acc              = acc
