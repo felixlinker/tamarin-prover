@@ -238,11 +238,12 @@ execProofMethod ctxt method syss@(sys:_) =
       Solved
         | null (openGoals sys)
           && finishedSubterms ctxt sys
-          && not (L.get sIsWeakened sys)   -> return M.empty
+          && isNothing (L.get sWeakenedFrom sys)
+                                           -> return M.empty
         | otherwise                        -> Nothing
       Unfinishable
         | null (openGoals sys)
-          && (not (finishedSubterms ctxt sys) || L.get sIsWeakened sys)
+          && (not (finishedSubterms ctxt sys) || isJust (L.get sWeakenedFrom sys))
                                            -> return M.empty
         | otherwise                        -> Nothing
       SolveGoal goal
@@ -312,7 +313,7 @@ execProofMethod ctxt method syss@(sys:_) =
     -- that the solutions stay the same.
     weaken :: WeakenEl -> Reduction CaseName
     weaken (WeakenGoal g) =do
-      L.setM sIsWeakened True
+      L.setM sWeakenedFrom (Just $ L.get sId sys)
       L.modM sGoals (M.delete g)
       return ""
     weaken (WeakenEdge e) = do
@@ -324,7 +325,7 @@ execProofMethod ctxt method syss@(sys:_) =
           keepGoal (PremiseG (i', _) _) st = i /= i' || L.get gsSolved st
           keepGoal _ _ = True
       in do
-        L.setM sIsWeakened True
+        L.setM sWeakenedFrom (Just $ L.get sId sys)
         L.modM sNodes $ M.delete i
         L.modM sGoals $ M.filterWithKey keepGoal
         (toKeep, toDeleteOutgoing) <- S.partition ((/= i) . fst . eSrc) <$> L.getM sEdges

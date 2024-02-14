@@ -1023,7 +1023,8 @@ proveSystemDFS heuristic tactics ctxt =
     prove _ [] = error "unreachable"
     prove !depth syss@(sys:_) =
         case rankProofMethods (useHeuristic heuristic depth) tactics ctxt syss of
-          []  | L.get sIsWeakened sys     -> node Unfinishable M.empty
+          []  | isJust (L.get sWeakenedFrom sys)
+                                          -> node Unfinishable M.empty
               | finishedSubterms ctxt sys -> node Solved M.empty
               | otherwise                 -> node Unfinishable M.empty
           (method, (cases, _expl)):_      -> node method cases

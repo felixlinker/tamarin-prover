@@ -248,7 +248,7 @@ module Theory.Constraint.System (
   , ProgressingVars
   , pvProgresses
   , pvPreserves
-  , sIsWeakened
+  , sWeakenedFrom
   , sId
   , getCycleRenamingsOnPath
   , getCycleRenamingOnPath
@@ -444,7 +444,7 @@ data System = System
     , _sNextGoalNr     :: Integer
     , _sSourceKind     :: SourceKind
     , _sDiffSystem     :: Bool
-    , _sIsWeakened     :: Bool
+    , _sWeakenedFrom   :: Maybe SystemId
     , _sId             :: SystemId
     , _sFreshState     :: FreshState }
     -- NOTE: Don't forget to update 'substSystem' in
@@ -874,7 +874,7 @@ emptySystem :: SourceKind -> Bool -> System
 emptySystem d isdiff = System
     M.empty S.empty S.empty Nothing emptySubtermStore emptyEqStore
     S.empty S.empty S.empty
-    M.empty 0 d isdiff False mempty nothingUsed
+    M.empty 0 d isdiff Nothing mempty nothingUsed
 
 -- | The empty diff constraint system.
 emptyDiffSystem :: DiffSystem
@@ -1882,7 +1882,7 @@ instance HasFrees GoalStatus where
     mapFrees  = const pure
 
 instance HasFrees System where
-    foldFrees fun (System a b c d e f g h i j k l m n _ _) =
+    foldFrees fun (System a b c d e f g h i j k l m _ _ _) =
         foldFrees fun a `mappend`
         foldFrees fun b `mappend`
         foldFrees fun c `mappend`
@@ -1895,8 +1895,7 @@ instance HasFrees System where
         foldFrees fun j `mappend`
         foldFrees fun k `mappend`
         foldFrees fun l `mappend`
-        foldFrees fun m `mappend`
-        foldFrees fun n
+        foldFrees fun m
 
     foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n _o _p) =
         foldFreesOcc fun ("a":ctx') a {- `mappend`
@@ -1926,7 +1925,7 @@ instance HasFrees System where
                <*> mapFrees fun k
                <*> mapFrees fun l
                <*> mapFrees fun m
-               <*> mapFrees fun n
+               <*> pure n
                <*> pure o
                <*> pure p
 
@@ -1964,8 +1963,8 @@ compareSystemsUpToNewVars
    (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _ _ _)
    (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _ _ _)
        = if compareNodes == EQ then
-            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False False mempty nothingUsed)
-                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False False mempty nothingUsed)
+            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False Nothing mempty nothingUsed)
+                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False Nothing mempty nothingUsed)
          else
             compareNodes
         where
