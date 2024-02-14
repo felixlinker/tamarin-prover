@@ -85,30 +85,13 @@ isProgressingAndSubSysUpTo smaller larger rM =  do
   upTo <- isSubSysUpTo smaller larger rM
   return (r, upTo, withVars)
 
-allLessAtomRenamings :: System -> System -> [MaybeRenaming LNSubst]
-allLessAtomRenamings smaller larger =
-  let unboundSmaller = S.toList $ unboundLessAtoms smaller
-      unboundLarger = S.toList $ unboundLessAtoms larger
-  in map (fromLessAtomMapping . zip unboundSmaller) (permutations unboundLarger)
-  where
-    fromLessAtomMapping :: [(LessAtom, LessAtom)] -> MaybeRenaming LNSubst
-    fromLessAtomMapping = foldl mapLessAtom idRenaming
-
-    mapLessAtom :: MaybeRenaming LNSubst -> (LessAtom, LessAtom) -> MaybeRenaming LNSubst
-    mapLessAtom r (LessAtom sml1 lrg1 _, LessAtom sml2 lrg2 _) = mapVarM lrg1 lrg2 $ mapVarM sml1 sml2 r
-
-    unboundLessAtoms :: System -> S.Set LessAtom
-    unboundLessAtoms s =
-      let bound = M.keysSet $ L.get sNodes s
-      in S.filter (\(LessAtom sml lrg _) -> not (S.member sml bound) || not (S.member lrg bound)) (L.get sLessAtoms s)
-
 allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
 allNodeRenamings smaller larger =
   let nidsCycleTgt = gatherRules $ getNodes smaller
       nidsCycleCnd = gatherRules $ getNodes larger
       -- TODO: Apply heuristic whether to search for renamings
       -- NOTE: Idea; I could memorize progress-candidates
-  in  renamingsByRule nidsCycleTgt nidsCycleCnd (allLessAtomRenamings smaller larger)
+  in  renamingsByRule nidsCycleTgt nidsCycleCnd [idRenaming]
   where
     renamingsByRule :: [[Node]] -> [[Node]] -> [MaybeRenaming LNSubst] -> [MaybeRenaming LNSubst]
     renamingsByRule _ _ []                 = []
