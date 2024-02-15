@@ -36,7 +36,6 @@ import         System.IO.Unsafe
 import         System.IO
 import           Control.Monad.Fresh
 import           Control.Exception
-import qualified Control.Monad.Trans.PreciseFresh as Precise
 
 import qualified Data.Set as S
 import qualified Data.Label as L
@@ -628,7 +627,7 @@ ppSapic tc (ProcessComb (Cond a) _ pl pr) =
     ppFact' p =
       case expandFormula (predicates tc) (toLFormula p) of
         Left _ -> translationFail "Export does not support tamarin predicates in conditionnals."
-        Right form -> (fst . snd $ Precise.evalFresh (ppLFormula emptyTypeEnv ppNAtom form) (avoidPrecise form), S.empty)
+        Right form -> (fst . snd $ evalFresh (ppLFormula emptyTypeEnv ppNAtom form) (avoid form), S.empty)
     addElseBranch (d, s) = case pr of
       ProcessNull _ -> (d, s)
       _ ->
@@ -746,7 +745,7 @@ addAttackerReportProc tc thy p =
         theoryPredicates thy
     (_, (formula, _)) = case reportPreds of
       Nothing -> translationFail "Translation Error, the Report predicate must be defined."
-      Just (Predicate _ form) -> Precise.evalFresh (ppLFormula emptyTypeEnv ppNAtom form) (avoidPrecise form)
+      Just (Predicate _ form) -> evalFresh (ppLFormula emptyTypeEnv ppNAtom form) (avoid form)
 
 ------------------------------------------------------------------------------
 -- Main printer for processes
@@ -962,10 +961,9 @@ ppTimeTypeVar te lvar =
     Just t -> ppLVar lvar <> text ":" <> text (ppType t)
 
 ppQueryFormulaEx :: TypingEnvironment -> LNFormula -> [LVar] -> Doc
-ppQueryFormulaEx te fm vs =
-  Precise.evalFresh (ppQueryFormula te fm vs) (avoidPrecise fm)
+ppQueryFormulaEx te fm vs = evalFresh (ppQueryFormula te fm vs) (avoid fm)
 
-ppRestrictFormula :: TypingEnvironment -> ProtoFormula Unit2 (String, LSort) Name LVar -> Precise.FreshT Data.Functor.Identity.Identity Doc
+ppRestrictFormula :: TypingEnvironment -> ProtoFormula Unit2 (String, LSort) Name LVar -> FreshT Data.Functor.Identity.Identity Doc
 ppRestrictFormula te =
   pp
   where
@@ -1031,7 +1029,7 @@ ppRestrictFormula te =
 ppLemma :: TypingEnvironment -> Lemma ProofSkeleton -> Doc
 ppLemma te p =
   text "(*" <> text (L.get lName p) <> text "*)"
-    $$ Precise.evalFresh (ppRestrictFormula te fm) (avoidPrecise fm)
+    $$ evalFresh (ppRestrictFormula te fm) (avoid fm)
   where
     fm = L.get lFormula p
 
@@ -1227,9 +1225,8 @@ mkAttackerContext :: TranslationContext -> LProcess (ProcessAnnotation LVar) -> 
 mkAttackerContext tc p =
   (tc {attackerChannel = Just attackerVar}, S.singleton hd)
   where
-    attackerVar@(LVar n _ _) = evalFresh (mkAttackerChannel p) initStateAtt
-    initState = avoidPreciseVars . map (\(SapicLVar lvar _) -> lvar) $ S.toList $ varsProc p
-    initStateAtt = fromMaybe 0 (M.lookup attChanName initState)
+    attackerVar@(LVar n _ _) = evalFresh (mkAttackerChannel p) initState
+    initState = avoid . map (\(SapicLVar lvar _) -> lvar) $ S.toList $ varsProc p
     hd = Sym "free" n ":channel" []
 
 -- given an optional channel name and a translation context, returns the corresponding printer

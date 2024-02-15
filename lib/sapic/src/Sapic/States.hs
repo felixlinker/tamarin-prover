@@ -76,13 +76,10 @@ stateChannelName :: String
 stateChannelName = "StateChannel"
 
 addStatesChannels ::  LProcess (ProcessAnnotation LVar) -> LProcess (ProcessAnnotation LVar)
-addStatesChannels p = evalFresh (declareStateChannel p (S.toList allBoundStates) S.empty M.empty) initStateChan
+addStatesChannels p = evalFresh (declareStateChannel p (S.toList allBoundStates) S.empty M.empty) initState
  where
    allBoundStates =  fst $ getAllStates p S.empty
-   initState = avoidPreciseVars . map (\(SapicLVar lvar _) -> lvar) $ S.toList $ varsProc p
-   initStateChan = case M.lookup stateChannelName initState of
-                     Nothing -> 0
-                     Just i -> i
+   initState = avoid . map (\(SapicLVar lvar _) -> lvar) $ S.toList $ varsProc p
 
 -- Descends into a process. Whenever all the names of a state term are declared, we declare a name corresponding to this state term, that will be used as the corresponding channel name.
 declareStateChannel ::  MonadFresh m => LProcess (ProcessAnnotation LVar) -> [SapicTerm] -> S.Set SapicLVar -> StateMap -> m (LProcess (ProcessAnnotation LVar))

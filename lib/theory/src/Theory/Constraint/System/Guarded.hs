@@ -89,8 +89,7 @@ module Theory.Constraint.System.Guarded (
 import           Control.Arrow
 import           Control.DeepSeq
 import           Control.Monad.Except
-import           Control.Monad.Fresh              (MonadFresh, scopeFreshness)
-import qualified Control.Monad.Trans.PreciseFresh as Precise (Fresh, evalFresh, evalFreshT)
+import           Control.Monad.Fresh              (MonadFresh, Fresh, evalFresh, evalFreshT, scopeFreshness)
 
 import           Debug.Trace
 
@@ -469,7 +468,7 @@ formulaToGuarded_ = either (error . render) id . formulaToGuarded
 formulaToGuarded :: HighlightDocument d => LNFormula  -> Either d LNGuarded
 formulaToGuarded fmOrig =
       either (Left . ppError . unErrorDoc) Right
-    $ Precise.evalFreshT (convert False fmOrig) (avoidPrecise fmOrig)
+    $ evalFreshT (convert False fmOrig) (avoid fmOrig)
   where
     ppFormula :: HighlightDocument a => LNFormula -> a
     ppFormula = nest 2 . doubleQuotes . prettyLNFormula
@@ -822,10 +821,9 @@ matchTerm s t =
 prettyGuarded :: HighlightDocument d
               => LNGuarded      -- ^ Guarded Formula.
               -> d              -- ^ Pretty printed formula.
-prettyGuarded fm =
-    Precise.evalFresh (pp fm) (avoidPrecise fm)
+prettyGuarded fm = evalFresh (pp fm) (avoid fm)
   where
-    pp :: HighlightDocument d => LNGuarded -> Precise.Fresh d
+    pp :: HighlightDocument d => LNGuarded -> Fresh d
     pp (GAto a) = return $ prettyNAtom $ bvarToLVar a
 
     pp (GDisj (Disj [])) = return $ operator_  "⊥"  -- "F"

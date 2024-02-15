@@ -49,7 +49,6 @@ import qualified Data.ByteString.Char8 as BC
 
 import           Control.Basics
 import           Control.DeepSeq
-import qualified Control.Monad.Trans.PreciseFresh          as Precise
 import qualified Control.Monad.State                       as St
 
 import           Debug.Trace
@@ -259,13 +258,10 @@ execProofMethod ctxt method syss@(sys:_) =
       Weaken el                            -> process $ weaken el
       Cut el                               -> process $ cut el
   where
-    setFreshState :: (a, System) -> FreshState -> (a, System)
-    setFreshState t st = L.set sFreshState st <$> t
-
     process :: Reduction CaseName -> Maybe (M.Map CaseName System)
     process m =
       let cases =   removeRedundantCases ctxt [] snd
-                  . map (uncurry setFreshState)
+                  . map (uncurry (flip (fmap . L.set sFreshState)))
                   . getDisj $ runReduction cleanup ctxt sys (L.get sFreshState sys)
           ids = idRange $ length cases
           newCases = Just $ M.fromList $ zipWith (\r sid -> L.modify sId (<> sid) <$> r) cases ids

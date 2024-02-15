@@ -323,9 +323,7 @@ solveWithSourceAndReturn :: ProofContext
                          -> [Source]
                          -> Goal
                          -> Maybe (Reduction [String], Maybe Source)
-solveWithSourceAndReturn hnd ths goal = do
-    -- goal <- toBigStepGoal goal0
-    asum [ applySource hnd th goal | th <- ths ]
+solveWithSourceAndReturn hnd ths goal = asum [ applySource hnd th goal | th <- ths ]
 
 -- | Try to solve a premise goal or 'KU' action using the first precomputed
 -- source with a matching premise.

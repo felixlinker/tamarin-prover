@@ -42,11 +42,13 @@ import Control.Monad.Identity
 import Control.Monad.State.Strict
 import Control.Monad.Except
 import Control.Monad.Reader
+import Control.Monad.Catch
 
 import qualified Data.Map as M
 
 -- Control.Monad.Fail import will become redundant in GHC 8.8+
 import qualified Control.Monad.Fail as Fail
+import Data.Maybe (fromMaybe)
 
 ------------------------------------------------------------------------------
 -- FreshT monad transformer
@@ -88,15 +90,13 @@ freshIdent name = do
 
 -- | /O(n)/. Get 'k' fresh identifiers.
 freshIdents :: Monad m
-            => Integer           -- ^ number of desired identifiers
-            -> FreshT m Integer  -- ^ The first fresh identifier.
-freshIdents k = do
+            => M.Map String Integer -- ^ number of desired identifiers per name
+            -> FreshT m FreshState  -- ^ The first fresh identifier.
+freshIdents ns = do
     m <- FreshT get
-    let maxIdx = maximum $ 0 : map snd (M.toList m)
-        nextIdx = maxIdx + k
-    -- insert 'nextIdx' at "" to remember it for the next call
-    FreshT (put (M.insert "" nextIdx $ M.map (const nextIdx) m))
-    return maxIdx
+    let !nextIdx = M.unionWith (+) ns m
+    FreshT (put nextIdx)
+    return m
 
 -- | Restrict the scope of the freshness requests.
 scopeFreshness :: Monad m => FreshT m a -> FreshT m a
@@ -113,6 +113,12 @@ scopeFreshness scoped = do
 instance MonadError e m => MonadError e (FreshT m) where
     throwError     = lift . throwError
     catchError m h = FreshT $ catchError (unFreshT m) (unFreshT . h)
+
+instance MonadThrow m => MonadThrow (FreshT m) where
+    throwM = lift . throwM
+
+instance MonadCatch m => MonadCatch (FreshT m) where
+    catch m f = FreshT $ catch (unFreshT m) (unFreshT . f)
 
 instance MonadReader r m => MonadReader r (FreshT m) where
     ask       = lift ask

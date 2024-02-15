@@ -85,7 +85,6 @@ import           Data.Data
 import           Control.Basics
 import           Control.DeepSeq
 import           Control.Monad.Fresh
-import qualified Control.Monad.Trans.PreciseFresh as Precise
 
 import           Theory.Model.Atom
 
@@ -502,10 +501,8 @@ prettyLFormula ppAtom =
 
 -- | Pretty print a logical formula
 prettyLNFormula :: HighlightDocument d => LNFormula -> d
-prettyLNFormula fm =
-    Precise.evalFresh (prettyLFormula prettyNAtom fm) (avoidPrecise fm)
+prettyLNFormula fm = evalFresh (prettyLFormula prettyNAtom fm) (avoid fm)
 
 -- | Pretty print a logical formula
 prettySyntacticLNFormula :: HighlightDocument d => SyntacticLNFormula -> d
-prettySyntacticLNFormula fm =
-    Precise.evalFresh (prettyLFormula prettySyntacticNAtom fm) (avoidPrecise fm)
+prettySyntacticLNFormula fm = evalFresh (prettyLFormula prettySyntacticNAtom fm) (avoid fm)

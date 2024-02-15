@@ -14,6 +14,7 @@ module Accountability.Generation (
 import           Control.Monad.Catch         (MonadThrow)
 import           Control.Monad.Fresh         (MonadFresh, evalFreshT)
 import qualified Extension.Data.Label        as L
+import qualified Data.Map                    as M
 import           Text.PrettyPrint.Class      (Document(text, ($-$)), ($--$), vcat, Doc)
 import           Theory
 import           Theory.Tools.Wellformedness (WfErrorReport)
@@ -245,7 +246,7 @@ casesLemmas accLemma = do
         caseTests = L.get aCaseTests accLemma
 
 generateAccountabilityLemmas :: (Monad m, MonadThrow m) => AccLemma -> m [ProtoLemma SyntacticLNFormula ProofSkeleton]
-generateAccountabilityLemmas accLemma = evalFreshT (casesLemmas accLemma) 0
+generateAccountabilityLemmas accLemma = evalFreshT (casesLemmas accLemma) M.empty
 
 
 

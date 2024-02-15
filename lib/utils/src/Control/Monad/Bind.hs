@@ -45,8 +45,6 @@ import Control.Basics
 import Control.Monad.State
 import Control.Monad.Fresh
 
-import qualified Control.Monad.Trans.PreciseFresh as Precise
-
 ------------------------------------------------------------------------------
 -- Bindings
 ------------------------------------------------------------------------------
@@ -67,7 +65,6 @@ class MonadState (Bindings k v) m => MonadBind k v m where
 instance Monad m => MonadBind k v (StateT (Bindings k v) m) where
 
 instance MonadBind k v m => MonadBind k v (FreshT m) where
-instance MonadBind k v m => MonadBind k v (Precise.FreshT m) where
 
 ------------------------------------------------------------------------------
 -- Type synonym for the StateT monad transformer

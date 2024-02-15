@@ -62,7 +62,6 @@ import           Control.DeepSeq        (NFData(..))
 
 import           Data.List              (intersperse)
 
--- import           Extension.Data.Monoid  ((<>))
 import           Extension.Prelude      (flushRight)
 
 import qualified Text.PrettyPrint.HughesPJ as P

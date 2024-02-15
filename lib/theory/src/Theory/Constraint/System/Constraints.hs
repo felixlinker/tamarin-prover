@@ -54,9 +54,7 @@ import           GHC.Generics (Generic)
 import           Data.Binary
 import           Data.Data
 import           Data.Label                           (mkLabels)
--- import           Extension.Data.Monoid            (Monoid(..))
 
--- import           Control.Basics
 import           Control.DeepSeq
 
 import           Text.PrettyPrint.Class
