@@ -128,7 +128,9 @@ isContainedInModRenamingUpTo smaller larger = msum $ map (isProgressingAndSubSys
 
 getCycleRenamingsOnPath :: ProofContext -> [System] -> [(Renaming LNSubst, UpTo, SystemId, ProgressingVars)]
 getCycleRenamingsOnPath _ [] = []
-getCycleRenamingsOnPath ctx (leaf:candidates) = mapMaybe tryRenaming candidates
+getCycleRenamingsOnPath ctx (leaf:candidates) =
+  let weakenedFrom = L.get sWeakenedFrom leaf
+  in mapMaybe tryRenaming $ takeWhile ((== weakenedFrom) . L.get sWeakenedFrom) candidates
   where
     hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
     tryRenaming inner = do
