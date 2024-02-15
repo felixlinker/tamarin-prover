@@ -349,12 +349,12 @@ execProofMethod ctxt method syss@(sys:_) =
     cut (CutEl phis) =
       let phisL = S.toList phis
       in do
-        (caseName, caseFormula) <- disjunctionOfList (("cut", gconj phisL):zipWith neg [(0 :: Int)..] phisL)
-        L.modM sFormulas (S.insert caseFormula)
+        (caseName, caseFormulas) <- disjunctionOfList (("cut", phisL):zipWith neg [(0 :: Int)..] phisL)
+        L.modM sFormulas (\s -> foldr S.insert s caseFormulas)
         return caseName
       where
-        neg :: Int -> LNGuarded -> (String, LNGuarded)
-        neg i phi = ("negate_" ++ show i, gnot phi)
+        neg :: Int -> LNGuarded -> (String, [LNGuarded])
+        neg i phi = ("negate_" ++ show i, [gnot phi])
 
 -- @execDiffMethod rules method se@ checks first if the @method@ is applicable to
 -- the sequent @se@. Then, it applies the @method@ to the sequent under the
