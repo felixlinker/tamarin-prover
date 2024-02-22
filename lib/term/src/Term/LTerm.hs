@@ -124,10 +124,8 @@ import           Control.Monad.Identity
 import           GHC.Generics                     (Generic)
 import           Data.Binary
 import qualified Data.DList                       as D
-import           Data.Foldable                    hiding (concatMap, elem, notElem, any)
 import           Data.Data
 import qualified Data.Map                         as M
-import qualified Data.Map.Strict                  as M'
 import           Data.Monoid
 import qualified Data.Set                         as S
 -- import           Data.Traversable

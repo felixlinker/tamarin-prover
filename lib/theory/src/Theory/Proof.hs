@@ -445,30 +445,6 @@ diffProofStepStatus (DiffProofStep (DiffSorry _)    (Just _)) = IncompleteProof
 diffProofStepStatus (DiffProofStep DiffUnfinishable (Just _)) = UnfinishableProof
 diffProofStepStatus (DiffProofStep _                (Just _)) = CompleteProof
 
-
-{- TODO: Test and probably improve
-
--- | @proveSystem rules se@ tries to construct a proof that @se@ is valid.
--- This proof may contain 'Sorry' steps, if the prover is stuck. It can also be
--- of infinite depth, if the proof strategy loops.
-proveSystemIterDeep :: ProofContext -> System -> Proof System
-proveSystemIterDeep rules se0 =
-    fromJust $ asum $ map (prove se0 . round) $ iterate (*1.5) (3::Double)
-  where
-    prove :: System -> Int -> Maybe (Proof System)
-    prove se bound
-      | bound < 0 = Nothing
-      | otherwise =
-          case next of
-            [] -> pure $ sorry "prover stuck => possible attack found" se
-            xs -> asum $ map mkProof xs
-      where
-        next = do m <- possibleProofMethods se
-                  (m,) <$> maybe mzero return (execProofMethod rules m se)
-        mkProof (method, cases) =
-            LNode (ProofStep method se) <$> traverse (`prove` (bound - 1)) cases
--}
-
 -- | @checkProof rules se prf@ replays the proof @prf@ against the start
 -- sequent @se@. A failure to apply a proof method is denoted by a resulting
 -- proof step without an annotated sequent. An unhandled case is denoted using

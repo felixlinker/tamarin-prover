@@ -607,31 +607,6 @@ useHeuristic (Heuristic rankings) =
       | depth < 0 = error $ "useHeuristic: negative proof depth " ++ show depth
       | otherwise = rankings !! (depth `mod` n)
 
-
-{-
--- | Schedule the given local-heuristics in a round-robin fashion.
-roundRobinHeuristic :: [GoalRanking] -> Heuristic
-roundRobinHeuristic []       = error "roundRobin: empty list of rankings"
-roundRobinHeuristic rankings =
-    methods
-  where
-    n = length rankings
-
-    methods depth ctxt sys
-      | depth < 0 = error $ "roundRobin: negative proof depth " ++ show depth
-      | otherwise =
-          ( name
-          ,     ((Contradiction . Just) <$> contradictions ctxt sys)
-            <|> (case L.get pcUseInduction ctxt of
-                   AvoidInduction -> [Simplify, Induction]
-                   UseInduction   -> [Induction, Simplify]
-                )
-            <|> ((SolveGoal . fst) <$> (ranking sys $ openGoals sys))
-          )
-      where
-        (name, ranking) = rankings !! (depth `mod` n)
--}
-
 -- | Sort annotated goals according to their number.
 goalNrRanking :: [AnnotatedGoal] -> [AnnotatedGoal]
 goalNrRanking = sortOn (fst . snd)

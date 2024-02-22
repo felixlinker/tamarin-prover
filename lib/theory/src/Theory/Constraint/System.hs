@@ -411,7 +411,7 @@ idRange 1 = [SystemId 1 B.zeroBits]
 idRange rng
   | rng < 1 = error "cannot generate empty range"
   | otherwise =
-    let width = ceiling (logBase (fromIntegral 2) (fromIntegral rng))
+    let width = ceiling (logBase 2 (fromIntegral rng) :: Double)
     in map (SystemId width . fromIntegral) [0..rng - 1]
 
 -- | A constraint system.
@@ -1299,15 +1299,15 @@ doRestrictionsHold ctxt sys formulas solved = -- Just (True, [sys]) -- FIXME Jan
     simplifiedForms = simplify (map (\x -> (x, sys)) formulas) solved
 
     simplify :: [(LNGuarded, System)] -> Bool -> [(LNGuarded, System)]
-    simplify forms solved =
+    simplify forms solved' =
         if ({-trace ("step: " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) forms) ++ " " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) res))-} res) == forms
             then res
-            else simplify res solved
+            else simplify res solved'
       where
-        res = step forms solved
+        res = step forms solved'
 
     step :: [(LNGuarded, System)] -> Bool -> [(LNGuarded, System)]
-    step forms solved = map simpGuard $ concat {-- $ trace (show (map (impliedOrInitial solved) forms))-} $ map (impliedOrInitial solved) forms
+    step forms solved' = map simpGuard $ concat {-- $ trace (show (map (impliedOrInitial solved') forms))-} $ map (impliedOrInitial solved') forms
 
     valuation s' = safePartialAtomValuation ctxt s'
 
@@ -1315,7 +1315,7 @@ doRestrictionsHold ctxt sys formulas solved = -- Just (True, [sys]) -- FIXME Jan
     simpGuard (f, sys') = (simplifyGuardedOrReturn (valuation sys') f, sys')
 
     impliedOrInitial :: Bool -> (LNGuarded, System) -> [(LNGuarded, System)]
-    impliedOrInitial solved (f, sys') = if isAllGuarded f && (solved || not (null imps)) then imps else [(f, sys')]
+    impliedOrInitial solved' (f, sys') = if isAllGuarded f && (solved' || not (null imps)) then imps else [(f, sys')]
       where
         imps = map (fmap (normDG ctxt)) $ impliedFormulasAndSystems (L.get pcMaudeHandle ctxt) sys' f
 
@@ -1718,10 +1718,6 @@ prettyNonGraphSystem se = vsep $ map combine_ -- text $ show se
   , ("solved formulas", vsep $ map prettyGuarded $ S.toList $ L.get sSolvedFormulas se)
   , ("unsolved goals",  prettyGoals False se)
   , ("solved goals",    prettyGoals True se)
---   , ("system",          text $ show se)
---   , ("DEBUG: Goals",    text $ show $ M.toList $ L.get sGoals se) -- prettyGoals False se)
---   , ("DEBUG: Nodes",    vcat $ map prettyNode $ M.toList $ L.get sNodes se)
---   , ("DEBUG",           text $ "dgIsNotEmpty: " ++ (show (dgIsNotEmpty se)) ++ " allFormulasAreSolved: " ++ (show (allFormulasAreSolved se)) ++ " allOpenGoalsAreSimpleFacts: " ++ (show (allOpenGoalsAreSimpleFacts se)) ++ " allOpenFactGoalsAreIndependent " ++ (show (allOpenFactGoalsAreIndependent se)) ++ " " ++ (if (dgIsNotEmpty se) && (allOpenGoalsAreSimpleFacts se) && (allOpenFactGoalsAreIndependent se) then ((show (map (checkIndependence se) $ unsolvedTrivialGoals se)) ++ " " ++ (show {-- $ map (\(premid, x) -> getAllMatchingConcs se premid x)-} $ map (\(nid, pid) -> ((nid, pid), getAllLessPreds se nid)) $ getOpenNodePrems se) ++ " ") else " not trivial ") ++ (show $ unsolvedTrivialGoals se) ++ " " ++ (show $ getOpenNodePrems se))
   ]
   where
     combine_ (header, d)  = fsep [keyword_ header <> colon, nest 2 d]
