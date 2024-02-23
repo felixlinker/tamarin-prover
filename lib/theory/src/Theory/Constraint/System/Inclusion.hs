@@ -79,10 +79,10 @@ isProgressingAndSubSysUpTo smaller larger rM =  do
   upTo <- isSubSysUpTo smaller larger rM
   return (r, upTo, withVars)
 
-allLoopRenamings :: ProofContext -> System -> System -> [MaybeRenaming LNSubst]
-allLoopRenamings ctxt smaller larger =
-  let nidsCycleTgt = gatherRules $ getRenamableNodes smaller
-      nidsCycleCnd = gatherRules $ getRenamableNodes larger
+allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
+allNodeRenamings smaller larger =
+  let nidsCycleTgt = gatherRules $ getNodes smaller
+      nidsCycleCnd = gatherRules $ getNodes larger
       -- TODO: Apply heuristic whether to search for renamings
       -- NOTE: Idea; I could memorize progress-candidates
   in map isRenaming $ renamingsByRule nidsCycleTgt nidsCycleCnd [idRenaming]
@@ -116,15 +116,15 @@ allLoopRenamings ctxt smaller larger =
     forSys :: System -> NodeId -> Node
     forSys sys nid = Node nid $ L.get sNodes sys M.! nid
 
-    getRenamableNodes :: System -> S.Set Node
-    getRenamableNodes sys = S.map (forSys sys) (getLoopNodes ctxt sys)
+    getNodes :: System -> S.Set Node
+    getNodes sys = S.map (forSys sys) $ M.keysSet (L.get sNodes sys)
 
     gatherRules :: S.Set Node -> [[Node]]
     gatherRules = groupBy (\n1 n2 -> get_rInfo n1 == get_rInfo n2) . S.toAscList
       where get_rInfo = L.get rInfo . nrule
 
-isContainedInModRenamingUpTo :: ProofContext -> System -> System -> RenamingUpToWithVarsT
-isContainedInModRenamingUpTo ctxt smaller larger = msum $ map (isProgressingAndSubSysUpTo smaller larger) (allLoopRenamings ctxt smaller larger)
+isContainedInModRenamingUpTo :: System -> System -> RenamingUpToWithVarsT
+isContainedInModRenamingUpTo smaller larger = msum $ map (isProgressingAndSubSysUpTo smaller larger) (allNodeRenamings smaller larger)
 
 getCycleRenamingsOnPath :: ProofContext -> [System] -> [(Renaming LNSubst, UpTo, SystemId, ProgressingVars)]
 getCycleRenamingsOnPath _ [] = []
@@ -132,7 +132,7 @@ getCycleRenamingsOnPath ctx (leaf:candidates) = mapMaybe tryRenaming candidates
   where
     hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
     tryRenaming inner = do
-      (r, upTo, progressing) <- computeRenamingUpTo (isContainedInModRenamingUpTo ctx inner leaf) hnd
+      (r, upTo, progressing) <- computeRenamingUpTo (isContainedInModRenamingUpTo inner leaf) hnd
       return (r, upTo, L.get sId inner, progressing)
 
 getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (Renaming LNSubst, UpTo, SystemId, ProgressingVars)

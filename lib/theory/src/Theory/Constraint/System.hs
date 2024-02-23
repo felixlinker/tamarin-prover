@@ -245,7 +245,6 @@ module Theory.Constraint.System (
   , idRange
   , sWeakenedFrom
   , sId
-  , getLoopNodes
   , getLoopLeaves
   , getLoopRoots
   , getLoopExits
@@ -1991,9 +1990,6 @@ getLoopNodesWhere :: RuleLoopType -> (NodeId -> Bool) -> ProofContext -> System 
 getLoopNodesWhere typ p ctxt sys =
   let nidAndInfos = mapMaybe (uncurry $ guardLoopType ctxt typ) . M.toAscList $ L.get sNodes sys
   in S.fromAscList $ filter p nidAndInfos
-
-getLoopNodes :: ProofContext -> System -> S.Set NodeId
-getLoopNodes = getLoopNodesWhere Loop (const True)
 
 getLoopLeaves :: ProofContext -> System -> S.Set NodeId
 getLoopLeaves ctxt sys =
