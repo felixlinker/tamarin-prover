@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE DeriveGeneric   #-}
 {-# LANGUAGE DeriveAnyClass  #-}
+{-# LANGUAGE ViewPatterns #-}
 module Theory.Constraint.Renaming
   ( applyRenaming
   , renamedTimePoints
@@ -58,13 +59,12 @@ fromRuleRenaming r1 r2 =
   in Renaming . Subst . mergeAcc . M.foldrWithKey (canonicalize rng1 rng2) (M.empty, M.empty, M.empty) . svMap
   where
     canonicalize :: S.Set LVar -> S.Set LVar -> LVar -> VTerm Name LVar -> Acc -> Acc
-    canonicalize rng1 rng2 v t (memd, memdInv, m)
+    canonicalize rng1 rng2 v t@(termToVar -> tv) (memd, memdInv, m)
       | tv `S.member` rng2 = (memd, memdInv, M.insert v t m)
       | tv `S.member` rng1 = (memd, memdInv, M.insert tv (LIT $ Var v) m)
       | v `S.member` rng1 = (M.insert v tv memd, memdInv, m)
       | v `S.member` rng2 = (memd, M.insert tv v memdInv, m)
       | otherwise = error "illegal state"
-      where tv = termToVar t
 
     range :: RuleACInst -> S.Set LVar
     range = S.fromList . map fst . varOccurences

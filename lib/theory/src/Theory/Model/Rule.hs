@@ -1071,12 +1071,10 @@ unifiableRuleACInsts ru1 ru2 =
     (not . null) <$> unifyRuleACInstEqs [Equal ru1 ru2]
 
 getRuleRenaming :: (Show a, Eq a, HasFrees a) => Rule a -> Rule a -> WithMaude (Maybe LNSubstVFresh)
-getRuleRenaming r1@(Rule rn1 pr1 co1 ac1 nvs1) r2@(Rule rn2 pr2 co2 ac2 nvs2) = reader $ \hnd ->
-  case eqs of
-       Nothing   -> Nothing
-       Just eqs' -> do
-        guard (rn1 == rn2)
-        find isRenamingPerRule $ unifs eqs' hnd
+getRuleRenaming r1@(Rule rn1 pr1 co1 ac1 nvs1) r2@(Rule rn2 pr2 co2 ac2 nvs2) = reader $ \hnd -> do
+  eqs' <- eqs
+  guard (rn1 == rn2)
+  find isRenamingPerRule $ unifs eqs' hnd
     where
        isRenamingPerRule subst = isRenaming (restrictVFresh (vars r1) subst) && isRenaming (restrictVFresh (vars r2) subst)
        vars ru = map fst $ varOccurences ru

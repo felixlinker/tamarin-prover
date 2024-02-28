@@ -7,34 +7,12 @@
 module Extension.Data.Monoid (
     module Data.Monoid
 
-  , MinMax(..)
-  , minMaxSingleton
-
   , MinMaxMap(..)
   , minMaxMapSingleton
   ) where
 
 import qualified Data.Map as M
 import Data.Monoid
-
--- | A newtype wrapper around 'Maybe' that returns a tuple of the minimum and
--- maximum value encountered, if there was any.
-newtype MinMax a = MinMax { getMinMax :: Maybe (a, a) }
-
--- | Construct a 'MinMax' value from a singleton value.
-minMaxSingleton :: a -> MinMax a
-minMaxSingleton x = MinMax (Just (x, x))
-
-instance Ord a => Semigroup (MinMax a) where
-    MinMax Nothing             <> y                          = y
-    x                          <> MinMax Nothing             = x
-    MinMax (Just (xMin, xMax)) <> MinMax (Just (yMin, yMax)) =
-       MinMax (Just (min xMin yMin, max xMax yMax))
-
-
-instance Ord a => Monoid (MinMax a) where
-    mempty = MinMax Nothing
-    mappend = (<>)
 
 newtype MinMaxMap k a = MinMaxMap { getMinMaxMap :: M.Map k (a, a) }
 
