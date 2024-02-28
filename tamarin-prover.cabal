@@ -171,6 +171,7 @@ executable tamarin-prover
       Main.Console
       Main.Environment
       Main.REPL
+      Main.ScratchPad
       Main.TheoryLoader
       Main.Utils
       Main.Mode.Batch
