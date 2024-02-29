@@ -76,10 +76,10 @@ fromRuleRenaming r1 r2 =
 applyRenaming :: Apply s a => Renaming s -> a -> a
 applyRenaming (Renaming s) = apply s
 
-idRenaming :: MaybeMaude (Renaming (Subst c v))
+idRenaming :: MaybeRenaming (Subst c v)
 idRenaming = MaybeT $ return $ Just $ Renaming emptySubst
 
-noRenaming :: MaybeMaude (Renaming s)
+noRenaming :: MaybeRenaming s
 noRenaming = mzero
 
 mapVar :: (IsConst c, IsVar v) => v -> v -> Renaming (Subst c v) -> Maybe (Renaming (Subst c v))
@@ -93,7 +93,7 @@ mapVar from to = if from == to then Just else modA giSubst modLnSubst
 
     modLnSubst (Subst m) = Subst <$> tryInsert from (LIT $ Var to) (Just m)
 
-mapVarM :: (IsConst c, IsVar v) => v -> v -> MaybeMaude (Renaming (Subst c v)) -> MaybeMaude (Renaming (Subst c v))
+mapVarM :: (IsConst c, IsVar v) => v -> v -> MaybeRenaming (Subst c v) -> MaybeRenaming (Subst c v)
 mapVarM v1 v2 = mapMaybeT (\mm -> do
   renaming <- mm
   return $ mapVar v1 v2 =<< renaming)
