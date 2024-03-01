@@ -10,7 +10,7 @@ import Theory
 {- This module meant for playing around with the Tamarin interactive proving
    REPL that can be found in @Main.REPL@. Before you make any changes to this
    file, we suggest running:
-    git update-index --asume-unchanged src/Main/ScratchPad.hs
+    git update-index --assume-unchanged src/Main/ScratchPad.hs
 
    This command ensures that any changed you make will not be tracked by git.
    You can undo this by running:
