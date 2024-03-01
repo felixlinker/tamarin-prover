@@ -128,7 +128,6 @@ refineSource ctxt proofStep th =
     fs         = avoid th
     refinement = do
         (names, se)        <- get cdCases th
-    -- TODO: I might need to come up with the FreshState fs differently
         ((x, names'), se') <- fst <$> runReduction proofStep ctxt se fs
         return (x, (combine names names', se'))
 
