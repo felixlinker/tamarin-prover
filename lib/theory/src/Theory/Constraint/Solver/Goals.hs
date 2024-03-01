@@ -138,7 +138,7 @@ mayBeSolved ctxt doCyclic syss@(se:_) = filter (uncurry p) (M.toList (get sGoals
       guard (not $ S.null upTo)
       return [(Cut upTo, GoalStatus False Contextual False)])
     lExits        = getLoopExits ctxt se
-    nodesToWeaken = map WeakenNode $ S.toList $ getLoopLeaves ctxt se <> lExits
+    nodesToWeaken = map WeakenNode $ S.toList $ getLoopExits ctxt se <> lExits
     edgesToWeaken = map WeakenEdge $ filter (touchesOneOf lExits) $ S.toList $ L.get sEdges se
     goalsToWeaken = map (WeakenGoal . fst) $ filter (uncurry canWeaken) $ M.toList $ L.get sGoals se
 
