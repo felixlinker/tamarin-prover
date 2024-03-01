@@ -645,12 +645,12 @@ normalizeTheory =
   where
     stripProofAnnotations :: ProofSkeleton -> ProofSkeleton
     stripProofAnnotations = fmap stripProofStepAnnotations
-    stripProofStepAnnotations (ProofStep method ()) =
-        ProofStep (case method of
-                     Sorry _         -> Sorry Nothing
-                     Contradiction _ -> Contradiction Nothing
-                     _               -> method)
-                  ()
+    stripProofStepAnnotations (ProofStep method ()) = ProofStep
+      (case method of
+        Sorry _ -> Sorry Nothing
+        Finished (Contradictory _) -> Finished (Contradictory Nothing)
+        _ -> method)
+      ()
 
 
 

@@ -162,6 +162,8 @@ solveAllSafeGoals ths' openChainsLimit =
         SplitG _      -> doSplit --extensiveSplitting &&
         -- SplitG _      -> False
         SubtermG _    -> doSplit
+        Weaken _ -> False
+        Cut _ -> False
 
     usefulGoal (_, (_, Useful)) = True
     usefulGoal _                = False
@@ -176,7 +178,7 @@ solveAllSafeGoals ths' openChainsLimit =
         simplifySystem
         ctxt <- ask
         contradictoryIf =<< gets (contradictorySystem ctxt . (:[]))
-        goals  <- gets openGoals
+        goals  <- gets (annotateGoalsSimple ctxt)
         chains <- gets unsolvedChains
         -- Filter out chain goals where the term in the conclusion is identical to one we just solved,
         -- as this indicates our chain can loop

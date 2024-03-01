@@ -3,9 +3,7 @@
 {-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE TupleSections      #-}
 module Theory.Constraint.System.Inclusion
-  ( UpTo
-  , prettyUpTo
-  , ProgressingVars
+  ( ProgressingVars
   , pvProgresses
   , pvPreserves
   , getCycleRenamingsOnPath
@@ -20,14 +18,12 @@ import Term.LTerm
 import GHC.Generics (Generic)
 import Control.DeepSeq (NFData)
 import Data.Binary (Binary)
-import Text.PrettyPrint.Highlight (HighlightDocument, comma)
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Term.Maude.Process (WithMaude, MaudeHandle)
 import Theory.Constraint.Renaming
 import Term.Substitution (LNSubst, Subst (sMap))
 import qualified Data.Map as M
-import Data.List ( intersperse, groupBy )
-import Text.PrettyPrint.Class (fsep)
+import Data.List ( groupBy )
 import Control.Monad.Reader (runReader)
 import Control.Monad
 import GHC.OldList (permutations)
@@ -35,8 +31,6 @@ import Theory.Model.Rule
 import Data.Maybe (mapMaybe, fromMaybe)
 import Theory.Model.Signature (sigmMaudeHandle)
 import GHC.List (uncons)
-
-type UpTo = S.Set LNGuarded
 
 data ProgressingVars = ProgressingVars
   { _pvProgresses :: S.Set NodeId
@@ -47,9 +41,6 @@ data ProgressingVars = ProgressingVars
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 $(mkLabels [''ProgressingVars])
-
-prettyUpTo :: HighlightDocument d => UpTo -> d
-prettyUpTo = fsep . intersperse comma . map prettyGuarded . S.toList
 
 -- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
 --    and everything else a potentially correct renaming.

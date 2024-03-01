@@ -34,6 +34,8 @@ module Theory.Constraint.System.Constraints (
 
   -- * Goal constraints
   , Goal(..)
+  , UpTo
+  , WeakenEl(..)
   , isActionGoal
   , isStandardActionGoal
   , isSubtermGoal
@@ -54,6 +56,7 @@ import           GHC.Generics (Generic)
 import           Data.Binary
 import           Data.Data
 import           Data.Label                           (mkLabels)
+import qualified Data.Set as S
 
 import           Control.DeepSeq
 
@@ -65,6 +68,7 @@ import           Theory.Constraint.System.Guarded
 import           Theory.Model
 import           Theory.Text.Pretty
 import           Theory.Tools.EquationStore
+import Data.List (intersperse)
 
 ------------------------------------------------------------------------------
 -- Graph part of a sequent                                                  --
@@ -152,6 +156,11 @@ instance HasFrees LessAtom where
 -- Goals
 ------------------------------------------------------------------------------
 
+type UpTo = S.Set LNGuarded
+
+data WeakenEl = WeakenNode NodeId | WeakenGoal Goal | WeakenEdge Edge
+  deriving( Eq, Ord, Show, Generic, NFData, Binary )
+
 -- | A 'Goal' denotes that a constraint reduction rule is applicable, which
 -- might result in case splits. We either use a heuristic to decide what goal
 -- to solve next or leave the choice to user (in case of the interactive UI).
@@ -169,6 +178,8 @@ data Goal =
        -- ^ A case split over a disjunction.
      | SubtermG (LNTerm, LNTerm)
        -- ^ A split of a Subterm which is in SubtermStore -> _subterms
+     | Weaken WeakenEl
+     | Cut UpTo
      deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- Indicators
@@ -207,6 +218,22 @@ isSubtermGoal _         = False
 -- Instances
 ------------
 
+instance HasFrees WeakenEl where
+  foldFrees f (WeakenNode nid) = foldFrees f nid
+  foldFrees f (WeakenGoal g) = foldFrees f g
+  foldFrees f (WeakenEdge e) = foldFrees f e
+
+  foldFreesOcc _ _ _ = mempty
+
+  mapFrees f (WeakenNode nid) = WeakenNode <$> mapFrees f nid
+  mapFrees f (WeakenGoal g) = WeakenGoal <$> mapFrees f g
+  mapFrees f (WeakenEdge e) = WeakenEdge <$> mapFrees f e
+
+instance Apply LNSubst WeakenEl where
+  apply subst (WeakenNode nid) = WeakenNode (apply subst nid)
+  apply subst (WeakenGoal g) = WeakenGoal (apply subst g)
+  apply subst (WeakenEdge e) = WeakenEdge (apply subst e)
+
 instance HasFrees Goal where
     foldFrees f goal = case goal of
         ActionG i fa  -> foldFrees f i <> foldFrees f fa
@@ -215,6 +242,8 @@ instance HasFrees Goal where
         SplitG i      -> foldFrees f i
         DisjG x       -> foldFrees f x
         SubtermG p    -> foldFrees f p
+        Weaken el     -> foldFrees f el
+        Cut phis      -> foldFrees f phis
 
     foldFreesOcc  f c goal = case goal of
         ActionG i fa -> foldFreesOcc f ("ActionG":c) (i, fa)
@@ -228,6 +257,8 @@ instance HasFrees Goal where
         SplitG i      -> SplitG   <$> mapFrees f i
         DisjG x       -> DisjG    <$> mapFrees f x
         SubtermG p    -> SubtermG <$> mapFrees f p
+        Weaken el     -> Weaken <$> mapFrees f el
+        Cut upTo      -> Cut <$> mapFrees f upTo
 
 instance Apply LNSubst Goal where
     apply subst goal = case goal of
@@ -237,6 +268,8 @@ instance Apply LNSubst Goal where
         SplitG i      -> SplitG   (apply subst i)
         DisjG x       -> DisjG    (apply subst x)
         SubtermG p    -> SubtermG (apply subst p)
+        Weaken el     -> Weaken   (apply subst el)
+        Cut phis      -> Cut      (apply subst phis)
 
 
 ------------------------------------------------------------------------------
@@ -267,21 +300,38 @@ prettyEdge (Edge c p) =
 prettyLess :: HighlightDocument d => LessAtom -> d
 prettyLess (LessAtom i j r) = prettyNAtom (Less (varTerm i) (varTerm j)) <> colon <-> prettyReason r
 
+
+
+solve :: HighlightDocument d => d -> d
+solve inner = keyword_ "solve(" <-> inner <-> keyword_ ")"
+
+weaken :: HighlightDocument d => String -> d -> d
+weaken what inner = keyword_ ("weaken " ++ what ++ "(") <-> inner <-> keyword_ ")"
+
+cut :: HighlightDocument d => d -> d
+cut inner = keyword_ "cut(" <-> inner <-> keyword_ ")"
+
+prettyUpTo :: HighlightDocument d => UpTo -> d
+prettyUpTo = fsep . intersperse comma . map prettyGuarded . S.toList
+
 -- | Pretty print a goal.
 prettyGoal :: HighlightDocument d => Goal -> d
-prettyGoal (ActionG i fa) = prettyNAtom (Action (varTerm i) fa)
+prettyGoal (ActionG i fa) = solve $ prettyNAtom (Action (varTerm i) fa)
 prettyGoal (ChainG c p)   =
-    prettyNodeConc c <-> operator_ "~~>" <-> prettyNodePrem p
+    solve $ prettyNodeConc c <-> operator_ "~~>" <-> prettyNodePrem p
 prettyGoal (PremiseG (i, (PremIdx v)) fa) =
     -- Note that we can use "▷" for conclusions once we need them.
-    prettyLNFact fa <-> text ("▶" ++ subscript (show v)) <-> prettyNodeId i
+    solve $ prettyLNFact fa <-> text ("▶" ++ subscript (show v)) <-> prettyNodeId i
     -- prettyNodePrem p <> brackets (prettyLNFact fa)
-prettyGoal (DisjG (Disj []))  = text "Disj" <-> operator_ "(⊥)"
-prettyGoal (DisjG (Disj gfs)) = fsep $
+prettyGoal (DisjG (Disj []))  = solve $ text "Disj" <-> operator_ "(⊥)"
+prettyGoal (DisjG (Disj gfs)) = solve $ fsep $
     punctuate (operator_ "  ∥") (map (nest 1 . parens . prettyGuarded) gfs)
     -- punctuate (operator_ " |") (map (nest 1 . parens . prettyGuarded) gfs)
 prettyGoal (SplitG x) =
-    text "splitEqs" <> parens (text $ show (unSplitId x))
+    solve $ text "splitEqs" <> parens (text $ show (unSplitId x))
 prettyGoal (SubtermG (l,r)) =
-    prettyLNTerm l <-> operator_ "⊏" <-> prettyLNTerm r
-
+    solve $ prettyLNTerm l <-> operator_ "⊏" <-> prettyLNTerm r
+prettyGoal (Cut ut) = cut $ prettyUpTo ut
+prettyGoal (Weaken (WeakenNode i)) = weaken "node" $ prettyNodeId i
+prettyGoal (Weaken (WeakenGoal g)) = weaken "goal" $ prettyGoal g
+prettyGoal (Weaken (WeakenEdge e)) = weaken "edge" $ prettyEdge e

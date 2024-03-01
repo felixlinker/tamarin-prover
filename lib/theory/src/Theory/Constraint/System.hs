@@ -125,7 +125,6 @@ module Theory.Constraint.System (
   , DiffProofType(..)
   , DiffSystem
   , sFreshState
-  , isSolved
   , equiv
 
   -- ** Construction
@@ -443,12 +442,6 @@ data System = System
     deriving( Eq, Ord, Generic, NFData, Binary )
 
 $(mkLabels [''System, ''GoalStatus])
-
-isSolved :: System -> Bool
-isSolved = not . any (unsolved . snd) . M.toList . L.get sGoals
-  where
-    unsolved :: GoalStatus -> Bool
-    unsolved = not . L.get gsSolved
 
 equiv :: System -> System -> Bool
 equiv s1 s2 = and
@@ -1551,10 +1544,7 @@ unsolvedTrivialGoals sys = foldl f [] $ M.toList (L.get sGoals sys)
   where
     f l (PremiseG premidx fa, status) = if isJust (isTrivialFact fa) && not (L.get gsSolved status) then (Left premidx, fa):l else l
     f l (ActionG var fa, status)      = if isJust (isTrivialFact fa) && isKUFact fa && not (L.get gsSolved status) then (Right var, fa):l else l
-    f l (ChainG _ _, _)               = l
-    f l (SplitG _, _)                 = l
-    f l (DisjG _, _)                  = l
-    f l (SubtermG _, _)               = l
+    f l _                             = l
 
 -- | Tests whether there are common Variables in the Facts
 noCommonVarsInGoals :: [(Either NodePrem LVar, LNFact)] -> Bool
@@ -1593,6 +1583,8 @@ allOpenGoalsAreSimpleFacts ctxt sys = M.foldlWithKey goalIsSimpleFact True (L.ge
     goalIsSimpleFact ret (SplitG _)               (GoalStatus solved _ _) = ret && solved
     goalIsSimpleFact ret (DisjG _)                (GoalStatus solved _ _) = ret && solved
     goalIsSimpleFact ret (SubtermG _)             (GoalStatus solved _ _) = ret && solved
+    goalIsSimpleFact ret (Cut _)                  _                       = ret
+    goalIsSimpleFact ret (Weaken _)               _                       = ret
 
 -- | Returns true if the current system is a diff system
 isDiffSystem :: System -> Bool

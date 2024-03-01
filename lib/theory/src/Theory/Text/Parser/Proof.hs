@@ -85,13 +85,13 @@ proofMethod = asum
   [ symbol "sorry"              *> pure (Sorry Nothing)
   , symbol "simplify"           *> pure Simplify
   , symbol "solve"              *> (SolveGoal <$> parens goal)
-  , symbol "contradiction"      *> pure (Contradiction Nothing)
+  , symbol "contradiction"      *> pure (Finished (Contradictory Nothing))
   , symbol "induction"          *> pure Induction
-  , symbol "UNFINISHABLE"       *> pure Unfinishable
-  , symbol "weaken node"        *> (Weaken . WeakenNode <$> parens nodevar)
-  , symbol "weaken goal"        *> (Weaken . WeakenGoal <$> parens goal)
-  , symbol "weaken edge"        *> (Weaken . WeakenEdge <$> parens edge)
-  , symbol "cut"                *> (Cut . CutEl . S.fromList <$> parens (commaSep guardedFormula))
+  , symbol "UNFINISHABLE"       *> pure (Finished Unfinishable)
+  , symbol "weaken node"        *> (SolveGoal . Weaken . WeakenNode <$> parens nodevar)
+  , symbol "weaken goal"        *> (SolveGoal . Weaken . WeakenGoal <$> parens goal)
+  , symbol "weaken edge"        *> (SolveGoal . Weaken . WeakenEdge <$> parens edge)
+  , symbol "cut"                *> (SolveGoal . Cut . S.fromList <$> parens (commaSep guardedFormula))
   ]
 
 -- | Start parsing a proof skeleton.
@@ -110,7 +110,7 @@ proofSkeleton =
     solvedProof <|> finalProof <|> interProof
   where
     solvedProof =
-        symbol "SOLVED" *> pure (LNode (ProofStep Solved ()) M.empty)
+        symbol "SOLVED" *> pure (LNode (ProofStep (Finished Solved) ()) M.empty)
 
     finalProof = do
         method <- symbol "by" *> proofMethod

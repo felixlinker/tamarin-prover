@@ -15,10 +15,11 @@
 module Theory.Constraint.Solver.ProofMethod (
   -- * Proof methods
     CaseName
-  , WeakenEl(..)
-  , CutEl(..)
   , ProofMethod(..)
+  , Result(..)
   , DiffProofMethod(..)
+  , isFinished
+  , checkAndExecProofMethod
   , execProofMethod
   , execDiffProofMethod
 
@@ -42,14 +43,12 @@ import qualified Data.Label                                as L
 import           Data.List                                 (partition,groupBy,isPrefixOf,findIndex,intercalate, uncons)
 import qualified Data.Map                                  as M
 import           Data.Maybe                                (catMaybes, fromMaybe, mapMaybe, isNothing, isJust)
--- import           Data.Monoid
 import qualified Data.Set                                  as S
 import           Extension.Prelude                         (sortOn)
 import qualified Data.ByteString.Char8 as BC
 
 import           Control.Basics
 import           Control.DeepSeq
-import qualified Control.Monad.State                       as St
 
 import           Debug.Trace
 import           Safe
@@ -62,14 +61,11 @@ import           Theory.Constraint.Solver.Goals
 import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.Solver.Simplify
---import           Theory.Constraint.Solver.Heuristics
 import           Theory.Constraint.System
 import           Theory.Model
 import           Theory.Text.Pretty
 import qualified Extension.Data.Label as L
 import Control.Monad.Disj (disjunctionOfList)
-import Control.Monad.Fresh
-import Theory.Constraint.System.Inclusion (UpTo, prettyUpTo, getCycleRenamingOnPath)
 
 
 
@@ -166,26 +162,26 @@ unmarkPremiseG annGoal                        = annGoal
 -- | Every case in a proof is uniquely named.
 type CaseName = String
 
-data WeakenEl = WeakenNode NodeId | WeakenGoal Goal | WeakenEdge Edge
+data Result =
+    Solved
+  -- ^ A dependency graph was found.
+  | Contradictory (Maybe Contradiction)
+  -- ^ The proof cannot be finished (due to reducible operators in subterms or
+  --   because a solution was found after weakening).
+  | Unfinishable
+   -- ^ A contradiction could be derived, possibly with a reason. The single
+  --    formula constraint in the system.
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
-
-newtype CutEl = CutEl UpTo
-  deriving ( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | Sound transformations of sequents.
 data ProofMethod =
     Sorry (Maybe String)                 -- ^ Proof was not completed
-  | Solved                               -- ^ An attack was found.
-  | Unfinishable                         -- ^ The proof cannot be finished (due to reducible operators in subterms)
   | Simplify                             -- ^ A simplification step.
   | SolveGoal Goal                       -- ^ A goal that was solved.
-  | Contradiction (Maybe Contradiction)  -- ^ A contradiction could be
-                                         -- derived, possibly with a reason.
   | Induction                            -- ^ Use inductive strengthening on
                                          -- the single formula constraint in
                                          -- the system.
-  | Weaken WeakenEl
-  | Cut CutEl
+  | Finished Result
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | Sound transformations of diff sequents.
@@ -202,13 +198,13 @@ data DiffProofMethod =
   
 instance HasFrees ProofMethod where
     foldFrees f (SolveGoal g)     = foldFrees f g
-    foldFrees f (Contradiction c) = foldFrees f c
+    foldFrees f (Finished (Contradictory c)) = foldFrees f c
     foldFrees _ _                 = mempty
 
     foldFreesOcc  _ _ = const mempty
 
     mapFrees f (SolveGoal g)     = SolveGoal <$> mapFrees f g
-    mapFrees f (Contradiction c) = Contradiction <$> mapFrees f c
+    mapFrees f (Finished (Contradictory c)) = Finished . Contradictory <$> mapFrees f c
     mapFrees _ method            = pure method
 
 instance HasFrees DiffProofMethod where
@@ -223,40 +219,45 @@ instance HasFrees DiffProofMethod where
 -- Proof method execution
 -------------------------
 
--- @execMethod rules method se@ checks first if the @method@ is applicable to
--- the sequent @se@. Then, it applies the @method@ to the sequent under the
--- assumption that the @rules@ describe all rewriting rules in scope.
+-- @checkAndExecMethod rules method se@ checks first if the @method@ is
+-- applicable to the sequent @se@ and, if so, applies it.
+checkAndExecProofMethod :: ProofContext -> ProofMethod -> [System] -> Maybe (M.Map CaseName System)
+checkAndExecProofMethod _ _ [] = error "unreachable"
+checkAndExecProofMethod ctxt method syss@(sys:_) = do
+    case method of
+      Finished r -> guard (Just r == isFinished ctxt syss)
+      Induction -> canApplyInduction
+      SolveGoal (Cut _) -> Just ()
+      SolveGoal (Weaken _) -> Just ()
+      SolveGoal goal -> guard (goal `M.member` L.get sGoals sys)
+      _ -> Just ()
+    execProofMethod ctxt method syss
+  where
+    canApplyInduction :: Maybe ()
+    canApplyInduction = do
+      guard (M.null $ L.get sNodes sys)
+      guard (S.null $ L.get sSolvedFormulas sys)
+      guard (M.null $ L.get sGoals sys)
+      (_, t) <- uncons $ S.toList $ L.get sFormulas sys
+      guard (null t)
+
+-- @execMethod rules method se@ applies the @method@ to the sequent under the
+-- assumption that it is sound to apply the method and that the @rules@ describe
+-- all rewriting rules in scope.
 --
 -- NOTE that the returned systems have their free substitution fully applied
 -- and all variable indices reset.
 execProofMethod :: ProofContext
                 -> ProofMethod -> [System] -> Maybe (M.Map CaseName System)
 execProofMethod _ _ [] = error "unreachable"
-execProofMethod ctxt method syss@(sys:_) =
+execProofMethod ctxt method (sys:_) =
     case method of
-      Sorry _                              -> return M.empty
-      Solved
-        | null (openGoals sys)
-          && finishedSubterms ctxt sys
-          && isNothing (L.get sWeakenedFrom sys)
-                                           -> return M.empty
-        | otherwise                        -> Nothing
-      Unfinishable
-        | null (openGoals sys)
-          && (not (finishedSubterms ctxt sys) || isJust (L.get sWeakenedFrom sys))
-                                           -> return M.empty
-        | otherwise                        -> Nothing
-      SolveGoal goal
-        | goal `M.member` L.get sGoals sys -> process $ solve goal
-        | otherwise                        -> Nothing
+      Sorry _               -> return M.empty
+      Finished _            -> return M.empty
+      Simplify              -> process $ return ""
+      Induction             -> getInductionCases sys >>= process . induction
+      SolveGoal goal        -> process $ solve goal
       -- process simplifies
-      Simplify                             -> process $ return ""
-      Induction                            -> getInductionCases sys >>= process . induction
-      Contradiction _
-        | null (contradictions ctxt syss)  -> Nothing
-        | otherwise                        -> Just M.empty
-      Weaken el                            -> process $ weaken el
-      Cut el                               -> process $ cut el
   where
     process :: Reduction CaseName -> Maybe (M.Map CaseName System)
     process m =
@@ -292,65 +293,14 @@ execProofMethod ctxt method syss@(sys:_) =
     -- a single, last-free, closed formula.
     getInductionCases :: System -> Maybe (LNGuarded, LNGuarded)
     getInductionCases s = do
-      guard (M.null $ L.get sNodes s)
-      guard (S.null $ L.get sSolvedFormulas s)
-      guard (M.null $ L.get sGoals s)
-      (h, t) <- uncons $ S.toList $ L.get sFormulas s
-      guard (null t)
+      (h, _) <- uncons $ S.toList $ L.get sFormulas s
       either (const Nothing) Just (ginduct h)
 
-    induction :: (LNGuarded, LNGuarded) -> Reduction CaseName
+    induction :: (LNGuarded, LNGuarded) -> Reduction String
     induction (baseCase, stepCase) = do
       (caseName, caseFormula) <- disjunctionOfList [("empty_trace", baseCase), ("non_empty_trace", stepCase)]
       L.setM sFormulas (S.singleton caseFormula)
       return caseName
-
-    -- NOTE: It is not good to return @Reduction@ here. The documentation of
-    -- @Reduction@ notes that this should indeed reduce a constraint system such
-    -- that the solutions stay the same.
-    weaken :: WeakenEl -> Reduction CaseName
-    weaken (WeakenGoal g) =do
-      L.setM sWeakenedFrom (Just $ L.get sId sys)
-      L.modM sGoals (M.delete g)
-      return ""
-    weaken (WeakenEdge e) = do
-      L.modM sEdges (S.delete e)
-      L.modM sLessAtoms (S.insert (lessAtomFromEdge KeepWeakened e))
-      return ""
-    weaken (WeakenNode i) =
-      let keepGoal :: Goal -> GoalStatus -> Bool
-          keepGoal (PremiseG (i', _) _) st = i /= i' || L.get gsSolved st
-          keepGoal _ _ = True
-      in do
-        L.setM sWeakenedFrom (Just $ L.get sId sys)
-        L.modM sNodes $ M.delete i
-        L.modM sGoals $ M.filterWithKey keepGoal
-        (toKeep, toDeleteOutgoing) <- S.partition ((/= i) . fst . eSrc) <$> L.getM sEdges
-        let (_, toDeleteIncoming) = S.partition ((/= i) . fst . eTgt) toKeep
-        mapM_ (weaken . WeakenEdge) toDeleteOutgoing
-        mapM_ (weaken . WeakenEdge) toDeleteIncoming
-
-        -- Add premise goals for about-to-be-deleted, outgoing edges
-        mapM_ (return . insertPrem . eTgt) $ S.toList toDeleteOutgoing
-        return ""
-      where
-        insertPrem :: NodePrem -> Reduction ()
-        insertPrem prem@(nid, pix) = do
-          nodes <- L.getM sNodes
-          let r = M.findWithDefault (error "edge points to nothing") nid nodes
-          let breakers = ruleInfo (L.get praciLoopBreakers) (const []) $ L.get rInfo r
-          overwriteGoal (PremiseG prem $ L.get (rPrem pix) r) (pix `elem` breakers)
-
-    cut :: CutEl -> Reduction CaseName
-    cut (CutEl phis) =
-      let phisL = S.toList phis
-      in do
-        (caseName, caseFormulas) <- disjunctionOfList (("cut", phisL):zipWith neg [(0 :: Int)..] phisL)
-        L.modM sFormulas (\s -> foldr S.insert s caseFormulas)
-        return caseName
-      where
-        neg :: Int -> LNGuarded -> (String, [LNGuarded])
-        neg i phi = ("negate_" ++ show i, [gnot phi])
 
 -- @execDiffMethod rules method se@ checks first if the @method@ is applicable to
 -- the sequent @se@. Then, it applies the @method@ to the sequent under the
@@ -371,7 +321,7 @@ execDiffProofMethod ctxt method sysPath =
     DiffBackwardSearchStep meth -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (meth /= Induction)
-      guard (meth /= Contradiction (Just ForbiddenKD))
+      guard (meth /= Finished (Contradictory (Just ForbiddenKD)))
       _ <- L.get dsCurrentRule sys
       s <- L.get dsSide sys
       applyStep meth s =<< sequents
@@ -509,47 +459,38 @@ rankGoals ctxt ranking tacticsList = case ranking of
       chooseError [] _ = error $ "No tactic has been written in the theory file"
       chooseError _  t = error $ "The tactic specified ( "++(show $ _name t)++" ) is not written in the theory file, please chose among the following: "++(show definedHeuristic)
 
+isFinished :: ProofContext -> [System] -> Maybe Result
+isFinished _ [] = error "unreachable"
+isFinished ctxt syss@(sys:_)
+  | not $ null cs = Just $ Contradictory (Just $ head cs)
+  | isSolved sys && (stFinished && not weakened) = Just Solved
+  | isSolved sys && (not stFinished || weakened) = Just Unfinishable
+  | otherwise = Nothing
+  where
+    cs = contradictions ctxt syss
+    stFinished = finishedSubterms ctxt sys
+    weakened = isJust (L.get sWeakenedFrom sys)
+
 -- | Use a 'GoalRanking' to generate the ranked, list of possible
 -- 'ProofMethod's and their corresponding results in this 'ProofContext' and
--- for this 'System'. If the resulting list is empty, then the constraint
--- system is solved.
+-- for this 'System'.
 rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> [System]
                  -> [(ProofMethod, (M.Map CaseName System, String))]
 rankProofMethods _ _ _ [] = error "unreachable"
 rankProofMethods ranking tactics ctxt syss@(sys:_) =
-  let isDiff        = L.get sDiffSystem sys
-      lExits        = getLoopExits ctxt sys
-      nodesToWeaken = map WeakenNode $ S.toList $ getLoopLeaves ctxt sys <> lExits
-      edgesToWeaken = map WeakenEdge $ filter (touchesOneOf lExits) $ S.toList $ L.get sEdges sys
-      goalsToWeaken = map (WeakenGoal . fst) $ filter (uncurry canWeaken) $ M.toList $ L.get sGoals sys
-      methods =       (contradiction <$> contradictions ctxt syss)
-                  ++  (case L.get pcUseInduction ctxt of
+  let methods =       (case L.get pcUseInduction ctxt of
                         AvoidInduction -> [(Simplify, ""), (Induction, "")]
                         UseInduction   -> [(Induction, ""), (Simplify, "")]
                       )
-                  ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (openGoals sys))
-      weakenMethods = map ((,"") . Weaken) (nodesToWeaken ++ edgesToWeaken ++ goalsToWeaken)
-      cutMethods = fromMaybe [] (do
-        (_, upTo, _, _) <- getCycleRenamingOnPath ctxt syss
-        guard (not $ S.null upTo)
-        return [(Cut (CutEl upTo), "")])
-      cyclicMethods = if isDiff then [] else cutMethods ++ weakenMethods
-  in if null methods then [] else execMethods $ methods ++ cyclicMethods
+                  ++  (solveGoalMethod <$> rankGoals ctxt ranking tactics sys (annotateGoals ctxt syss))
+  in execMethods $ maybe methods finished (isFinished ctxt syss)
   where
     execMethods = mapMaybe execMethod
     execMethod (m, expl) = do
       cases <- execProofMethod ctxt m syss
       return (m, (cases, expl))
 
-    touchesOneOf :: Foldable t => t NodeId -> Edge -> Bool
-    touchesOneOf nids (Edge (src, _) (tgt, _)) = any (\n -> src == n || tgt == n) nids
-
-    canWeaken :: Goal -> GoalStatus -> Bool
-    canWeaken (ActionG _ _) = not . L.get gsSolved
-    canWeaken (ChainG _ _)  = not . L.get gsSolved
-    canWeaken _             = const False
-
-    contradiction c                    = (Contradiction (Just c), "")
+    finished r = [(Finished r, "")]
 
     sourceRule goal = case goalRule sys goal of
         Just ru -> " (from rule " ++ getRuleName ru ++ ")"
@@ -586,7 +527,8 @@ rankDiffProofMethods ranking tactics ctxt syss = do
     -- TODO: There might be more elegant ways to handle this; especially, it
     -- seems silly to maintain the set of leaves, etc.
     isDiffApplicable Induction = False
-    isDiffApplicable (Weaken _) = False
+    isDiffApplicable (SolveGoal (Weaken _)) = False
+    isDiffApplicable (SolveGoal (Cut _)) = False
     isDiffApplicable _ = True
 
 -- | Smart constructor for heuristics. Schedules the goal rankings in a
@@ -1225,22 +1167,18 @@ smartDiffRanking ctxt sys =
 -- | Pretty-print a proof method.
 prettyProofMethod :: HighlightDocument d => ProofMethod -> d
 prettyProofMethod method = case method of
-    Solved               -> keyword_ "SOLVED" <-> lineComment_ "trace found"
-    Unfinishable         -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm or solved after weakening"
-    Induction            -> keyword_ "induction"
-    Sorry reason         ->
+    Finished Solved -> keyword_ "SOLVED" <-> lineComment_ "trace found"
+    Finished Unfinishable -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm or solved after weakening"
+    Sorry reason ->
         fsep [keyword_ "sorry", maybe emptyDoc closedComment_ reason]
-    SolveGoal goal       ->
+    Induction  -> keyword_ "induction"
+    SolveGoal goal ->
         keyword_ "solve(" <-> prettyGoal goal <-> keyword_ ")"
-    Simplify             -> keyword_ "simplify"
-    Contradiction reason ->
+    Simplify -> keyword_ "simplify"
+    Finished (Contradictory reason) ->
         sep [ keyword_ "contradiction"
             , maybe emptyDoc (closedComment . prettyContradiction) reason
             ]
-    Weaken (WeakenNode i) -> keyword_ "weaken node(" <-> prettyNodeId i <-> keyword_ ")"
-    Weaken (WeakenGoal g) -> keyword_ "weaken goal(" <-> prettyGoal g <-> keyword_ ")"
-    Weaken (WeakenEdge e) -> keyword_ "weaken edge(" <-> prettyEdge e <-> keyword_ ")"
-    Cut (CutEl ut) -> keyword_ "cut(" <-> prettyUpTo ut <-> keyword_ ")"
 
 -- | Pretty-print a diff proof method.
 prettyDiffProofMethod :: HighlightDocument d => DiffProofMethod -> d

@@ -83,6 +83,7 @@ import           TheoryObject
 
 import           Web.Settings
 import           Web.Types
+import Theory.Constraint.Solver.Goals (isSolved)
 
 ------------------------------------------------------------------------------
 -- Various other functions
@@ -105,8 +106,8 @@ applyMethodAtPath thy lemmaName proofPath prover i = do
       (   oneStepProver method
        <> replaceSorryProver (oneStepProver Simplify)
        <> replaceSorryProver contradictionProver
-       <> replaceSorryProver (oneStepProver Unfinishable)
-       <> replaceSorryProver (oneStepProver Solved)
+       <> replaceSorryProver (oneStepProver (Finished Unfinishable))
+       <> replaceSorryProver (oneStepProver (Finished Solved))
       )
 
 applyMethodAtPathDiff :: ClosedDiffTheory -> Side -> String -> ProofPath
@@ -126,8 +127,8 @@ applyMethodAtPathDiff thy s lemmaName proofPath prover i = do
       (   oneStepProver method
        <> replaceSorryProver (oneStepProver Simplify)
        <> replaceSorryProver (contradictionProver)
-       <> replaceSorryProver (oneStepProver Unfinishable)
-       <> replaceSorryProver (oneStepProver Solved)
+       <> replaceSorryProver (oneStepProver (Finished Unfinishable))
+       <> replaceSorryProver (oneStepProver (Finished Solved))
       )
 
 applyDiffMethodAtPath :: ClosedDiffTheory -> String -> ProofPath
@@ -1791,10 +1792,10 @@ prevDiffThyPath thy = go
 
 -- | Interesting proof methods that are not skipped by next/prev-smart.
 isInterestingMethod :: ProofMethod -> Bool
-isInterestingMethod (Sorry _)    = True
-isInterestingMethod Solved       = True
-isInterestingMethod Unfinishable = True
-isInterestingMethod _            = False
+isInterestingMethod (Sorry _) = True
+isInterestingMethod (Finished Solved) = True
+isInterestingMethod (Finished Unfinishable) = True
+isInterestingMethod _ = False
 
 -- | Interesting diff proof methods that are not skipped by next/prev-smart.
 isInterestingDiffMethod :: DiffProofMethod -> Bool

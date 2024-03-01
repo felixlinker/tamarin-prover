@@ -93,7 +93,7 @@ import           Control.Category
 import           Control.Monad.Bind
 import           Control.Monad.Disj
 import           Control.Monad.Reader
-import           Control.Monad.State                     (State, StateT, execState, execStateT, gets, runStateT)
+import           Control.Monad.State                     (StateT, execStateT, gets, runStateT)
 
 import           Text.PrettyPrint.Class
 
@@ -119,9 +119,11 @@ type Reduction = StateT System (FreshT (DisjT (Reader ProofContext)))
 -----------------------
 
 -- | Run a constraint reduction. Returns a list of constraint systems whose
--- combined solutions are equal to the solutions of the given system. This
--- property is obviously not enforced, but it must be respected by all
--- functions of type 'Reduction'.
+-- combined solutions are equal to or larger than the solutions of the given
+-- system. This property is obviously not enforced, but it must be respected by
+-- all functions of type 'Reduction'. When a reduction enlarges the state of
+-- solutions, it must set the value @sWeakenedFrom@ respectively. Currently,
+-- this only applies to weakening.
 runReduction :: Reduction a -> ProofContext -> System -> FreshState
              -> Disj ((a, System), FreshState)
 runReduction m ctxt se fs =
@@ -539,15 +541,22 @@ markGoalAsSolved how goal =
     case goal of
       ActionG _ _     -> updateStatus
       PremiseG _ fa
-        | isKDFact fa -> modM sGoals $ M.delete goal
+        | isKDFact fa -> delete
         | otherwise   -> updateStatus
-      ChainG _ _      -> modM sGoals $ M.delete goal
+      ChainG _ _      -> delete
       SplitG _        -> updateStatus
       DisjG disj      -> modM sFormulas       (S.delete $ GDisj disj) >>
                          modM sSolvedFormulas (S.insert $ GDisj disj) >>
                          updateStatus
       SubtermG _      -> updateStatus
+      Weaken _        -> delete
+      Cut _           -> delete
+
   where
+    delete :: Reduction ()
+    delete = modM sGoals $ M.delete goal
+
+    updateStatus :: Reduction ()
     updateStatus = do
         mayStatus <- M.lookup goal <$> getM sGoals
         verbose <- getVerbose

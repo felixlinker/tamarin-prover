@@ -432,8 +432,8 @@ instance Monoid ProofStatus where
 -- | The status of a 'ProofStep'.
 proofStepStatus :: ProofStep (Maybe a) -> ProofStatus
 proofStepStatus (ProofStep _            Nothing ) = UndeterminedProof
-proofStepStatus (ProofStep Solved       (Just _)) = TraceFound
-proofStepStatus (ProofStep Unfinishable (Just _)) = UnfinishableProof
+proofStepStatus (ProofStep (Finished Solved) (Just _)) = TraceFound
+proofStepStatus (ProofStep (Finished Unfinishable) (Just _)) = UnfinishableProof
 proofStepStatus (ProofStep (Sorry _)    (Just _)) = IncompleteProof
 proofStepStatus (ProofStep _            (Just _)) = CompleteProof
 
@@ -459,7 +459,7 @@ checkProof ctxt prover =
     go
   where
     go _ [] _ = error "unreachable"
-    go d syss@(sys:_) prf@(LNode (ProofStep method info) cs) = case (method, execProofMethod ctxt method syss) of
+    go d syss@(sys:_) prf@(LNode (ProofStep method info) cs) = case (method, checkAndExecProofMethod ctxt method syss) of
       (Sorry reason, _         ) -> sorryNode reason cs
       (_           , Just cases) -> node method $ checkChildren $ M.map (:syss) cases
       (_           , Nothing   ) -> sorryNode (Just "invalid proof step encountered")
@@ -588,7 +588,7 @@ tryProver =  (`orelse` mempty)
 -- | Try to execute one proof step using the given proof method.
 oneStepProver :: ProofMethod -> Prover
 oneStepProver method = Prover $ \ctxt _ syss _ -> do
-    cases <- execProofMethod ctxt method syss
+    cases <- checkAndExecProofMethod ctxt method syss
     return $ LNode (ProofStep method (Just $ head syss)) (M.map (unproven . Just) cases)
 
 -- | Try to execute one proof step using the given proof method.
@@ -684,7 +684,7 @@ contradictionProver :: Prover
 contradictionProver = Prover $ \ctxt d syss prf ->
     runProver
         (firstProver $ map oneStepProver
-            (Contradiction . Just <$> contradictions ctxt syss))
+            (Finished . Contradictory . Just <$> contradictions ctxt syss))
         ctxt d syss prf
 
 -- | Use the first diff prover that works.
@@ -700,7 +700,7 @@ contradictionDiffProver = DiffProver prover
       _ <- L.get dsCurrentRule sys
       s <- L.get dsSide sys
       syss' <- mapM (L.get dsSystem) syss
-      let prover' = firstDiffProver $ map oneStepDiffProver $ DiffBackwardSearchStep . Contradiction . Just <$> contradictions (eitherProofContext ctxt s) syss'
+      let prover' = firstDiffProver $ map oneStepDiffProver $ DiffBackwardSearchStep . Finished . Contradictory . Just <$> contradictions (eitherProofContext ctxt s) syss'
       runDiffProver prover' ctxt d syss prf
 
 ------------------------------------------------------------------------------
@@ -807,7 +807,7 @@ cutOnSolvedSingleThreadDFS prf0 =
         findSolved node = case node of
               -- do not search in nodes that are not annotated
               LNode (ProofStep _      (Nothing, _   )) _  -> NoSolution
-              LNode (ProofStep Solved (Just _ , path)) _  -> Solution path
+              LNode (ProofStep (Finished Solved) (Just _ , path)) _  -> Solution path
               LNode (ProofStep _      (Just _ , _   )) cs ->
                   foldMap findSolved cs
 
@@ -870,7 +870,7 @@ cutOnSolvedDFS prf0 =
           | otherwise = case node of
               -- do not search in nodes that are not annotated
               LNode (ProofStep _      (Nothing, _   )) _  -> NoSolution
-              LNode (ProofStep Solved (Just _ , path)) _  -> Solution path
+              LNode (ProofStep (Finished Solved) (Just _ , path)) _  -> Solution path
               LNode (ProofStep _      (Just _ , _   )) cs ->
                   foldMap (findSolved (succ d))
                       (cs `using` parTraversable nfProofMethod)
@@ -945,7 +945,7 @@ cutOnSolvedBFS =
           (prf', TraceFound)     ->
               trace ("attack found at depth: " ++ show l) prf'
 
-    checkLevel 0 (LNode  step@(ProofStep Solved (Just _)) _) =
+    checkLevel 0 (LNode  step@(ProofStep (Finished Solved) (Just _)) _) =
         S.put TraceFound >> return (LNode step M.empty)
     checkLevel 0 prf@(LNode (ProofStep _ x) cs)
       | M.null cs = return prf
@@ -1001,9 +1001,9 @@ proveSystemDFS heuristic tactics ctxt =
     prove !depth syss@(sys:_) =
         case rankProofMethods (useHeuristic heuristic depth) tactics ctxt syss of
           []  | isJust (L.get sWeakenedFrom sys)
-                                          -> node Unfinishable M.empty
-              | finishedSubterms ctxt sys -> node Solved M.empty
-              | otherwise                 -> node Unfinishable M.empty
+                                          -> node (Finished Unfinishable) M.empty
+              | finishedSubterms ctxt sys -> node (Finished Solved) M.empty
+              | otherwise                 -> node (Finished Unfinishable) M.empty
           (method, (cases, _expl)):_      -> node method cases
       where
         node method cases =
@@ -1044,7 +1044,7 @@ prettyProofWith prettyStep prettyCase =
   where
     ppPrf (LNode ps cs) = ppCases ps (M.toList cs)
 
-    ppCases ps@(ProofStep Solved _) [] = prettyStep ps
+    ppCases ps@(ProofStep (Finished Solved) _) [] = prettyStep ps
     ppCases ps []                      = prettyCase ps (kwBy <> text " ")
                                            <> prettyStep ps
     ppCases ps [("", prf)]             = prettyStep ps $-$ ppPrf prf
