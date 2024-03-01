@@ -131,7 +131,7 @@ mayBeSolved ctxt doCyclic syss@(se:_) = filter (uncurry p) (M.toList (get sGoals
     p g gs = not (isRedundant se g) && not (get gsSolved gs)
 
     toGoal :: WeakenEl -> (Goal, GoalStatus)
-    toGoal el = (Weaken el, GoalStatus False Contextual False)
+    toGoal el = (Weaken el, GoalStatus False Contextual True)
 
     cutMethods = fromMaybe [] (do
       (_, upTo, _, _) <- getCycleRenamingOnPath ctxt syss
