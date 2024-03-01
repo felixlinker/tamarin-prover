@@ -228,7 +228,10 @@ module Theory.Constraint.System (
   , sSourceKind
 
   -- ** Goals
+  , GoalAge(..)
   , GoalStatus(..)
+  , Usefulness(..)
+  , AnnotatedGoal
   , gsSolved
   , gsLoopBreaker
   , gsNr
@@ -292,7 +295,6 @@ import qualified Extension.Data.Label                 as L
 import           Theory.Constraint.Renaming
 
 import           Logic.Connectives
-import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.System.Constraints 
 --import           Theory.Constraint.Solver.Heuristics
 import           Theory.Model
@@ -375,12 +377,25 @@ instance Ord SourceKind where
     compare RefinedSource RawSource     = GT
     compare RefinedSource RefinedSource = EQ
 
+data GoalAge = Contextual | Age Integer
+  deriving( Eq, Generic, NFData, Binary )
+
+instance Show GoalAge where
+  show Contextual = "from context"
+  show (Age a) = "nr. " ++ show a
+
+instance Ord GoalAge where
+  compare Contextual Contextual = EQ
+  compare Contextual (Age _) = GT
+  compare (Age _) Contextual = LT
+  compare (Age a1) (Age a2) = compare a1 a2
+
 -- | The status of a 'Goal'. Use its 'Semigroup' instance to combine the
 -- status info of goals that collapse.
 data GoalStatus = GoalStatus
     { _gsSolved :: Bool
        -- True if the goal has been solved already.
-    , _gsNr :: Integer
+    , _gsNr :: GoalAge
        -- The number of the goal: we use it to track the creation order of
        -- goals.
     , _gsLoopBreaker :: Bool
@@ -388,6 +403,20 @@ data GoalStatus = GoalStatus
        -- non-termination.
     }
     deriving( Eq, Ord, Show, Generic, NFData, Binary )
+
+data Usefulness =
+    Useful
+  -- ^ A goal that is likely to result in progress.
+  | LoopBreaker
+  -- ^ A goal that is delayed to avoid immediate termination.
+  | ProbablyConstructible
+  -- ^ A goal that is likely to be constructible by the adversary.
+  | CurrentlyDeducible
+  -- ^ A message that is deducible for the current solution.
+  deriving (Show, Eq, Ord)
+
+-- | Goals annotated with their number and usefulness.
+type AnnotatedGoal = (Goal, (GoalAge, Usefulness))
 
 data SystemId = SystemId Int W.Word64
   deriving ( Eq, Ord, Generic, NFData, Binary )

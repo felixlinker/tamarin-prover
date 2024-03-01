@@ -518,7 +518,7 @@ combineGoalStatus (GoalStatus solved1 age1 loops1)
 insertGoalStatusF :: (Goal -> GoalStatus -> M.Map Goal GoalStatus -> M.Map Goal GoalStatus) -> Goal -> GoalStatus -> Reduction ()
 insertGoalStatusF insertF goal status = do
     age <- getM sNextGoalNr
-    modM sGoals $ insertF goal (set gsNr age status)
+    modM sGoals $ insertF goal (set gsNr (Age age) status)
     sNextGoalNr =: succ age
 
 -- | Insert a goal and its status with a new age. Merge status if goal exists.
@@ -530,10 +530,10 @@ overwriteGoalStatus = insertGoalStatusF M.insert
 
 -- | Insert a 'Goal' and store its age.
 insertGoal :: Goal -> Bool -> Reduction ()
-insertGoal goal looping = insertGoalStatus goal (GoalStatus False 0 looping)
+insertGoal goal looping = insertGoalStatus goal (GoalStatus False (Age 0) looping)
 
 overwriteGoal :: Goal -> Bool -> Reduction ()
-overwriteGoal goal looping = overwriteGoalStatus goal (GoalStatus False 0 looping)
+overwriteGoal goal looping = overwriteGoalStatus goal (GoalStatus False (Age 0) looping)
 
 -- | Mark the given goal as solved.
 markGoalAsSolved :: String -> Goal -> Reduction ()

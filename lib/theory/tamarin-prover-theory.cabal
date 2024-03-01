@@ -83,7 +83,6 @@ library
       Theory.Constraint.Solver
       Theory.Constraint.Solver.Sources
       Theory.Constraint.Solver.Contradictions
-      Theory.Constraint.Solver.AnnotatedGoals
       Theory.Constraint.Solver.Goals
       Theory.Constraint.Solver.ProofMethod
       Theory.Constraint.Solver.Reduction

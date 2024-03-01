@@ -23,7 +23,6 @@ import qualified Data.Set                   as S
 import           Data.List
 
 import           Theory
-import           Theory.Constraint.Solver.AnnotatedGoals
 --import           Theory.Constraint.Solver.Heuristics
 --import           Theory.Constraint.System.Guarded
 import           Theory.Text.Pretty         hiding (char,colon,symbol,opLAnd,opLOr, space)

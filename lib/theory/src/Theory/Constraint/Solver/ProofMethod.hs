@@ -58,7 +58,6 @@ import           System.Process
 import           Theory.Constraint.Solver.Sources
 import           Theory.Constraint.Solver.Contradictions
 import           Theory.Constraint.Solver.Goals
-import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.Solver.Simplify
 import           Theory.Constraint.System
@@ -254,10 +253,9 @@ execProofMethod ctxt method (sys:_) =
     case method of
       Sorry _               -> return M.empty
       Finished _            -> return M.empty
-      Simplify              -> process $ return ""
+      Simplify              -> process $ return ""  -- @process@ simplifies
       Induction             -> getInductionCases sys >>= process . induction
       SolveGoal goal        -> process $ solve goal
-      -- process simplifies
   where
     process :: Reduction CaseName -> Maybe (M.Map CaseName System)
     process m =
@@ -498,11 +496,13 @@ rankProofMethods ranking tactics ctxt syss@(sys:_) =
 
     solveGoalMethod (goal, (nr, usefulness)) =
       ( SolveGoal goal
-      , "nr. " ++ show nr ++ sourceRule goal ++ case usefulness of
-                               Useful                -> ""
-                               LoopBreaker           -> " (loop breaker)"
-                               ProbablyConstructible -> " (probably constructible)"
-                               CurrentlyDeducible    -> " (currently deducible)"
+      ,   show nr
+       ++ sourceRule goal
+       ++ case usefulness of
+            Useful                -> ""
+            LoopBreaker           -> " (loop breaker)"
+            ProbablyConstructible -> " (probably constructible)"
+            CurrentlyDeducible    -> " (currently deducible)"
       )
 
 -- | Use a 'GoalRanking' to generate the ranked, list of possible

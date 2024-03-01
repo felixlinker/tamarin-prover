@@ -42,7 +42,6 @@ import           Control.Monad.State                     (gets)
 
 import           Extension.Data.Label                    as L
 
-import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.Solver.Contradictions (substCreatesNonNormalTerms)
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.System
@@ -58,9 +57,6 @@ import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath)
 ------------------------------------------------------------------------------
 -- Extracting Goals
 ------------------------------------------------------------------------------
-
--- Usefullness and AnnotatedGoal moved to AnnotatedGoals.hs to allow exportation
-
 
 -- Instances
 ------------
@@ -135,12 +131,12 @@ mayBeSolved ctxt doCyclic syss@(se:_) = filter (uncurry p) (M.toList (get sGoals
     p g gs = not (isRedundant se g) && not (get gsSolved gs)
 
     toGoal :: WeakenEl -> (Goal, GoalStatus)
-    toGoal el = (Weaken el, GoalStatus False 0 False)
+    toGoal el = (Weaken el, GoalStatus False Contextual False)
 
     cutMethods = fromMaybe [] (do
       (_, upTo, _, _) <- getCycleRenamingOnPath ctxt syss
       guard (not $ S.null upTo)
-      return [(Cut upTo, GoalStatus False 0 False)])
+      return [(Cut upTo, GoalStatus False Contextual False)])
     lExits        = getLoopExits ctxt se
     nodesToWeaken = map WeakenNode $ S.toList $ getLoopLeaves ctxt se <> lExits
     edgesToWeaken = map WeakenEdge $ filter (touchesOneOf lExits) $ S.toList $ L.get sEdges se
