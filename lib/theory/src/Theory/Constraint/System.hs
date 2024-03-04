@@ -404,6 +404,7 @@ data GoalStatus = GoalStatus
     }
     deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
+-- TODO: More heuristics here
 data Usefulness =
     Useful
   -- ^ A goal that is likely to result in progress.

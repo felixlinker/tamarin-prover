@@ -585,6 +585,7 @@ orelseDiff p1 p2 = DiffProver $ \ctxt d se prf ->
 tryProver :: Prover -> Prover
 tryProver =  (`orelse` mempty)
 
+-- TODO: Rewrite caller of this function so that I don't need to check the proof method
 -- | Try to execute one proof step using the given proof method.
 oneStepProver :: ProofMethod -> Prover
 oneStepProver method = Prover $ \ctxt _ syss _ -> do

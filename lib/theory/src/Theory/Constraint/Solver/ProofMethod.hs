@@ -306,6 +306,7 @@ execProofMethod ctxt method (sys:_) =
 --
 -- NOTE that the returned systems have their free substitution fully applied
 -- and all variable indices reset.
+-- TODO: Implement corresponding checkAndExec method
 execDiffProofMethod :: DiffProofContext
                 -> DiffProofMethod -> [DiffSystem] -> Maybe (M.Map CaseName DiffSystem)
 execDiffProofMethod ctxt method sysPath =
