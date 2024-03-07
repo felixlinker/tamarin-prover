@@ -33,6 +33,7 @@ import Control.Monad.Trans.Maybe (MaybeT(..), mapMaybeT)
 import GHC.Generics (Generic)
 import Data.Binary
 import Control.DeepSeq
+import Theory.Model.Fact (LNFact, unifyLNFacts)
 import Data.Maybe (fromJust, mapMaybe, listToMaybe)
 
 -- A Renaming is a substitution that always maps to variables.
@@ -125,6 +126,9 @@ instance Renamable RuleACInst LNSubst where
   where
     merge :: (IsConst c, IsVar v) => Subst c v -> Subst c v -> Maybe (Subst c v)
     merge (Subst m1) (Subst m2) = Subst <$> mergeMaps m1 m2
+
+instance Renamable LNFact LNSubst where
+  fa1 ~> fa2 = MaybeT $ listToMaybe . mapMaybe (fromUnification fa1 fa2) <$> unifyLNFacts fa1 fa2
 
 instance (IsConst c, IsVar v, Renamable d (Subst c v)) => Renamable [d] (Subst c v) where
   l1 ~> l2 = foldl (~><~) idRenaming $ zipWith (~>) l1 l2

@@ -90,6 +90,7 @@ module Theory.Model.Fact (
   , LFact
   , LNFact
   , unifyLNFactEqs
+  , unifyLNFacts
   , unifiableLNFacts
   , newVariables
 
@@ -446,9 +447,12 @@ unifyLNFactEqs eqs
       unifyLNTerm (map (fmap (fAppList . factTerms)) eqs)
   | otherwise = return []
 
+unifyLNFacts :: LNFact -> LNFact -> WithMaude [LNSubstVFresh]
+unifyLNFacts fa1 fa2 = unifyLNFactEqs [Equal fa1 fa2]
+
 -- | 'True' iff the two facts are unifiable.
 unifiableLNFacts :: LNFact -> LNFact -> WithMaude Bool
-unifiableLNFacts fa1 fa2 = not . null <$> unifyLNFactEqs [Equal fa1 fa2]
+unifiableLNFacts fa1 fa2 = not . null <$> unifyLNFacts fa1 fa2
 
 -- | Normalize all terms in the fact
 normFact :: LNFact -> WithMaude LNFact
