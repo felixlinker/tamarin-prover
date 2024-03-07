@@ -24,7 +24,7 @@ module Theory.Constraint.Renaming
 import Data.Label as L ( get, mkLabels )
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Term.LTerm (Term (LIT), Lit (Var), IsVar, IsConst, LVar(..), LSort(..), VTerm, Name, varOccurences)
+import Term.LTerm (Term (LIT), Lit (Var), IsVar, IsConst, LVar(..), LSort(..), VTerm, Name, HasFrees, freesList)
 import Control.Monad (guard, MonadPlus (mzero))
 import Extension.Data.Label (modA)
 import Theory.Model.Rule (RuleACInst, getRuleRenaming)
@@ -33,45 +33,51 @@ import Control.Monad.Trans.Maybe (MaybeT(..), mapMaybeT)
 import GHC.Generics (Generic)
 import Data.Binary
 import Control.DeepSeq
+import Data.Maybe (fromJust, mapMaybe, listToMaybe)
 
+-- A Renaming is a substitution that always maps to variables.
 newtype Renaming s = Renaming
   { _giSubst  :: s }
   deriving ( Eq, Ord, Show, Generic, NFData, Binary )
 
 $(mkLabels [''Renaming])
 
-termToVar :: VTerm Name LVar -> LVar
-termToVar (LIT (Var v)) = v
-termToVar _             = error "term is not a variable literal"
+termToVar :: VTerm Name LVar -> Maybe LVar
+termToVar (LIT (Var v)) = Just v
+termToVar _             = Nothing
 
 renamedTimePoints :: Renaming LNSubst -> [(LVar, LVar)]
 renamedTimePoints r =
   let subst = sMap $ L.get giSubst r
       timepoints = filter ((== LSortNode) . lvarSort) $ M.keys subst
-  in zip timepoints (map (termToVar . (subst M.!)) timepoints)
+  in zip timepoints (map (fromJust . termToVar . (subst M.!)) timepoints)
 
-type Acc = (M.Map LVar LVar, M.Map LVar LVar, M.Map LVar (VTerm Name LVar))
-
-fromRuleRenaming :: RuleACInst -> RuleACInst -> LNSubstVFresh -> Renaming LNSubst
-fromRuleRenaming r1 r2 =
-  let rng1 = range r1
-      rng2 = range r2
-  in Renaming . Subst . mergeAcc . M.foldrWithKey (canonicalize rng1 rng2) (M.empty, M.empty, M.empty) . svMap
+fromUnification :: HasFrees a => a -> a -> LNSubstVFresh -> Maybe (Renaming LNSubst)
+fromUnification a1 a2 = fmap (Renaming . Subst . M.map (LIT . Var) . selfCompose) . M.foldrWithKey canonicalize (Just M.empty) . svMap
   where
-    canonicalize :: S.Set LVar -> S.Set LVar -> LVar -> VTerm Name LVar -> Acc -> Acc
-    canonicalize rng1 rng2 v t@(termToVar -> tv) (memd, memdInv, m)
-      | tv `S.member` rng2 = (memd, memdInv, M.insert v t m)
-      | tv `S.member` rng1 = (memd, memdInv, M.insert tv (LIT $ Var v) m)
-      | v `S.member` rng1 = (M.insert v tv memd, memdInv, m)
-      | v `S.member` rng2 = (memd, M.insert tv v memdInv, m)
-      | otherwise = error "illegal state"
+    rng1 = range a1
+    rng2 = range a2
 
-    range :: RuleACInst -> S.Set LVar
-    range = S.fromList . map fst . varOccurences
+    canonicalize :: LVar -> VTerm Name LVar -> Maybe (M.Map LVar LVar) -> Maybe (M.Map LVar LVar)
+    canonicalize v (termToVar -> mtv) macc = do
+      tv <- mtv
+      aux tv <$> macc
+      where
+        aux tv
+          | v `S.member` rng1 = M.insert v tv
+          | v `S.member` rng2 = M.insert tv v
+          | otherwise = error "illegal state"
 
-    mergeAcc :: Acc -> M.Map LVar (VTerm Name LVar)
-    mergeAcc (memd, memdInv, target) =
-      M.foldrWithKey (\k v -> M.insert k (LIT $ Var $ memdInv M.! v)) target memd
+    -- @selfCompose@ handles cases such as the following. Presume we want to
+    -- rename variable x to variable y. One unifier could be [x->z, y->z].
+    -- @canonicalize@ above will store this as [x->z,z->y] and @selfCompose@
+    -- eliminates z.
+    selfCompose :: M.Map LVar LVar -> M.Map LVar LVar
+    -- @<> m@ keeps mappings that are already correct.
+    selfCompose m = M.filterWithKey (\k _ -> k `S.member` rng1) (M.compose m m <> m)
+
+    range :: HasFrees a => a -> S.Set LVar
+    range = S.fromList . freesList
 
 applyRenaming :: Apply s a => Renaming s -> a -> a
 applyRenaming (Renaming s) = apply s
@@ -109,7 +115,7 @@ class Renamable t s where
   (~>) :: t -> t -> MaybeRenaming s
 
 instance Renamable RuleACInst LNSubst where
-  r1 ~> r2 = fromRuleRenaming r1 r2 <$> MaybeT (getRuleRenaming r1 r2)
+  r1 ~> r2 = MaybeT $ (fromUnification r1 r2 =<<) <$> getRuleRenaming r1 r2
 
 (~><~) :: (IsConst c, IsVar v) => MaybeRenaming (Subst c v) -> MaybeRenaming (Subst c v) -> MaybeRenaming (Subst c v)
 (~><~) lrm rrm = do
