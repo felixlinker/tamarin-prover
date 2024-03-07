@@ -1173,8 +1173,7 @@ prettyProofMethod method = case method of
     Sorry reason ->
         fsep [keyword_ "sorry", maybe emptyDoc closedComment_ reason]
     Induction  -> keyword_ "induction"
-    SolveGoal goal ->
-        keyword_ "solve(" <-> prettyGoal goal <-> keyword_ ")"
+    SolveGoal goal -> prettyGoal goal
     Simplify -> keyword_ "simplify"
     Finished (Contradictory reason) ->
         sep [ keyword_ "contradiction"
