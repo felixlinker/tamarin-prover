@@ -28,7 +28,7 @@ import Control.Monad.Reader (runReader)
 import Control.Monad
 import GHC.OldList (permutations)
 import Theory.Model.Rule
-import Data.Maybe (mapMaybe, fromMaybe)
+import Data.Maybe (mapMaybe, fromMaybe, listToMaybe)
 import Theory.Model.Signature (sigmMaudeHandle)
 import GHC.List (uncons)
 
@@ -129,8 +129,7 @@ getCycleRenamingsOnPath ctx (leaf:candidates) =
       return (r, upTo, L.get sId inner, progressing)
 
 getCycleRenamingOnPath :: ProofContext -> [System] -> Maybe (Renaming LNSubst, UpTo, SystemId, ProgressingVars)
-getCycleRenamingOnPath ctx = peak . getCycleRenamingsOnPath ctx
-  where peak = (fst <$>) . uncons
+getCycleRenamingOnPath ctx = listToMaybe . getCycleRenamingsOnPath ctx
 
 canCloseCycle :: ProofContext -> [System] -> Maybe (SystemId, ProgressingVars)
 canCloseCycle ctx p = do
