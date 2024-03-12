@@ -284,6 +284,7 @@ lemmaIndex :: HtmlDocument d
 lemmaIndex renderUrl tidx l =
     ( markStatus (psInfo $ root annPrf) $
         (kwLemma <-> prettyLemmaName l <> colon)
+
         -- FIXME: Reactivate theory editing.
         -- <->
         -- (linkToPath renderUrl lemmaRoute  ["edit-link"] editPng <->
@@ -292,13 +293,25 @@ lemmaIndex renderUrl tidx l =
         nest 2 ( sep [ prettyTraceQuantifier $ get lTraceQuantifier l
                      , doubleQuotes $ prettyLNFormula $ get lFormula l
                      ] )
+
+        --Alice's test edit
+        $-$
+        (linkToPath renderUrl lemmaRoute  ["edit-link"] $ text "edit lemma") --prettyLNFormula $ get lFormula l 
+        --end edit
+
     ) $-$
     proofIndex renderUrl mkRoute annPrf
   where
     -- editPng = png "/static/img/edit.png"
     -- deletePng = png "/static/img/delete.png"
     -- png path = closedTag "img" [("class","icon"),("src",path)]
-    -- lemmaRoute = TheoryPathMR tidx (TheoryLemma $ get lName l)
+
+    -- Alice's test edit
+    --lemmaRoute = TheoryPathMR tidx (TheoryLemma $ get lName l)
+    --lemmaRoute = TheoryPathMR tidx (TheoryEdit $ get lName l)
+    lemmaRoute = TheoryPathMR tidx $ TheoryEdit $ get lName l --(ugglyLNFormula $ get lFormula l)  ) --(get lName l)
+
+    --end edit
 
     annPrf = annotateLemmaProof l
     mkRoute proofPath = TheoryPathMR tidx (TheoryProof (get lName l) proofPath)
@@ -1008,7 +1021,19 @@ htmlThyPath renderUrl info path =
            subProofSnippet renderUrl tidx info l p (getProofContext lemma thy)
              <$> resolveProofPath thy l p
 
-    go (TheoryLemma _)         = pp $ text "Implement lemma pretty printing!"
+    go (TheoryEdit name)          = do
+      let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
+      [hamlet|
+        <div contenteditable="true">
+            <p>#{l}?
+            |] renderUrl
+      -- l <- fromMaybe "no lemma :/" $ (ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy))
+      -- [hamlet|
+      --   <div contenteditable="true">
+      --       <p> #{l}?
+      --       |] renderUrl--pp $ text "Implement lemma pretty printing!"
+
+    go (TheoryLemma _)         = pp $ text "why?"
 
     go TheoryHelp              = do
       [hamlet|
@@ -1521,6 +1546,7 @@ titleThyPath thy path = go path
     go TheoryTactic                     = "Tactics"
     go (TheorySource RawSource _ _)     = "Raw sources"
     go (TheorySource RefinedSource _ _) = "Refined sources"
+    go (TheoryEdit l)                   = "Edit Lemma: " ++ l --Alice's maybe wrong 
     go (TheoryLemma l)                  = "Lemma: " ++ l
     go (TheoryProof l [])               = "Lemma: " ++ l
     go (TheoryProof l p)
@@ -1611,6 +1637,7 @@ nextThyPath thy = go
     go (TheorySource RawSource _ _)     = TheorySource RefinedSource 0 0
     go (TheorySource RefinedSource _ _) = fromMaybe TheoryHelp firstLemma
     go (TheoryLemma lemma)              = TheoryProof lemma []
+    go (TheoryEdit _)                 = TheoryHelp --Alice's prob worng  
     go (TheoryProof l p)
       | Just nextPath <- getNextPath l p = TheoryProof l nextPath
       | Just nextLemma <- getNextLemma l = TheoryProof nextLemma []
@@ -1702,6 +1729,7 @@ prevThyPath thy = go
     go TheoryTactic                      = TheoryRules
     go (TheorySource RawSource _ _)      = TheoryTactic
     go (TheorySource RefinedSource _ _)  = TheorySource RawSource 0 0
+    go (TheoryEdit  _ )                   = TheoryHelp --Alice Edit
     go (TheoryLemma l)
       | Just prevLemma <- getPrevLemma l = TheoryProof prevLemma (lastPath prevLemma)
       | otherwise                        = TheorySource RefinedSource 0 0
@@ -1818,6 +1846,7 @@ nextSmartThyPath thy = go
     go TheoryTactic                       = TheorySource RawSource 0 0
     go (TheorySource RawSource _ _)       = TheorySource RefinedSource 0 0
     go (TheorySource RefinedSource   _ _) = fromMaybe TheoryHelp firstLemma
+    go (TheoryEdit  _ )                    = TheoryHelp --Alice idk
     go (TheoryLemma lemma)                = TheoryProof lemma []
     go (TheoryProof l p)
       | Just nextPath <- getNextPath l p = TheoryProof l nextPath
@@ -1916,6 +1945,7 @@ prevSmartThyPath thy = go
     go TheoryTactic                        = TheoryRules
     go (TheorySource RawSource _ _)        = TheoryTactic
     go (TheorySource RefinedSource   _ _)  = TheorySource RawSource 0 0
+    go (TheoryEdit  _)                    = TheoryHelp --Alice idk 
     go (TheoryLemma l)
       | Just prevLemma <- getPrevLemma l   = TheoryProof prevLemma (lastPath prevLemma)
       | otherwise                          = TheorySource RefinedSource 0 0

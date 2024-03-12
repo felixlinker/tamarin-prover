@@ -69,6 +69,7 @@ module Theory.Model.Formula (
   -- ** Pretty-Printing
   , prettyLNFormula
   , prettySyntacticLNFormula
+  , ugglyLNFormula
 
   ) where
 
@@ -508,3 +509,7 @@ prettyLNFormula fm =
 prettySyntacticLNFormula :: HighlightDocument d => SyntacticLNFormula -> d
 prettySyntacticLNFormula fm =
     Precise.evalFresh (prettyLFormula prettySyntacticNAtom fm) (avoidPrecise fm)
+
+-- | Just keep the formula as-is (for editing)
+ugglyLNFormula :: LNFormula -> String
+ugglyLNFormula formula = show formula

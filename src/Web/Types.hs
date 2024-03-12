@@ -78,6 +78,7 @@ import           Theory
 import Control.Monad.Except (ExceptT)
 import Main.TheoryLoader
 import Theory.Tools.Wellformedness (WfErrorReport)
+import Data.Tree (flatten)
 
 
 ------------------------------------------------------------------------------
@@ -335,6 +336,7 @@ data TheoryPath
   | TheoryRules                         -- ^ Theory rules
   | TheoryMessage                       -- ^ Theory message deduction
   | TheoryTactic                        -- ^ Theory tactic
+  | TheoryEdit  String                  -- ^ Theory editing (edit lemma at runtime)
   deriving (Eq, Show, Read)
 
 -- | Simple data type for specifying a path to a specific
@@ -369,6 +371,7 @@ renderTheoryPath =
     go (TheoryProof lemma path) = "proof" : lemma : path
     go (TheoryMethod lemma path idx) = "method" : lemma : show idx : path
     go TheoryTactic = ["tactic"]
+    go (TheoryEdit name) = ["edit", name]
 
 -- | Render a theory path to a list of strings. Note that we prefix an
 -- underscore to the empty string and strings starting with an underscore.
@@ -423,6 +426,7 @@ parseTheoryPath =
       "cases"   -> parseCases xs
       "proof"   -> parseProof xs
       "method"  -> parseMethod xs
+      "edit"    -> TheoryEdit <$> listToMaybe xs -- just as a test, ALICE
       _         -> Nothing
 
     safeRead = listToMaybe . map fst . reads
