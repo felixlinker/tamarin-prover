@@ -52,6 +52,7 @@ module Web.Handler
   -- , postEditPathR
   , getUnloadTheoryR
   , getUnloadTheoryDiffR
+  --  , getLemmaPlaintext --Alice's Edit
   -- , getThreadsR
   )
 where
@@ -78,6 +79,8 @@ import           Web.Instances                ()
 import           Web.Settings
 import           Web.Theory
 import           Web.Types
+
+import           Data.List (isPrefixOf, tails, findIndex)
 
 import           Yesod.Core
 
@@ -111,7 +114,7 @@ import qualified Data.Binary                  as Bin
 import           Data.Time.LocalTime
 import           System.Directory
 
-import           Debug.Trace                  (trace)
+import           Debug.Trace                  (trace, traceM)
 import Control.Monad.Except (runExceptT)
 import Main.TheoryLoader
 import Main.Console (renderDoc)
@@ -146,6 +149,27 @@ getTheory :: TheoryIdx -> Handler (Maybe EitherTheoryInfo)
 getTheory idx = do
     yesod <- getYesod
     liftIO $ withMVar (theoryVar yesod) $ return. M.lookup idx
+
+
+getLemmaPlaintext :: TheoryPath -> String -> Handler String
+getLemmaPlaintext path thyname = do
+    let lname = case path of 
+            (TheoryEdit n) -> n 
+            _ -> "I should probably throw an error... #TODO i guess"
+    yesod <- getYesod
+    let workDirectory = workDir yesod
+    srcThy <- liftIO $ readFile (workDirectory <|> thyname <|> ".spthy")  -- Assuming `name` is the file name you want to read
+    traceM srcThy
+    let idx = case findIndex (isPrefixOf lname) (tails srcThy) of
+                Just i -> i
+                Nothing -> 0
+    traceM $ show idx
+    let rest = drop (length lname + idx) srcThy
+        (_, quotedText) = break (== '"') rest
+        plaintext = takeWhile (/= '"') (tail quotedText)  -- Skip the leading double quote
+    traceM plaintext
+    return plaintext
+
 
 
 -- | Store a theory, return index.
@@ -529,24 +553,26 @@ postRootR = do
 getOverviewR :: TheoryIdx -> TheoryPath -> Handler Html
 getOverviewR idx path = withTheory idx ( \ti -> do
   renderF <- getUrlRender
+  lPlaintext <- getLemmaPlaintext path (get thyName (tiTheory ti))
+  --traceM lPlaintext
   defaultLayout $ do
-    overview <- liftIO $ overviewTpl renderF ti path
+    overview <- liftIO $ overviewTpl renderF ti path lPlaintext
     setTitle (toHtml $ "Theory: " ++ get thyName (tiTheory ti))
     overview )
 
--- | test if I can redirect after retrieving data from lemma-text (yey, it works!)
+-- | test if I can get the lemma's plaintext (i can, yey)
 postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
 postTheoryEditR idx path = do
-    mLemmaText <- lookupPostParam "lemma-text" 
+    mLemmaText <- lookupPostParam "lemma-text"
     withTheory idx $ \ti -> do
+        lPlaintext <- getLemmaPlaintext path $ get thyName (tiTheory ti)
         renderF <- getUrlRender
         case mLemmaText of
-            Just lemmaText -> do
-                -- Process the retrieved lemmaText as needed
+            Just _ -> do
                 defaultLayout $ do
-                    overview <- liftIO $ overviewTpl renderF ti path
+                    overview <- liftIO $ overviewTpl renderF ti path lPlaintext
                     setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
-                    setMessage $ toHtml lemmaText
+                    --setMessage $ toHtml lemmaText
                     overview
             Nothing -> defaultLayout $ do
                 setTitle "Error"
@@ -641,7 +667,7 @@ getTheoryPathMR idx path = do
     --
     go renderUrl _ ti = do
       let title = T.pack $ titleThyPath (tiTheory ti) path
-      let html = htmlThyPath renderUrl ti path
+      let html = htmlThyPath renderUrl ti path ""
       return $ responseToJson (JsonHtml title $ toContent html)
 
 -- | Show a given path within a diff theory (main view).

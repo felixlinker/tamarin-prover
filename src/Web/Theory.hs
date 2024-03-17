@@ -996,8 +996,9 @@ messageDiffSnippet s isdiff thy = vcat
 htmlThyPath :: RenderUrl    -- ^ The function for rendering Urls.
             -> TheoryInfo   -- ^ The info of the theory to render
             -> TheoryPath   -- ^ Path to render
+            -> String
             ->  Html
-htmlThyPath renderUrl info path =
+htmlThyPath renderUrl info path lPlaintext =
   go path
   where
     thy  = tiTheory info
@@ -1023,32 +1024,25 @@ htmlThyPath renderUrl info path =
              <$> resolveProofPath thy l p
 
     go (TheoryEdit name) = do
-        let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
-            p = "../../edit/edit/"++name
+        let p = "../../edit/edit/"++name
         [hamlet|
              <form method="post" action=#{p}>
                 <div contenteditable="true">
                     <label for="lemmaTextArea">LemmaText
-                    <textarea name="lemma-text" id="lemmaTextArea">#{l}
+                    <textarea name="lemma-text" id="lemmaTextArea">#{lPlaintext}
                 <button type="submit">Submit
                 |] renderUrl
 
     -- go (TheoryEdit name) = do
     --     let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
-    --         p = "../../edit/edit/"++show path
+    --         p = "../../edit/edit/"++name
     --     [hamlet|
     --          <form method="post" action=#{p}>
     --             <div contenteditable="true">
-    --                 <p>#{l}?
-    --                 <button>Submit
-    --                 |] renderUrl
-
-    -- go (TheoryEdit name)          = do
-    --   let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
-    --   [hamlet|
-    --     <div contenteditable="true">
-    --         <p>#{l}?
-    --         |] renderUrl
+    --                 <label for="lemmaTextArea">LemmaText
+    --                 <textarea name="lemma-text" id="lemmaTextArea">#{l}
+    --             <button type="submit">Submit
+    --             |] renderUrl
 
     go (TheoryLemma _)         = pp $ text "why?"
 
