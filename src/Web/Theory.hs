@@ -82,6 +82,7 @@ import           TheoryObject
 
 import           Web.Settings
 import           Web.Types
+import Yesod.Core (lookupPostParam)
 
 ------------------------------------------------------------------------------
 -- Various other functions
@@ -1021,17 +1022,33 @@ htmlThyPath renderUrl info path =
            subProofSnippet renderUrl tidx info l p (getProofContext lemma thy)
              <$> resolveProofPath thy l p
 
-    go (TheoryEdit name)          = do
-      let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
-      [hamlet|
-        <div contenteditable="true">
-            <p>#{l}?
-            |] renderUrl
-      -- l <- fromMaybe "no lemma :/" $ (ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy))
-      -- [hamlet|
-      --   <div contenteditable="true">
-      --       <p> #{l}?
-      --       |] renderUrl--pp $ text "Implement lemma pretty printing!"
+    go (TheoryEdit name) = do
+        let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
+            p = "../../edit/edit/"++name
+        [hamlet|
+             <form method="post" action=#{p}>
+                <div contenteditable="true">
+                    <label for="lemmaTextArea">LemmaText
+                    <textarea name="lemma-text" id="lemmaTextArea">#{l}
+                <button type="submit">Submit
+                |] renderUrl
+
+    -- go (TheoryEdit name) = do
+    --     let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
+    --         p = "../../edit/edit/"++show path
+    --     [hamlet|
+    --          <form method="post" action=#{p}>
+    --             <div contenteditable="true">
+    --                 <p>#{l}?
+    --                 <button>Submit
+    --                 |] renderUrl
+
+    -- go (TheoryEdit name)          = do
+    --   let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
+    --   [hamlet|
+    --     <div contenteditable="true">
+    --         <p>#{l}?
+    --         |] renderUrl
 
     go (TheoryLemma _)         = pp $ text "why?"
 

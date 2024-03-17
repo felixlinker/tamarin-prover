@@ -79,6 +79,7 @@ import Control.Monad.Except (ExceptT)
 import Main.TheoryLoader
 import Theory.Tools.Wellformedness (WfErrorReport)
 import Data.Tree (flatten)
+import Debug.Trace (trace)
 
 
 ------------------------------------------------------------------------------
@@ -560,6 +561,7 @@ type RenderUrl = Route (WebUI) -> T.Text
 -- and the ones ending in DR are for the debug view.
 mkYesodData "WebUI" [parseRoutes|
 /                                          RootR                   GET POST
+/thy/trace/#Int/edit/*TheoryPath           TheoryEditR             POST -- Alice's Edit
 /thy/trace/#Int/overview/*TheoryPath          OverviewR               GET
 /thy/trace/#Int/source                           TheorySourceR           GET
 /thy/trace/#Int/message                          TheoryMessageDeductionR GET

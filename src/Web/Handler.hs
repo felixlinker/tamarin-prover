@@ -14,6 +14,7 @@ Portability :  non-portable
 
 module Web.Handler
   ( getOverviewR
+  , postTheoryEditR -- Alice's test
   , getOverviewDiffR
   , getRootR
   , postRootR
@@ -532,6 +533,31 @@ getOverviewR idx path = withTheory idx ( \ti -> do
     overview <- liftIO $ overviewTpl renderF ti path
     setTitle (toHtml $ "Theory: " ++ get thyName (tiTheory ti))
     overview )
+
+-- | test if I can redirect after retrieving data from lemma-text (yey, it works!)
+postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
+postTheoryEditR idx path = do
+    mLemmaText <- lookupPostParam "lemma-text" 
+    withTheory idx $ \ti -> do
+        renderF <- getUrlRender
+        case mLemmaText of
+            Just lemmaText -> do
+                -- Process the retrieved lemmaText as needed
+                defaultLayout $ do
+                    overview <- liftIO $ overviewTpl renderF ti path
+                    setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
+                    setMessage $ toHtml lemmaText
+                    overview
+            Nothing -> defaultLayout $ do
+                setTitle "Error"
+                [whamlet|<p>Failed to retrieve lemma-text from form data|]
+
+
+-- postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
+-- postTheoryEditR idx path = 
+--     defaultLayout $ do
+--     setMessage (toHtml $ "At path: " ++ (show path))
+--     setTitle (toHtml $ "Got post request to Theory: " ++ (show idx ))
 
 -- | Show overview over diff theory (framed layout).
 getOverviewDiffR :: TheoryIdx -> DiffTheoryPath -> Handler Html
