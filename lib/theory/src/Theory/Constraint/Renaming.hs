@@ -24,7 +24,7 @@ module Theory.Constraint.Renaming
 import Data.Label as L ( get, mkLabels )
 import qualified Data.Map as M
 import qualified Data.Set as S
-import Term.LTerm (Term (LIT), Lit (Var), IsVar, IsConst, LVar(..), LSort(..), VTerm, Name, HasFrees, freesList)
+import Term.LTerm (Term (LIT), Lit (Var), IsVar, IsConst, LVar(..), LSort(..), VTerm, Name, HasFrees, freesList, LNTerm(..))
 import Control.Monad (guard, MonadPlus (mzero))
 import Extension.Data.Label (modA)
 import Theory.Model.Rule (RuleACInst, getRuleRenaming)
@@ -35,6 +35,7 @@ import Data.Binary
 import Control.DeepSeq
 import Theory.Model.Fact (LNFact, unifyLNFacts)
 import Data.Maybe (fromJust, mapMaybe, listToMaybe)
+import Theory.Constraint.System.Constraints (Goal(..))
 
 -- A Renaming is a substitution that always maps to variables.
 newtype Renaming s = Renaming
@@ -129,6 +130,23 @@ instance Renamable RuleACInst LNSubst where
 
 instance Renamable LNFact LNSubst where
   fa1 ~> fa2 = MaybeT $ listToMaybe . mapMaybe (fromUnification fa1 fa2) <$> unifyLNFacts fa1 fa2
+
+instance Renamable LVar LNSubst where
+  v1 ~> v2 = MaybeT $ return $ Just $ Renaming $ Subst $ M.singleton v1 (LIT $ Var v2)
+
+instance Renamable LNTerm LNSubst where
+  LTerm n1 v1 ~> LTerm n2 v2 = mzero
+
+instance Renamable Goal LNSubst where
+  (ActionG v1 f1) ~> (ActionG v2 f2) = mapVarM v1 v2 (f1 ~> f2)
+  (ChainG (c1, _) (p1, _)) ~> (ChainG (c2, _) (p2, _)) = (c1 ~> c2) ~><~ (p1 ~> p2)
+  (PremiseG (p1, _) f1) ~> (PremiseG (p2, _) f2) = (p1 ~> p2) ~><~ (f1 ~> f2)
+  (SplitG _) ~> (SplitG _) = idRenaming
+  (DisjG _) ~> (DisjG _) = mzero
+  (SubtermG (ft1, st1)) ~> (SubtermG (ft2, st2)) = ft1 ~> ft2
+  (Weaken _) ~> (Weaken _) = mzero
+  (Cut _) ~> (Cut _) = mzero
+  _ ~> _ = mzero
 
 instance (IsConst c, IsVar v, Renamable d (Subst c v)) => Renamable [d] (Subst c v) where
   l1 ~> l2 = foldl (~><~) idRenaming $ zipWith (~>) l1 l2
