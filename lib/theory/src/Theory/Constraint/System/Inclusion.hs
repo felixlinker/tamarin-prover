@@ -2,8 +2,12 @@
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE TupleSections      #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE LambdaCase #-}
 module Theory.Constraint.System.Inclusion
   ( ProgressingVars
+  , allNodeRenamings
   , pvProgresses
   , pvPreserves
   , getCycleRenamingsOnPath
@@ -30,7 +34,7 @@ import GHC.OldList (permutations)
 import Theory.Model.Rule
 import Data.Maybe (mapMaybe, fromMaybe, listToMaybe)
 import Theory.Model.Signature (sigmMaudeHandle)
-import GHC.List (uncons)
+import Theory.Model.Fact (LNFact)
 
 data ProgressingVars = ProgressingVars
   { _pvProgresses :: S.Set NodeId
@@ -69,6 +73,18 @@ isProgressingAndSubSysUpTo smaller larger rM =  do
   guard (not $ S.null $ L.get pvProgresses withVars)
   upTo <- isSubSysUpTo smaller larger rM
   return (r, upTo, withVars)
+
+newtype ActionTuple = AT (LVar, LNFact)
+instance Renamable ActionTuple LNSubst where
+  AT (v1, f1) ~> AT (v2, f2) = mapVarM v1 v2 (f1 ~> f2)
+
+allActionGoalRenamings :: System -> System -> MaybeRenaming LNSubst -> [MaybeRenaming LNSubst]
+allActionGoalRenamings smaller larger acc =
+  let agCycleTgt = actionGoals smaller
+      agCycleCnd = actionGoals larger
+  in map ((acc ~><~) . (agCycleTgt ~>)) (permutations agCycleCnd)
+  where
+    actionGoals = mapMaybe (\case (ActionG v f) -> Just $ AT (v, f); _ -> Nothing) . M.keys . L.get sGoals
 
 allNodeRenamings :: System -> System -> [MaybeRenaming LNSubst]
 allNodeRenamings smaller larger =
@@ -115,7 +131,7 @@ allNodeRenamings smaller larger =
       where get_rInfo = L.get rInfo . nrule
 
 isContainedInModRenamingUpTo :: System -> System -> RenamingUpToWithVarsT
-isContainedInModRenamingUpTo smaller larger = msum $ map (isProgressingAndSubSysUpTo smaller larger) (allNodeRenamings smaller larger)
+isContainedInModRenamingUpTo smaller larger = msum $ map (isProgressingAndSubSysUpTo smaller larger) (concatMap (allActionGoalRenamings smaller larger) (allNodeRenamings smaller larger))
 
 getCycleRenamingsOnPath :: ProofContext -> [System] -> [(Renaming LNSubst, UpTo, SystemId, ProgressingVars)]
 getCycleRenamingsOnPath _ [] = []
