@@ -79,7 +79,7 @@ import Control.Monad.Except (ExceptT)
 import Main.TheoryLoader
 import Theory.Tools.Wellformedness (WfErrorReport)
 import Data.Tree (flatten)
-import Debug.Trace (trace)
+import Debug.Trace (trace, traceM)
 
 
 ------------------------------------------------------------------------------

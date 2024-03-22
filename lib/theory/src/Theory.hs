@@ -78,6 +78,7 @@ module Theory (
   , lFormula
   , lAttributes
   , lProof
+  , lPlaintext
   , aName
   , aAttributes
   , aCaseIdentifiers

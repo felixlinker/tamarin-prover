@@ -60,7 +60,7 @@ where
 import           Theory                       (
     ClosedTheory,
     ClosedDiffTheory,
---     EitherClosedTheory,
+
     Side,
     thyName, diffThyName, removeLemma,
     removeLemmaDiff, removeDiffLemma,
@@ -68,7 +68,7 @@ import           Theory                       (
     sorryDiffProver, runAutoDiffProver,
     prettyClosedTheory, prettyOpenTheory,
     openDiffTheory,
-    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude
+    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem)
   )
 import           Theory.Proof (AutoProver(..), SolutionExtractor(..), Prover, DiffProver)
 import           Text.PrettyPrint.Html
@@ -101,6 +101,7 @@ import qualified Data.Text                    as T
 import qualified Data.Text.Encoding           as T (encodeUtf8, decodeUtf8)
 import qualified Data.Text.Lazy.Encoding      as TLE
 import qualified Data.Traversable             as Tr
+import qualified Extension.Data.Label         as L -- added by Alice, idk if it's correct
 import           Network.HTTP.Types           ( urlDecode )
 
 
@@ -151,23 +152,17 @@ getTheory idx = do
     liftIO $ withMVar (theoryVar yesod) $ return. M.lookup idx
 
 
-getLemmaPlaintext :: TheoryPath -> String -> Handler String
-getLemmaPlaintext path thyname = do
+getLemmaPlaintext :: Int -> TheoryPath -> String -> Handler String
+getLemmaPlaintext nr path thyname = do
     let lname = case path of 
             (TheoryEdit n) -> n 
             _ -> "I should probably throw an error... #TODO i guess"
     yesod <- getYesod
-    let workDirectory = workDir yesod
-    srcThy <- liftIO $ readFile (workDirectory <|> thyname <|> ".spthy")  -- Assuming `name` is the file name you want to read
-    traceM srcThy
-    let idx = case findIndex (isPrefixOf lname) (tails srcThy) of
-                Just i -> i
-                Nothing -> 0
-    traceM $ show idx
-    let rest = drop (length lname + idx) srcThy
-        (_, quotedText) = break (== '"') rest
-        plaintext = takeWhile (/= '"') (tail quotedText)  -- Skip the leading double quote
-    traceM plaintext
+    eitherTheory <- getTheory nr
+    let lemmaItem = case eitherTheory of 
+            (Just (Trace eitherT)) -> (lookupLemma lname (tiTheory eitherT))
+            _ -> Nothing
+    let plaintext =  fromMaybe "No lemma found" $ (get lPlaintext) <$> lemmaItem
     return plaintext
 
 
@@ -553,7 +548,7 @@ postRootR = do
 getOverviewR :: TheoryIdx -> TheoryPath -> Handler Html
 getOverviewR idx path = withTheory idx ( \ti -> do
   renderF <- getUrlRender
-  lPlaintext <- getLemmaPlaintext path (get thyName (tiTheory ti))
+  lPlaintext <- getLemmaPlaintext idx path (get thyName (tiTheory ti))
   --traceM lPlaintext
   defaultLayout $ do
     overview <- liftIO $ overviewTpl renderF ti path lPlaintext
@@ -565,7 +560,7 @@ postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
 postTheoryEditR idx path = do
     mLemmaText <- lookupPostParam "lemma-text"
     withTheory idx $ \ti -> do
-        lPlaintext <- getLemmaPlaintext path $ get thyName (tiTheory ti)
+        lPlaintext <- getLemmaPlaintext idx path $ get thyName (tiTheory ti)
         renderF <- getUrlRender
         case mLemmaText of
             Just _ -> do
@@ -667,7 +662,8 @@ getTheoryPathMR idx path = do
     --
     go renderUrl _ ti = do
       let title = T.pack $ titleThyPath (tiTheory ti) path
-      let html = htmlThyPath renderUrl ti path ""
+      lPlaintext <- getLemmaPlaintext (tiIndex ti) path $ get thyName (tiTheory ti)
+      let html = htmlThyPath renderUrl ti path lPlaintext
       return $ responseToJson (JsonHtml title $ toContent html)
 
 -- | Show a given path within a diff theory (main view).

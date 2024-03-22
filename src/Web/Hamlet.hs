@@ -290,9 +290,9 @@ overviewTpl :: RenderUrl
             -> TheoryPath -- ^ Theory path to load into main
             -> String
             -> IO Widget
-overviewTpl renderUrl info path lPlaintext = do
+overviewTpl renderUrl info path lptxt = do
   proofState <- proofStateTpl renderUrl info
-  mainView <- pathTpl renderUrl info path lPlaintext
+  mainView <- pathTpl renderUrl info path lptxt
   return [whamlet|
     $newline never
     <div .ui-layout-north>
@@ -348,10 +348,10 @@ pathTpl :: RenderUrl
         -> TheoryPath   -- ^ Path to display on load
         -> String
         -> IO Widget
-pathTpl renderUrl info path lPlaintext =
+pathTpl renderUrl info path lptxt =
     return $ [whamlet|
                 $newline never
-                #{htmlThyPath renderUrl info path lPlaintext} |]
+                #{htmlThyPath renderUrl info path lptxt} |]
 
 -- | Theory path, displayed when loading main screen for first time.
 pathDiffTpl :: RenderUrl

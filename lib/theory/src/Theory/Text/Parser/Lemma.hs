@@ -58,12 +58,26 @@ traceQuantifier = asum
   , symbol "exists-trace"  *> pure ExistsTrace
   ]
 
+-- protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
+-- protoLemma parseFormula workDir = skeletonLemma <$> (symbol "lemma" *> optional moduloE *> identifier)
+--                       <*> (try $ lookAhead $ manyTill (between (char '"') (char '"') (many anyChar)))
+--                       -- <*> (try $ lookAhead $ manyTill anyChar (char '"'))
+--                       <*> (option [] $ list (lemmaAttribute False workDir))
+--                       <*> (colon *> option AllTraces traceQuantifier)
+--                       <*> doubleQuoted parseFormula
+--                       <*> (startProofSkeleton <|> pure (unproven ()))
+
+
 protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
-protoLemma parseFormula workDir = skeletonLemma <$> (symbol "lemma" *> optional moduloE *> identifier)
-                      <*> (option [] $ list (lemmaAttribute False workDir))
-                      <*> (colon *> option AllTraces traceQuantifier)
-                      <*> doubleQuoted parseFormula
-                      <*> (startProofSkeleton <|> pure (unproven ()))
+protoLemma parseFormula workDir = do
+  name <- symbol "lemma" *> optional moduloE *> identifier
+  attr <- option [] $ list (lemmaAttribute False workDir)
+  quan <- colon *> option AllTraces traceQuantifier
+  ptxt <- (try $ lookAhead $ char '"' *> manyTill anyChar (char '"'))
+  formula <- doubleQuoted parseFormula
+  pskelet <- startProofSkeleton <|> pure (unproven ())
+  return $ skeletonLemma name ptxt attr quan formula pskelet
+
 
 
 -- | Parse a lemma.

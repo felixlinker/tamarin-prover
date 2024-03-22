@@ -425,7 +425,7 @@ expandRestriction thy (Restriction n f) =  Restriction n <$> expandFormula (theo
 expandLemma :: Theory sig c r p1 s
                -> ProtoLemma SyntacticLNFormula p2
                -> Either FactTag (ProtoLemma LNFormula p2)
-expandLemma thy (Lemma n tq f a p) =  (\f' -> Lemma n tq f' a p) <$> expandFormula (theoryPredicates thy) f
+expandLemma thy (Lemma n u tq f a p) =  (\f' -> Lemma n u tq f' a p) <$> expandFormula (theoryPredicates thy) f
 
 
 -- | Add a new restriction. Fails, if restriction with the same name exists.
