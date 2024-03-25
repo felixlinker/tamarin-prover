@@ -71,12 +71,14 @@ traceQuantifier = asum
 protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
 protoLemma parseFormula workDir = do
   name <- symbol "lemma" *> optional moduloE *> identifier
+  mpattr <- try $ lookAhead $ option "" (try $ lookAhead $ char '[' *> manyTill anyChar (char ']'))
+  pattr <- if mpattr /= "" then do return ("[" ++ mpattr ++ "]") else return ""
   attr <- option [] $ list (lemmaAttribute False workDir)
   quan <- colon *> option AllTraces traceQuantifier
   ptxt <- (try $ lookAhead $ char '"' *> manyTill anyChar (char '"'))
   formula <- doubleQuoted parseFormula
   pskelet <- startProofSkeleton <|> pure (unproven ())
-  return $ skeletonLemma name ptxt attr quan formula pskelet
+  return $ skeletonLemma name ("lemma " ++ name ++ pattr ++ ":\n\"" ++ ptxt ++ "\"") attr quan formula pskelet
 
 
 

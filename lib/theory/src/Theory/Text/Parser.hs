@@ -19,6 +19,7 @@ module Theory.Text.Parser (
   , theory
   , diffTheory
   , parseLemma
+  , parsePlainLemma
   , parseRestriction
   , parseIntruderRules
   , liftedAddLemma
@@ -82,6 +83,10 @@ parseOpenDiffTheoryString flags0 = parseString flags0 "<unknown source>" (diffTh
 -- | Parse a lemma for an open theory from a string.
 parseLemma :: String -> Either ParseError (SyntacticLemma ProofSkeleton)
 parseLemma = parseString [] "<unknown source>" (lemma Nothing)
+
+parsePlainLemma :: String -> Either ParseError (Lemma ProofSkeleton)
+parsePlainLemma = parseString [] "<unknown source>" (plainLemma Nothing)
+
 
 ------------------------------------------------------------------------------
 -- Parsing Theories
