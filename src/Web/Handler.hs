@@ -62,13 +62,13 @@ import           Theory                       (
     ClosedDiffTheory,
 
     Side,
-    thyName, diffThyName, removeLemma,
+    thyName, diffThyName, removeLemma, modifyLemma,
     removeLemmaDiff, removeDiffLemma,
     openTheory, sorryProver, runAutoProver,
     sorryDiffProver, runAutoDiffProver,
     prettyClosedTheory, prettyOpenTheory,
     openDiffTheory,
-    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas
+    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton
   )
 import           Theory.Proof (AutoProver(..), SolutionExtractor(..), Prover, DiffProver)
 import           Text.PrettyPrint.Html
@@ -124,6 +124,7 @@ import qualified Control.Monad as T
 import Theory.Text.Parser (parseLemma, parsePlainLemma)
 import Lemma
 import GHC.Conc (retry, runHandlers)
+import OpenTheory (skeletonToIncrementalProof)
 
 -- Quasi-quotation syntax changed from GHC 6 to 7,
 -- so we need this switch in order to support both
@@ -191,18 +192,38 @@ getLemmaPlaintext nr path = do
 --         putTheory (Just thy) (Just "<no origin>") newThy $ "modified" ++ $ show idx
 --     idx'
 --
---editLemmaPlaintext :: Int -> TheoryPath -> Lemma p -> Handler TheoryIdx
-editLemmaPlaintext idx (TheoryEdit lemmaName) newLemma = do
+editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler TheoryIdx
+editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt tq f a lp) = do
     let idx' = withTheory idx $ \ti -> do
-            let newThy = removeLemma lemmaName (tiTheory ti) 
-                            >>= addLemma newLemma
+            -- let newThy = removeLemma lemmaName (tiTheory ti) 
+            --                 >>= addLemma (Lemma n pt tq f a $ skeletonToIncrementalProof lp)
+            let newThy = modifyLemma (Lemma n pt tq f a $ skeletonToIncrementalProof lp) (tiTheory ti)
+
             case newThy of
                  --Nothing -> -1
-                 (Just nthy) -> putTheory (Just ti) (Just "<no origin>") nthy $ "modified" ++ show idx
+                 (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
     idx'
 
 
-editLemmaPlaintext _ _ _  = -1
+-- | Store a theory, return index.
+replaceTheory :: Maybe TheoryInfo     -- ^ Index of parent theory
+          -> Maybe TheoryOrigin         -- ^ Origin of this theory
+          -> ClosedTheory         -- ^ The new closed theory
+          -> String
+          -> Int
+          -> Handler TheoryIdx
+replaceTheory parent origin thy rep idx = do
+    yesod <- getYesod
+    liftIO $ modifyMVar (theoryVar yesod) $ \theories -> do
+      time <- getZonedTime
+      let parentIdx    = tiIndex <$> parent
+          parentOrigin = tiOrigin <$> parent
+          newOrigin    = parentOrigin <|> origin <|> (Just Interactive)
+          newThy       = Trace (
+              TheoryInfo idx thy time parentIdx False (fromJust newOrigin)
+                      (maybe (defaultAutoProver yesod) tiAutoProver parent) rep)
+      return (M.insert idx newThy theories, idx)
+
 
 -- | Store a theory, return index.
 putTheory :: Maybe TheoryInfo     -- ^ Index of parent theory
@@ -643,10 +664,11 @@ postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
 postTheoryEditR idx path = do
     mLemmaText <- lookupPostParam "lemma-text" 
     let newlptxt = T.unpack $ fromMaybe "" mLemmaText
-    traceM newlptxt
+    traceM $ "prev: " ++ show idx
     idx' <- case parsePlainLemma newlptxt of
                 --Left err -> -1  --should throw error
                 Right newl -> editLemmaPlaintext idx path newl
+    traceM $ show idx'
     renderF <- getUrlRender
     lptxt <- getLemmaPlaintext idx' path
     withTheory idx' $ \ti -> do

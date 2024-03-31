@@ -136,6 +136,7 @@ module Theory (
   , addTactic
   , addRestriction
   , addLemma
+  , modifyLemma
   , addAccLemma
   , addCaseTest
   , addRestrictionDiff
