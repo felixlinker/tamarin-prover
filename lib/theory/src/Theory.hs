@@ -150,6 +150,7 @@ module Theory (
   , filterLemma
   , removeDiffLemma
   , lookupLemma
+  , lookupLemmaIndex
   , lookupDiffLemma
   , lookupAccLemma
   , lookupCaseTest

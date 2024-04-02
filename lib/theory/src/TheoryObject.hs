@@ -100,6 +100,7 @@ module TheoryObject (
   , lookupDiffLemma
   , lookupLemmaDiff
   , lookupLemma
+  , lookupLemmaIndex
   , lookupProcessDef
   , filterSide
   , mapMProcesses
@@ -633,6 +634,10 @@ lookupRestriction name = find ((name ==) . L.get rstrName) . theoryRestrictions
 -- | Find the lemma with the given name.
 lookupLemma :: String -> Theory sig c r p s -> Maybe (Lemma p)
 lookupLemma name = find ((name ==) . L.get lName) . theoryLemmas
+
+lookupLemmaIndex :: String -> Theory sig c r p s -> Maybe Int
+lookupLemmaIndex name ti = fmap fst $ listToMaybe $ [(i,l) | (i,l)<-(zip [1..] $ theoryLemmas ti) , (name == L.get lName l) ]
+
 
 -- | Find the case test with the given name.
 lookupCaseTest :: CaseIdentifier -> Theory sig c r p TranslationElement -> Maybe CaseTest

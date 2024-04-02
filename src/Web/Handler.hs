@@ -62,7 +62,7 @@ import           Theory                       (
     ClosedDiffTheory,
 
     Side,
-    thyName, diffThyName, removeLemma, modifyLemma,
+    thyName, diffThyName, removeLemma, modifyLemma, lookupLemmaIndex,
     removeLemmaDiff, removeDiffLemma,
     openTheory, sorryProver, runAutoProver,
     sorryDiffProver, runAutoDiffProver,
@@ -125,6 +125,7 @@ import Theory.Text.Parser (parseLemma, parsePlainLemma)
 import Lemma
 import GHC.Conc (retry, runHandlers)
 import OpenTheory (skeletonToIncrementalProof)
+import Web.Types (TheoryPath(TheoryDelete))
 
 -- Quasi-quotation syntax changed from GHC 6 to 7,
 -- so we need this switch in order to support both
@@ -167,43 +168,43 @@ getLemmaPlaintext nr path = do
     let lemmaItem = case eitherTheory of 
             (Just (Trace thy)) -> (lookupLemma lname (tiTheory thy))
             _ -> Nothing
-    let plaintext =  fromMaybe "No lemma found" $ (get lPlaintext) <$> lemmaItem
+    let plaintext =  fromMaybe "Enter your new Lemma" $ (get lPlaintext) <$> lemmaItem
     return plaintext
 
--- editLemmaPlaintext :: Int -> TheoryPath -> (ProtoLemma f p) -> Int
--- editLemmaPlaintext idx (TheoryEdit lemmaName) newLemma = idx
 
---
--- editLemmaPlaintext :: Int -> TheoryPath -> Lemma p -> Int --(ProtoLemma f p) -> Int
--- editLemmaPlaintext idx (TheoryEdit lemmaName) newLemma = do
---     let result = withTheory idx $ \ti -> do
---             let openThy = openTheory (tiTheory ti)
---                 openThy'= removeLemma lemmaName openThy >>= addLemma newLemma
---                 ot = fromMaybe (error "no new lemma") openThy'
---             traverse (closeThy yesod) openThy'
---             storeTheory yesod (Trace ot) idx
---             return $ M.insert idx (Trace ot) theories
---     idx-
 
--- editLemmaPlaintext :: Int -> TheoryPath -> Lemma p -> Int
--- editLemmaPlaintext idx (TheoryEdit lemmaName) newLemma = do    -- yesod <- getYesod
---     let idx' = \thy -> do 
---         let newThy = removeLemma lemmaName (tiTheory thy) >>= addLemma newLemma
---         putTheory (Just thy) (Just "<no origin>") newThy $ "modified" ++ $ show idx
---     idx'
---
 editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler TheoryIdx
 editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt tq f a lp) = do
     let idx' = withTheory idx $ \ti -> do
-            -- let newThy = removeLemma lemmaName (tiTheory ti) 
-            --                 >>= addLemma (Lemma n pt tq f a $ skeletonToIncrementalProof lp)
+            --let  (Lemma on opt otq olf oa olp) = maybe (error "Lemma not found") id (lookupLemma lemmaName (tiTheory ti))
             let newThy = modifyLemma (Lemma n pt tq f a $ skeletonToIncrementalProof lp) (tiTheory ti)
-
             case newThy of
-                 --Nothing -> -1
+                 Nothing -> error "lemma editing failed"
                  (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
     idx'
 
+editLemmaPlaintext idx (TheoryAdd lemmaName) (Lemma n pt tq f a lp) = do
+    let idx' = withTheory idx $ \ti -> do
+            let lemmaIndex = case lemmaName of
+                                "<first>" -> Just 0
+                                _ -> lookupLemmaIndex lemmaName (tiTheory ti)
+            traceM $ "index: " ++ show lemmaIndex
+            let newThy = modifyLemma (Lemma n pt tq f a $ skeletonToIncrementalProof lp) (tiTheory ti)
+            case newThy of
+                 Nothing -> error "lemma editing failed"
+                 (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+    idx'
+
+editLemmaPlaintext idx (TheoryDelete lemmaName) (Lemma n pt tq f a lp) = do
+    let idx' = withTheory idx $ \ti -> do
+            let newThy = removeLemma lemmaName (tiTheory ti)
+            case newThy of
+                 Nothing -> error "lemma editing failed"
+                 (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+    idx'
+
+
+editLemmaPlaintext _ _ _ = error "called editLemmaPlaintext with weird input"
 
 -- | Store a theory, return index.
 replaceTheory :: Maybe TheoryInfo     -- ^ Index of parent theory
@@ -613,60 +614,32 @@ getOverviewR idx path = withTheory idx ( \ti -> do
     setTitle (toHtml $ "Theory: " ++ get thyName (tiTheory ti))
     overview )
 
--- | test if I can get the lemma's plaintext (i can, yey)
--- postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
--- postTheoryEditR idx path = do
---     mLemmaText <- lookupPostParam "lemma-text"
---     withTheory idx $ \ti -> do
---         lptxt <- getLemmaPlaintext idx path
---         renderF <- getUrlRender
---         case mLemmaText of
---             Just _ -> do
---                 defaultLayout $ do
---                     overview <- liftIO $ overviewTpl renderF ti path lptxt
---                     setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
---                     --setMessage $ toHtml lemmaText
---                     overview
---             Nothing -> defaultLayout $ do
---                 setTitle "Error"
---                 [whamlet|<p>Failed to retrieve lemma-text from form data|]
---
--- mLemmaText <- lookupPostParam "lemma-text" 
--- let newlptxt = case mLemmaText of
---             Just lemmaText -> T.unpack lemmaText
---             Nothing -> ""
-
-
-
--- postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
--- postTheoryEditR idx path = do
---     let newlptxt = T.unpack $ fromMaybe "" $ lookupPostParam "lemma-text" 
---     withTheory idx $ \ti -> do
---         case parseLemma newlptxt of
---             Left err -> traceM $ "error" ++ show err
---             Right newl -> traceM $ editLemmaPlaintext idx path newl
---         lptxt <- getLemmaPlaintext idx path
---         renderF <- getUrlRender
---         case mLemmaText of
---             Just _ -> do
---                 defaultLayout $ do
---                     overview <- liftIO $ overviewTpl renderF ti path lptxt
---                     setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
---                     --setMessage $ toHtml lemmaText
---                     overview
---             Nothing -> defaultLayout $ do
---                 setTitle "Error"
---                 [whamlet|<p>Failed to retrieve lemma-text from form data|]
-
 
 
 postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
+postTheoryEditR idx (TheoryDelete l) = do
+    renderF <- getUrlRender
+    lptxt <- getLemmaPlaintext idx (TheoryEdit l)
+    traceM lptxt
+    idx' <- case parsePlainLemma lptxt of
+                Left err -> error "Parsing failed"  --should throw error
+                Right newl -> editLemmaPlaintext idx (TheoryDelete l) newl
+
+    withTheory idx' $ \ti -> defaultLayout $ do
+            overview <- liftIO $ overviewTpl renderF ti TheoryHelp lptxt
+            setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
+            overview
+
+
+
+
+
 postTheoryEditR idx path = do
     mLemmaText <- lookupPostParam "lemma-text" 
     let newlptxt = T.unpack $ fromMaybe "" mLemmaText
     traceM $ "prev: " ++ show idx
     idx' <- case parsePlainLemma newlptxt of
-                --Left err -> -1  --should throw error
+                Left err -> error "Parsing failed"  --should throw error
                 Right newl -> editLemmaPlaintext idx path newl
     traceM $ show idx'
     renderF <- getUrlRender
@@ -676,14 +649,13 @@ postTheoryEditR idx path = do
             Just _ -> do
                 defaultLayout $ do
                     overview <- liftIO $ overviewTpl renderF ti path lptxt
+                    --setHeader $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
                     setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
                     --setMessage $ toHtml lemmaText
                     overview
             Nothing -> defaultLayout $ do
                 setTitle "Error"
                 [whamlet|<p>Failed to retrieve lemma-text from form data|]
-
-
 
 
 
@@ -759,9 +731,17 @@ getTheoryPathMR :: TheoryIdx
                 -> TheoryPath
                 -> Handler RepJson
 getTheoryPathMR idx path = do
-    renderUrl <- getUrlRender
-    jsonValue <- withTheory idx (go renderUrl path)
-    return $ RepJson $ toContent jsonValue
+    traceM "calles getTheoryPathMR"
+    case path of
+        (TheoryDelete l) -> do 
+            --postTheoryEditR idx path
+            renderUrl <- getUrlRender
+            jsonValue <- withTheory idx (go renderUrl TheoryHelp)
+            return $ RepJson $ toContent jsonValue
+        _ -> do
+            renderUrl <- getUrlRender
+            jsonValue <- withTheory idx (go renderUrl path)
+            return $ RepJson $ toContent jsonValue
   where
     --
     -- Handle method paths by trying to solve the given goal/method

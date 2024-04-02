@@ -337,7 +337,9 @@ data TheoryPath
   | TheoryRules                         -- ^ Theory rules
   | TheoryMessage                       -- ^ Theory message deduction
   | TheoryTactic                        -- ^ Theory tactic
-  | TheoryEdit  String                  -- ^ Theory editing (edit lemma at runtime)
+  | TheoryEdit  String                  -- ^ edit lemma at runtime
+  | TheoryDelete String                 -- ^ remove lemma at runtime 
+  | TheoryAdd String                       -- ^ add new lemma at index at runtime 
   deriving (Eq, Show, Read)
 
 -- | Simple data type for specifying a path to a specific
@@ -373,6 +375,8 @@ renderTheoryPath =
     go (TheoryMethod lemma path idx) = "method" : lemma : show idx : path
     go TheoryTactic = ["tactic"]
     go (TheoryEdit name) = ["edit", name]
+    go (TheoryAdd name) = ["add", name]
+    go (TheoryDelete name) = ["delete", name]
 
 -- | Render a theory path to a list of strings. Note that we prefix an
 -- underscore to the empty string and strings starting with an underscore.
@@ -428,9 +432,14 @@ parseTheoryPath =
       "proof"   -> parseProof xs
       "method"  -> parseMethod xs
       "edit"    -> TheoryEdit <$> listToMaybe xs -- just as a test, ALICE
+      "add"     -> TheoryAdd <$> listToMaybe xs
+      "delete"  -> TheoryDelete <$> listToMaybe xs
       _         -> Nothing
 
     safeRead = listToMaybe . map fst . reads
+    
+    -- parseAdd (y:_) = TheoryAdd <$> safeRead y
+    -- parseAdd _ = Nothing
 
     parseLemma ys = TheoryLemma <$> listToMaybe ys
 

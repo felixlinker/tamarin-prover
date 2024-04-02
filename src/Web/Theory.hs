@@ -283,36 +283,32 @@ lemmaIndex :: HtmlDocument d
            -> Lemma IncrementalProof      -- ^ The lemma
            -> d
 lemmaIndex renderUrl tidx l =
+
     ( markStatus (psInfo $ root annPrf) $
         (kwLemma <-> prettyLemmaName l <> colon)
 
-        -- FIXME: Reactivate theory editing.
-        -- <->
-        -- (linkToPath renderUrl lemmaRoute  ["edit-link"] editPng <->
-        -- linkToPath renderUrl lemmaRoute ["delete-link"] deletePng)
+
+        <-> (linkToPath renderUrl lemmaDelete ["del-link"] $ text "🗑")
         $-$
         nest 2 ( sep [ prettyTraceQuantifier $ get lTraceQuantifier l
                      , doubleQuotes $ prettyLNFormula $ get lFormula l
                      ] )
 
-        --Alice's test edit
         $-$
-        (linkToPath renderUrl lemmaRoute  ["edit-link"] $ text "edit lemma") --prettyLNFormula $ get lFormula l 
-        --end edit
+        (linkToPath renderUrl lemmaEdit ["edit-link"] $ text "edit lemma") --prettyLNFormula $ get lFormula l
 
     ) $-$
     proofIndex renderUrl mkRoute annPrf
+    $-$
+    text ""
+    $-$
+    (linkToPath renderUrl lemmaAdd ["del-link"] $ text "+")
   where
-    -- editPng = png "/static/img/edit.png"
-    -- deletePng = png "/static/img/delete.png"
-    -- png path = closedTag "img" [("class","icon"),("src",path)]
 
-    -- Alice's test edit
-    --lemmaRoute = TheoryPathMR tidx (TheoryLemma $ get lName l)
-    --lemmaRoute = TheoryPathMR tidx (TheoryEdit $ get lName l)
-    lemmaRoute = TheoryPathMR tidx $ TheoryEdit $ get lName l --(ugglyLNFormula $ get lFormula l)  ) --(get lName l)
+    lemmaEdit = TheoryPathMR tidx $ TheoryEdit $ get lName l
+    lemmaDelete = TheoryPathMR tidx $ TheoryDelete $ get lName l
+    lemmaAdd = TheoryPathMR tidx $ TheoryAdd $ get lName l
 
-    --end edit
 
     annPrf = annotateLemmaProof l
     mkRoute proofPath = TheoryPathMR tidx (TheoryProof (get lName l) proofPath)
@@ -393,6 +389,8 @@ theoryIndex renderUrl tidx thy = foldr1 ($-$)
     , reqCasesLink "Raw sources" RawSource
     , text ""
     , reqCasesLink "Refined sources " RefinedSource
+    , text ""
+    , (linkToPath renderUrl (TheoryPathMR tidx $ TheoryAdd $ "<first>") ["del-link"] $ text "+")
     , text ""
     , vcat $ intersperse (text "") lemmas
     , text ""
@@ -1044,7 +1042,24 @@ htmlThyPath renderUrl info path lPlaintext =
     --             <button type="submit">Submit
     --             |] renderUrl
 
-    go (TheoryLemma _)         = pp $ text "why?"
+    go (TheoryLemma _)         = pp $ text "this is a mistake"
+    go (TheoryDelete name)        = do
+        let p = "../../edit/delete/" ++ name
+        [hamlet|
+        <p> Do you want to delete lemma #{name}?
+        <form method="post" action=#{p}>
+            <button type="submit">Yes
+            |] renderUrl
+
+    go (TheoryAdd name)  = do
+        let p = "../../edit/add/" ++ name
+        [hamlet|
+             <form method="post" action=#{p}>
+                <div contenteditable="true">
+                    <label for="lemmaTextArea">LemmaText
+                    <textarea name="lemma-text" id="lemmaTextArea">#{lPlaintext}
+                <button type="submit">Submit
+                |] renderUrl
 
     go TheoryHelp              = do
       [hamlet|
@@ -1557,7 +1572,9 @@ titleThyPath thy path = go path
     go TheoryTactic                     = "Tactics"
     go (TheorySource RawSource _ _)     = "Raw sources"
     go (TheorySource RefinedSource _ _) = "Refined sources"
-    go (TheoryEdit l)                   = "Edit Lemma: " ++ l --Alice's maybe wrong 
+    go (TheoryEdit l)                   = "Edit Lemma: " ++ l --Alice's maybe wrong
+    go (TheoryAdd _)                    = "Add new Lemma"
+    go (TheoryDelete l)                 = "Delete " ++ l
     go (TheoryLemma l)                  = "Lemma: " ++ l
     go (TheoryProof l [])               = "Lemma: " ++ l
     go (TheoryProof l p)
@@ -1648,7 +1665,9 @@ nextThyPath thy = go
     go (TheorySource RawSource _ _)     = TheorySource RefinedSource 0 0
     go (TheorySource RefinedSource _ _) = fromMaybe TheoryHelp firstLemma
     go (TheoryLemma lemma)              = TheoryProof lemma []
-    go (TheoryEdit _)                 = TheoryHelp --Alice's prob worng  
+    go (TheoryEdit _)                   = TheoryHelp --Alice's prob worng 
+    go (TheoryAdd _)                    = TheoryHelp
+    go (TheoryDelete _)                 = TheoryHelp
     go (TheoryProof l p)
       | Just nextPath <- getNextPath l p = TheoryProof l nextPath
       | Just nextLemma <- getNextLemma l = TheoryProof nextLemma []
@@ -1740,7 +1759,9 @@ prevThyPath thy = go
     go TheoryTactic                      = TheoryRules
     go (TheorySource RawSource _ _)      = TheoryTactic
     go (TheorySource RefinedSource _ _)  = TheorySource RawSource 0 0
-    go (TheoryEdit  _ )                   = TheoryHelp --Alice Edit
+    go (TheoryEdit  _ )                  = TheoryHelp --Alice Edit
+    go (TheoryAdd _)                     = TheoryHelp
+    go (TheoryDelete _)                  = TheoryHelp
     go (TheoryLemma l)
       | Just prevLemma <- getPrevLemma l = TheoryProof prevLemma (lastPath prevLemma)
       | otherwise                        = TheorySource RefinedSource 0 0
@@ -1857,7 +1878,9 @@ nextSmartThyPath thy = go
     go TheoryTactic                       = TheorySource RawSource 0 0
     go (TheorySource RawSource _ _)       = TheorySource RefinedSource 0 0
     go (TheorySource RefinedSource   _ _) = fromMaybe TheoryHelp firstLemma
-    go (TheoryEdit  _ )                    = TheoryHelp --Alice idk
+    go (TheoryEdit  _ )                   = TheoryHelp --Alice idk
+    go (TheoryAdd _ )                     = TheoryHelp
+    go (TheoryDelete _)                   = TheoryHelp
     go (TheoryLemma lemma)                = TheoryProof lemma []
     go (TheoryProof l p)
       | Just nextPath <- getNextPath l p = TheoryProof l nextPath
@@ -1956,7 +1979,9 @@ prevSmartThyPath thy = go
     go TheoryTactic                        = TheoryRules
     go (TheorySource RawSource _ _)        = TheoryTactic
     go (TheorySource RefinedSource   _ _)  = TheorySource RawSource 0 0
-    go (TheoryEdit  _)                    = TheoryHelp --Alice idk 
+    go (TheoryEdit  _)                     = TheoryHelp --Alice idk
+    go (TheoryAdd _ )                      = TheoryHelp
+    go (TheoryDelete _ )                   = TheoryHelp
     go (TheoryLemma l)
       | Just prevLemma <- getPrevLemma l   = TheoryProof prevLemma (lastPath prevLemma)
       | otherwise                          = TheorySource RefinedSource 0 0
