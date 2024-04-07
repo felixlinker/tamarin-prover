@@ -71,6 +71,7 @@ module TheoryObject (
   , expandLemma
   , addRestriction
   , addLemma
+  , addLemmaAtIndex
   , modifyLemma
   , addProcess
   , findProcess
@@ -442,6 +443,13 @@ addLemma l thy = do
     guard (isNothing $ lookupLemma (L.get lName l) thy)
     return $ modify thyItems (++ [LemmaItem l]) thy
 
+-- | Add a new lemma at a specific index. Fails, if a lemma with the same name exists.
+addLemmaAtIndex :: Lemma p -> Int -> Theory sig c r p s -> Maybe (Theory sig c r p s)
+addLemmaAtIndex l i thy = do
+    guard (isNothing $ lookupLemma (L.get lName l) thy)
+    return $ modify thyItems (\ls -> (take i ls) ++ [LemmaItem l] ++ (drop i ls)) thy
+
+
 
 -- | Modify an Existing Lemma. Fails, if a lemma with the same name doesn't exists.
 modifyLemma :: Lemma p -> Theory sig c r p s -> Maybe (Theory sig c r p s)
@@ -636,7 +644,7 @@ lookupLemma :: String -> Theory sig c r p s -> Maybe (Lemma p)
 lookupLemma name = find ((name ==) . L.get lName) . theoryLemmas
 
 lookupLemmaIndex :: String -> Theory sig c r p s -> Maybe Int
-lookupLemmaIndex name ti = fmap fst $ listToMaybe $ [(i,l) | (i,l)<-(zip [1..] $ theoryLemmas ti) , (name == L.get lName l) ]
+lookupLemmaIndex name ti = fmap fst $ listToMaybe $ [(i,l) | (i,(LemmaItem l))<-(zip [1..] $ L.get thyItems ti) , (name == L.get lName l) ]
 
 
 -- | Find the case test with the given name.

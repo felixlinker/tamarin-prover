@@ -64,13 +64,13 @@ import           Theory                       (
     Side,
     TheoryItem(LemmaItem),
     System,
-    thyName, diffThyName, removeLemma, modifyLemma, lookupLemmaIndex,
+    thyName, diffThyName, removeLemma, modifyLemma, lookupLemmaIndex, addLemmaAtIndex,
     removeLemmaDiff, removeDiffLemma,
     openTheory, sorryProver, runAutoProver,
     sorryDiffProver, runAutoDiffProver,
     prettyClosedTheory, prettyOpenTheory,
     openDiffTheory,
-    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof
+    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof, formulaToGuarded_, formulaToGuarded
   )
 import           Theory.Proof (
     AutoProver(..), SolutionExtractor(..), Prover, DiffProver,
@@ -186,8 +186,11 @@ editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler Theory
 editLemmaPlaintext idx (TheoryEdit _) (Lemma n pt tq f a lp) = do
     let idx' = withTheory idx $ \ti -> do
             let ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
-                gsys = mkSystem ctxt [] [] f --[LemmaItem (Lemma n pt tq f a lp)] f
+                checkok = formulaToGuarded_ f
+                gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
                 newThy = modifyLemma (Lemma n pt tq f a $ getStartingProof gsys) (tiTheory ti)
+            traceM $ show checkok
+            --let checkok = formulaToGuarded_ f
             case newThy of
                  Nothing -> error "lemma editing failed"
                  (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
@@ -196,10 +199,14 @@ editLemmaPlaintext idx (TheoryEdit _) (Lemma n pt tq f a lp) = do
 editLemmaPlaintext idx (TheoryAdd lemmaName) (Lemma n pt tq f a lp) = do
     let idx' = withTheory idx $ \ti -> do
             let lemmaIndex = case lemmaName of
-                                "<first>" -> Just 0
-                                _ -> lookupLemmaIndex lemmaName (tiTheory ti)
-            traceM $ "index: " ++ show lemmaIndex
-            let newThy = modifyLemma (Lemma n pt tq f a $ skeletonToIncrementalProof lp) (tiTheory ti)
+                                "<first>" -> 0
+                                _ -> fromMaybe (error "index not found") $ lookupLemmaIndex lemmaName (tiTheory ti)
+                ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
+                checkok = formulaToGuarded_ f
+                gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
+            --traceM $ "index: " ++ show lemmaIndex
+            --traceM $ show checkok
+            let newThy = addLemmaAtIndex (Lemma n pt tq f a $ getStartingProof gsys) lemmaIndex (tiTheory ti)
             case newThy of
                  Nothing -> error "lemma editing failed"
                  (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
@@ -632,7 +639,7 @@ postTheoryEditR idx (TheoryDelete l) = do
     lptxt <- getLemmaPlaintext idx (TheoryEdit l)
     traceM lptxt
     idx' <- case parsePlainLemma lptxt of
-                Left err -> error "Parsing failed"  --should throw error
+                Left _ -> error "Parsing failed"  --shouldn't be possible, sorry if you a re debugging it 
                 Right newl -> editLemmaPlaintext idx (TheoryDelete l) newl
 
     withTheory idx' $ \ti -> defaultLayout $ do
@@ -647,7 +654,7 @@ postTheoryEditR idx (TheoryDelete l) = do
 postTheoryEditR idx path = do
     mLemmaText <- lookupPostParam "lemma-text" 
     let newlptxt = T.unpack $ fromMaybe "" mLemmaText
-    traceM $ "prev: " ++ show idx
+    --traceM $ "prev: " ++ show idx
     idx' <- case parsePlainLemma newlptxt of
                 Left err -> error "Parsing failed"  --should throw error
                 Right newl -> editLemmaPlaintext idx path newl
@@ -668,6 +675,15 @@ postTheoryEditR idx path = do
                 [whamlet|<p>Failed to retrieve lemma-text from form data|]
 
 
+
+
+
+-- postTheoryEditR idx path = do
+--     mLemmaText <- lookupPostParam "lemma-text" 
+--     let newlptxt = T.unpack $ fromMaybe "" mLemmaText
+--     renderF <- getUrlRender
+--    
+                    
 
 
 -- postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html
