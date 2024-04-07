@@ -62,15 +62,19 @@ import           Theory                       (
     ClosedDiffTheory,
 
     Side,
+    TheoryItem(LemmaItem),
+    System,
     thyName, diffThyName, removeLemma, modifyLemma, lookupLemmaIndex,
     removeLemmaDiff, removeDiffLemma,
     openTheory, sorryProver, runAutoProver,
     sorryDiffProver, runAutoDiffProver,
     prettyClosedTheory, prettyOpenTheory,
     openDiffTheory,
-    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton
+    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof
   )
-import           Theory.Proof (AutoProver(..), SolutionExtractor(..), Prover, DiffProver)
+import           Theory.Proof (
+    AutoProver(..), SolutionExtractor(..), Prover, DiffProver,
+    Proof, LTree(..), ProofStep(..),  ProofMethod(..))
 import           Text.PrettyPrint.Html
 import           Theory.Constraint.System.Dot
 import           Theory.Constraint.System.JSON  -- for export of constraint system to JSON
@@ -124,8 +128,9 @@ import qualified Control.Monad as T
 import Theory.Text.Parser (parseLemma, parsePlainLemma)
 import Lemma
 import GHC.Conc (retry, runHandlers)
-import OpenTheory (skeletonToIncrementalProof)
+import OpenTheory (skeletonToIncrementalProof, incrementalToSkeletonProof)
 import Web.Types (TheoryPath(TheoryDelete))
+import Prover (mkSystem)
 
 -- Quasi-quotation syntax changed from GHC 6 to 7,
 -- so we need this switch in order to support both
@@ -172,12 +177,17 @@ getLemmaPlaintext nr path = do
     return plaintext
 
 
+getStartingProof ::  System -> IncrementalProof
+getStartingProof gsys = LNode (ProofStep (Sorry Nothing) (Just gsys)) M.empty
+
+
 
 editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler TheoryIdx
-editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt tq f a lp) = do
+editLemmaPlaintext idx (TheoryEdit _) (Lemma n pt tq f a lp) = do
     let idx' = withTheory idx $ \ti -> do
-            --let  (Lemma on opt otq olf oa olp) = maybe (error "Lemma not found") id (lookupLemma lemmaName (tiTheory ti))
-            let newThy = modifyLemma (Lemma n pt tq f a $ skeletonToIncrementalProof lp) (tiTheory ti)
+            let ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
+                gsys = mkSystem ctxt [] [] f --[LemmaItem (Lemma n pt tq f a lp)] f
+                newThy = modifyLemma (Lemma n pt tq f a $ getStartingProof gsys) (tiTheory ti)
             case newThy of
                  Nothing -> error "lemma editing failed"
                  (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
