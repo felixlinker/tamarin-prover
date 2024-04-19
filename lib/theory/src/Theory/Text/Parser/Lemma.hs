@@ -11,6 +11,7 @@ module Theory.Text.Parser.Lemma(
       lemma
       , lemmaAttribute
       , plainLemma
+      , lemmaWithMsig
       , diffLemma
 )
 where
@@ -70,15 +71,18 @@ traceQuantifier = asum
 
 protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
 protoLemma parseFormula workDir = do
+  --traceM "protoLemma called"
   name <- symbol "lemma" *> optional moduloE *> identifier
   mpattr <- try $ lookAhead $ option "" (try $ lookAhead $ char '[' *> manyTill anyChar (char ']'))
   pattr <- if mpattr /= "" then do return ("[" ++ mpattr ++ "]") else return ""
+  pquan <- try $ lookAhead $ option "all-traces" (try $ lookAhead $ colon *> symbol "exists-trace")
   attr <- option [] $ list (lemmaAttribute False workDir)
   quan <- colon *> option AllTraces traceQuantifier
   ptxt <- (try $ lookAhead $ char '"' *> manyTill anyChar (char '"'))
   formula <- doubleQuoted parseFormula
   pskelet <- startProofSkeleton <|> pure (unproven ())
-  return $ skeletonLemma name ("lemma " ++ name ++ pattr ++ ":\n\"" ++ ptxt ++ "\"") attr quan formula pskelet
+  return $ skeletonLemma name ("lemma " ++ name ++ pattr ++ ":\n " ++ pquan ++"\n\"" ++ ptxt ++ "\"") attr quan formula pskelet
+ --  return $ skeletonLemma name ("lemma " ++ name ++ ":\n\"" ++ ptxt ++ "\"") attr quan formula pskelet
 
 
 
@@ -90,8 +94,19 @@ lemma = protoLemma $ standardFormula msgvar nodevar
 plainLemma :: Maybe FilePath -> Parser (Lemma ProofSkeleton)
 plainLemma = protoLemma plainFormula
 
+lemmaWithMsig :: MaudeSig -> Maybe FilePath -> Parser (Lemma ProofSkeleton)
+lemmaWithMsig sig = do
+                    traceM $ show sig
+                    fmap (return sig >>) plainLemma
+
+-- | Parse a lemma using a specific MaudeSignature
+-- plainLemma :: Maybe FilePath -> Parser (Lemma ProofSkeleton)
+-- plainLemma = protoLemma $ plainFormula
+
 -- | Parse a diff lemma.
 diffLemma :: Maybe FilePath -> Parser (DiffLemma DiffProofSkeleton)
-diffLemma workDir = skeletonDiffLemma <$> (symbol "diffLemma" *> identifier)
+diffLemma workDir = do
+                    traceM "diffLemma"
+                    skeletonDiffLemma <$> (symbol "diffLemma" *> identifier)
                               <*> (option [] $ list (lemmaAttribute True workDir))
                               <*> (colon *> (diffProofSkeleton <|> pure (diffUnproven ())))

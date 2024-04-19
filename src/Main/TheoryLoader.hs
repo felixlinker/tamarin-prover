@@ -346,6 +346,7 @@ instance Show TheoryLoadError
 -- | Load an open theory from a string with the given options.
 loadTheory :: Monad m => TheoryLoadOptions -> String -> FilePath -> ExceptT TheoryLoadError m (Either OpenTheory OpenDiffTheory)
 loadTheory thyOpts input inFile = do
+    traceM ("Flags: " ++ show (toParserFlags thyOpts))
     thy <- withExceptT ParserError $ liftEither $ unwrapError $ bimap parse parse thyParser
     traceM ("[Theory " ++ theoryName thy ++ "] Theory loaded")
     return $ addParamsOptions thyOpts thy

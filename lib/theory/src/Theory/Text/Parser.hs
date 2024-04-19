@@ -52,6 +52,7 @@ import Theory.Text.Parser.Signature
 import Theory.Text.Parser.Tactics
 import Theory.Text.Parser.Restriction
 import Theory.Text.Parser.Sapic
+import Debug.Trace
 
 ------------------------------------------------------------------------------
 -- Lexing and parsing theory files and proof methods
@@ -84,8 +85,13 @@ parseOpenDiffTheoryString flags0 = parseString flags0 "<unknown source>" (diffTh
 parseLemma :: String -> Either ParseError (SyntacticLemma ProofSkeleton)
 parseLemma = parseString [] "<unknown source>" (lemma Nothing)
 
-parsePlainLemma :: String -> Either ParseError (Lemma ProofSkeleton)
-parsePlainLemma = parseString [] "<unknown source>" (plainLemma Nothing)
+parsePlainLemma :: MaudeSig -> String -> Either ParseError (Lemma ProofSkeleton)
+parsePlainLemma msig = do
+                            traceM "here"
+                            traceM $ show msig
+                            parseString [] "<unknown source>" (lemmaWithMsig msig Nothing)
+
+
 
 
 ------------------------------------------------------------------------------
@@ -208,6 +214,7 @@ evalformula flags0 (FAnd t1 t2) = (evalformula flags0 t1) && (evalformula flags0
 theory :: Maybe FilePath
        -> Parser OpenTheory
 theory inFile = do
+    --traceM $ "so far " ++ show inFile
     flags0 <- flags <$> getState
     when ("diff" `S.member` flags0) $ modifyStateSig (`mappend` enableDiffMaudeSig) -- Add the diffEnabled flag into the MaudeSig when the diff flag is set on the command line.
     symbol_ "theory"
@@ -224,14 +231,16 @@ theory inFile = do
   where
     addItems :: Maybe FilePath -> OpenTheory -> Parser OpenTheory
     addItems inFile0 thy = asum
-      [ do
-          thyHeuristic <- heuristic False workDir
-          thy' <- liftedAddHeuristic thy $ defaultOracleNames (fromMaybe "" inFile0) thyHeuristic
-          addItems inFile0 thy'
+      [ do thyHeuristic <- heuristic False workDir
+           thy' <- liftedAddHeuristic thy $ defaultOracleNames (fromMaybe "" inFile0) thyHeuristic
+           addItems inFile0 thy'
       , do thy' <- liftedAddTactic thy =<< tactic False
            addItems inFile0 thy'
-      , do thy' <- builtins thy
+      , do 
+           --traceM $ "builtins" ++ show inFile0
+           thy' <- builtins thy
            msig <- sig <$> getState
+           traceM $ show msig
            addItems inFile0 $ set (sigpMaudeSig . thySignature) msig thy'
       , do thy' <- options thy
            addItems inFile0 thy'
@@ -254,11 +263,14 @@ theory inFile = do
       , do test <- caseTest
            thy' <- liftedAddCaseTest thy test
            addItems inFile0 thy'
-      , do accLem <- lemmaAcc workDir
+      , do --traceM $ "accLemma" ++ show inFile0
+           accLem <- lemmaAcc workDir
            let tests = mapMaybe (flip lookupCaseTest $ thy) (get aCaseIdentifiers accLem)
            thy' <- liftedAddAccLemma thy (rewriteAccLemmaOracle inFile0 $ defineCaseTests accLem tests)
            addItems inFile0 thy'
-      , do lem <- lemma workDir
+      , do --traceM $ "lemma" ++ show inFile0
+           lem <- lemma workDir
+           --traceM $ show lem
            thy' <- liftedAddLemma thy (rewriteLemmaOracle inFile0 lem)
            addItems inFile0 thy'
       , do ru <- protoRule
@@ -296,6 +308,7 @@ theory inFile = do
        addItems inFile0 thy
 
     rewriteLemmaOracle inFile' lem =
+      --traceM $ show (get lAttributes lem)
       set lAttributes (map (rwOracleLemHeurAttr inFile') lattrs) lem
       where
         lattrs  = get lAttributes lem
