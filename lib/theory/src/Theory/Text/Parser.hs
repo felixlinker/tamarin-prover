@@ -86,10 +86,7 @@ parseLemma :: String -> Either ParseError (SyntacticLemma ProofSkeleton)
 parseLemma = parseString [] "<unknown source>" (lemma Nothing)
 
 parsePlainLemma :: MaudeSig -> String -> Either ParseError (Lemma ProofSkeleton)
-parsePlainLemma msig = do
-                            traceM "here"
-                            traceM $ show msig
-                            parseString [] "<unknown source>" (lemmaWithMsig msig Nothing)
+parsePlainLemma msig = parseString [] "<unknown source>" (lemmaWithMsig msig Nothing)
 
 
 

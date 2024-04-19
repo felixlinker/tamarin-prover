@@ -95,9 +95,7 @@ plainLemma :: Maybe FilePath -> Parser (Lemma ProofSkeleton)
 plainLemma = protoLemma plainFormula
 
 lemmaWithMsig :: MaudeSig -> Maybe FilePath -> Parser (Lemma ProofSkeleton)
-lemmaWithMsig sig = do
-                    traceM $ show sig
-                    fmap (return sig >>) plainLemma
+lemmaWithMsig s = (return s >>) <$> plainLemma
 
 -- | Parse a lemma using a specific MaudeSignature
 -- plainLemma :: Maybe FilePath -> Parser (Lemma ProofSkeleton)

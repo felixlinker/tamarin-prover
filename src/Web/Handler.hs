@@ -686,12 +686,10 @@ postTheoryEditR idx path = do
     let newlptxt = T.unpack $ fromMaybe "" mLemmaText
     maudeSig <- withTheory idx $ \ti -> do
                     return $ get sigpMaudeSig $ toSignaturePure $ get thySignature (tiTheory ti)    
-    traceM "calling parsePlainLemma"
+    traceM $ show maudeSig
     let parsed = parsePlainLemma maudeSig newlptxt
-    traceM "parse call finished"
-    traceM $ "res= " ++ show parsed
     idx' <- case parsed of
-                Left err -> error "aghg"-- $ show err --should throw error
+                Left err -> error $ show err --should throw error
                 Right newl -> editLemmaPlaintext idx path newl
     --traceM $ show idx'
     renderF <- getUrlRender
