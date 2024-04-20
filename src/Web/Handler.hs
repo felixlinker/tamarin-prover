@@ -183,58 +183,66 @@ getStartingProof ::  System -> IncrementalProof
 getStartingProof gsys = LNode (ProofStep (Sorry Nothing) (Just gsys)) M.empty
 
 
-editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler TheoryIdx
-editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt tq f a lp) = do
+editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler (Either String TheoryIdx)
+editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt _ f a lp) = do
     let idx' = withTheory idx $ \ti -> do
-            let  (Lemma on opt otq olf oa olp) = maybe (error "Lemma not found") id (lookupLemma lemmaName (tiTheory ti))
-            when (elem SourceLemma oa) $ error "Can't edit or remove sources lemmas for now"
-            let ctxt = getProofContext (Lemma n pt otq f a lp) (tiTheory ti)
-                checkok = formulaToGuarded_ f
-                gsys = mkSystem ctxt [] [] f
-                newThy = modifyLemma (Lemma n pt otq f a $ getStartingProof gsys) (tiTheory ti)
-            --traceM $ show checkok
-            case newThy of
-                 Nothing -> error "lemma editing failed"
-                 (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+            let maybeLemma = lookupLemma lemmaName (tiTheory ti)
+            case maybeLemma of
+                Nothing -> return $ Left "Lemma not found"
+                Just (Lemma _ _ otq _ oa _) ->
+                    if SourceLemma `elem` oa 
+                        then return $ Left "Can't edit or remove sources lemmas for now"
+                        else do 
+                            let ctxt = getProofContext (Lemma n pt otq f a lp) (tiTheory ti)
+                                checkok = formulaToGuarded_ f
+                                gsys = mkSystem ctxt [] [] f
+                                newThy = modifyLemma (Lemma n pt otq f a $ getStartingProof gsys) (tiTheory ti)
+                            traceM $ show checkok
+                            case newThy of
+                                 Nothing -> return $ Left "lemma editing failed"
+                                 (Just nthy) -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
     idx'
+
 
 editLemmaPlaintext idx (TheoryAdd lemmaName) (Lemma n pt tq f a lp) = do
     let idx' = withTheory idx $ \ti -> do
-            let lemmaIndex = case lemmaName of
-                                "<first>" -> 0
-                                _ -> fromMaybe (error "index not found") $ lookupLemmaIndex lemmaName (tiTheory ti)
+            let maybelemmaIndex = case lemmaName of
+                                "<first>" -> Just 0
+                                _ -> lookupLemmaIndex lemmaName (tiTheory ti)
                 ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
                 checkok = formulaToGuarded_ f
                 gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
-            --traceM $ "index: " ++ show lemmaIndex
-            --traceM $ show checkok
-            let newThy = addLemmaAtIndex (Lemma n pt tq f a $ getStartingProof gsys) lemmaIndex (tiTheory ti)
-            case newThy of
-                 Nothing -> error "lemma editing failed"
-                 (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+            traceM $ show checkok
+            case maybelemmaIndex of
+                Nothing -> return $ Left "Lemma not found"
+                Just lemmaIndex -> do
+                    let newThy = addLemmaAtIndex (Lemma n pt tq f a $ getStartingProof gsys) lemmaIndex (tiTheory ti)
+                    case newThy of
+                         Nothing -> return $ Left "lemma editing failed"
+                         (Just nthy) -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
     idx'
 
--- editLemmaPlaintext idx (TheoryDelete lemmaName) (Lemma n pt tq f a lp) = do
---     let idx' = withTheory idx $ \ti -> do
---             let newThy = removeLemma lemmaName (tiTheory ti)
---             case newThy of
---                  Nothing -> error "lemma editing failed"
---                  (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
---     idx'
+
+editLemmaPlaintext _ _ _ = return $ Left "called editLemmaPlaintext with weird input"
 
 
-editLemmaPlaintext _ _ _ = error "called editLemmaPlaintext with weird input"
-
-deleteLemma:: Int -> String -> Handler TheoryIdx
+--deleteLemma:: Int -> String -> Handler TheoryIdx
+deleteLemma :: Int -> String -> Handler (Either String TheoryIdx)
 deleteLemma idx name = do
-    let idx' = withTheory idx $ \ti -> do
-            let  (Lemma _ _ _ _ oa _) = maybe (error "Lemma not found") id (lookupLemma name (tiTheory ti))
-            when (elem SourceLemma oa) $ error "Can't edit or remove sources lemmas for now"
-            let newThy = removeLemma name (tiTheory ti)
-            case newThy of
-                 Nothing -> error "lemma editing failed"
-                 (Just nthy) -> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
-    idx'
+    let result = withTheory idx $ \ti -> do
+            let maybeLemma = lookupLemma name (tiTheory ti)
+            case maybeLemma of
+                Nothing -> return $ Left "Lemma not found"
+                Just (Lemma _ _ _ _ oa _) -> do
+                    if SourceLemma `elem` oa 
+                        then return $ Left "Can't edit or remove sources lemmas for now"
+                        else case removeLemma name (tiTheory ti) of
+                                        Nothing -> return $ Left "Lemma editing failed"
+                                        Just nthy -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+    result
+
+
+
 
 -- | Store a theory, return index.
 replaceTheory :: Maybe TheoryInfo     -- ^ Index of parent theory
@@ -651,61 +659,45 @@ postTheoryEditR idx (TheoryDelete l) = do
     renderF <- getUrlRender
     lptxt <- getLemmaPlaintext idx (TheoryEdit l)
     idx' <- deleteLemma idx l
-    withTheory idx' $ \ti -> defaultLayout $ do
-            --traceM $ show (tiTheory ti)
+    case idx' of
+        Right i -> withTheory i $ \ti -> defaultLayout $ do
             overview <- liftIO $ overviewTpl renderF ti TheoryHelp lptxt
             setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
             overview
-
-
--- postTheoryEditR idx path = do
---     mLemmaText <- lookupPostParam "lemma-text" 
---     let newlptxt = T.unpack $ fromMaybe "" mLemmaText
---     idx' <- case parsePlainLemma newlptxt of
---                 Left err -> error $ show err --should throw error
---                 Right newl -> editLemmaPlaintext idx path newl
---     traceM $ show idx'
---     renderF <- getUrlRender
---     lptxt <- getLemmaPlaintext idx' path
---     withTheory idx' $ \ti -> do
---         case mLemmaText of
---             Just _ -> do
---                 defaultLayout $ do
---                     overview <- liftIO $ overviewTpl renderF ti path lptxt
---                     --setHeader $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
---                     setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
---                     --setMessage $ toHtml lemmaText
---                     overview
---             Nothing -> defaultLayout $ do
---                 setTitle "Error"
---                 [whamlet|<p>Failed to retrieve lemma-text from form data|]
+        Left  e -> withTheory idx $ \ti -> defaultLayout $ do
+            overview <- liftIO $ overviewTpl renderF ti (TheoryDelete l) lptxt
+            setMessage $ toHtml e
+            overview
 
 
 postTheoryEditR idx path = do
     mLemmaText <- lookupPostParam "lemma-text" 
     let newlptxt = T.unpack $ fromMaybe "" mLemmaText
     maudeSig <- withTheory idx $ \ti -> do
-                    return $ get sigpMaudeSig $ toSignaturePure $ get thySignature (tiTheory ti)    
-    traceM $ show maudeSig
+                    return $ get sigpMaudeSig $ toSignaturePure $ get thySignature (tiTheory ti)
     let parsed = parsePlainLemma maudeSig newlptxt
     idx' <- case parsed of
-                Left err -> error $ show err --should throw error
+                Left err -> return $ Left $ show err 
                 Right newl -> editLemmaPlaintext idx path newl
     --traceM $ show idx'
     renderF <- getUrlRender
-    lptxt <- getLemmaPlaintext idx' path
-    withTheory idx' $ \ti -> do
-        case mLemmaText of
-            Just _ -> do
-                defaultLayout $ do
-                    overview <- liftIO $ overviewTpl renderF ti path lptxt
-                    --setHeader $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
-                    setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
-                    --setMessage $ toHtml lemmaText
-                    overview
-            Nothing -> defaultLayout $ do
-                setTitle "Error"
-                [whamlet|<p>Failed to retrieve lemma-text from form data|]
+    lptxt <- getLemmaPlaintext idx path
+    case idx' of
+        Right i -> withTheory i $ \ti -> do
+            case mLemmaText of
+                Just _ -> do
+                    defaultLayout $ do
+                        overview <- liftIO $ overviewTpl renderF ti path lptxt
+                        setTitle $ toHtml $ "Edited " ++ get thyName (tiTheory ti)
+                        overview
+                Nothing -> defaultLayout $ do
+                    setTitle "Error"
+                    [whamlet|<p>Failed to retrieve lemma-text from form data|]
+        Left e -> withTheory idx $ \ti -> defaultLayout $ do
+            overview <- liftIO $ overviewTpl renderF ti path lptxt
+            setMessage $ toHtml e
+            overview
+
 
 -- | Show overview over diff theory (framed layout).
 getOverviewDiffR :: TheoryIdx -> DiffTheoryPath -> Handler Html
