@@ -288,21 +288,25 @@ lemmaIndex renderUrl tidx l =
         (kwLemma <-> prettyLemmaName l <> colon)
 
 
-        <-> (linkToPath renderUrl lemmaDelete ["del-link"] $ text "🗑")
+        -- <-> (linkToPath renderUrl lemmaDelete ["del-link"] $ text "🗑")
         $-$
         nest 2 ( sep [ prettyTraceQuantifier $ get lTraceQuantifier l
                      , doubleQuotes $ prettyLNFormula $ get lFormula l
                      ] )
 
         $-$
-        (linkToPath renderUrl lemmaEdit ["edit-link"] $ text "edit lemma") --prettyLNFormula $ get lFormula l
+        (linkToPath renderUrl lemmaEdit ["edit"] $ text "edit lemma") --prettyLNFormula $ get lFormula l
+        <->
+        text " or " 
+        <->
+        (linkToPath renderUrl lemmaDelete ["delete"] $ text "delete lemma")
 
     ) $-$
     proofIndex renderUrl mkRoute annPrf
     $-$
     text ""
     $-$
-    (linkToPath renderUrl lemmaAdd ["del-link"] $ text "+")
+    (linkToPath renderUrl lemmaAdd ["add"] $ text "add lemma")
   where
 
     lemmaEdit = TheoryPathMR tidx $ TheoryEdit $ get lName l
@@ -390,7 +394,7 @@ theoryIndex renderUrl tidx thy = foldr1 ($-$)
     , text ""
     , reqCasesLink "Refined sources " RefinedSource
     , text ""
-    , (linkToPath renderUrl (TheoryPathMR tidx $ TheoryAdd $ "<first>") ["del-link"] $ text "+")
+    , (linkToPath renderUrl (TheoryPathMR tidx $ TheoryAdd $ "<first>") ["add"] $ text "add lemma")
     , text ""
     , vcat $ intersperse (text "") lemmas
     , text ""
@@ -1027,9 +1031,10 @@ htmlThyPath renderUrl info path lPlaintext =
              <form method="post" action=#{p}>
                 <div contenteditable="true">
                     <label for="lemmaTextArea">LemmaText
-                    <textarea name="lemma-text" id="lemmaTextArea">#{lPlaintext}
+                    <textarea name="lemma-text" id="lemmaTextArea" rows=#{textHeight}>#{lPlaintext}
                 <button type="submit">Submit
                 |] renderUrl
+        where textHeight = 2 + (length $ filter (=='\n') lPlaintext)
 
     -- go (TheoryEdit name) = do
     --     let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
@@ -1572,7 +1577,7 @@ titleThyPath thy path = go path
     go TheoryTactic                     = "Tactics"
     go (TheorySource RawSource _ _)     = "Raw sources"
     go (TheorySource RefinedSource _ _) = "Refined sources"
-    go (TheoryEdit l)                   = "Edit Lemma: " ++ l --Alice's maybe wrong
+    go (TheoryEdit l)                   = "Edit Lemma: " ++ l
     go (TheoryAdd _)                    = "Add new Lemma"
     go (TheoryDelete l)                 = "Delete " ++ l
     go (TheoryLemma l)                  = "Lemma: " ++ l

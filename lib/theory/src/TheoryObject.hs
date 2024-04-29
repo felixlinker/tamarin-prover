@@ -72,7 +72,7 @@ module TheoryObject (
   , addRestriction
   , addLemma
   , addLemmaAtIndex
-  , modifyLemma
+--  , modifyLemma
   , addProcess
   , findProcess
   , addProcessDef
@@ -451,24 +451,24 @@ addLemmaAtIndex l i thy = do
 
 
 
--- | Modify an Existing Lemma. Fails, if a lemma with the same name doesn't exists.
-modifyLemma :: Lemma p -> Theory sig c r p s -> Maybe (Theory sig c r p s)
-modifyLemma ml thy = do
-    _ <- lookupLemma (L.get lName ml) thy
-    return $ modify thyItems (concatMap fItem) thy
-  where
-    fItem = foldTheoryItem 
-                (return . RuleItem)
-                (return . RestrictionItem)
-                check
-                (return . TextItem)
-                (return . ConfigBlockItem)
-                (return . PredicateItem)
-                (return . MacroItem)
-                (return . TranslationItem)
-    check l = case (L.get lName l) of 
-                lname | lname == L.get lName ml -> return (LemmaItem ml)
-                      | otherwise -> return (LemmaItem l)
+-- -- | Modify an Existing Lemma. Fails, if a lemma with the same name doesn't exists.
+-- modifyLemma :: Lemma p -> Theory sig c r p s -> Maybe (Theory sig c r p s)
+-- modifyLemma ml thy = do
+--     _ <- lookupLemma (L.get lName ml) thy
+--     return $ modify thyItems (concatMap fItem) thy
+--   where
+--     fItem = foldTheoryItem 
+--                 (return . RuleItem)
+--                 (return . RestrictionItem)
+--                 check
+--                 (return . TextItem)
+--                 (return . ConfigBlockItem)
+--                 (return . PredicateItem)
+--                 (return . MacroItem)
+--                 (return . TranslationItem)
+--     check l = case (L.get lName l) of 
+--                 lname | lname == L.get lName ml -> return (LemmaItem ml)
+--                       | otherwise -> return (LemmaItem l)
 
 addProcess :: PlainProcess -> Theory sig c r p TranslationElement -> Theory sig c r p TranslationElement
 addProcess l = modify thyItems (++ [TranslationItem (ProcessItem l)])
