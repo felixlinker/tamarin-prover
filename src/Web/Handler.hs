@@ -63,7 +63,7 @@ import           Theory                       (
     Side,
     TheoryItem(LemmaItem),
     System,
-    thyName, thySignature, diffThyName, removeLemma, lookupLemmaIndex, addLemmaAtIndex,
+    thyName, thySignature, diffThyName, removeLemma, lookupLemmaIndex, addLemmaAtIndex, modifyLemma, 
     removeLemmaDiff, removeDiffLemma,
     openTheory, sorryProver, runAutoProver,
     sorryDiffProver, runAutoDiffProver,
@@ -83,7 +83,6 @@ import           Web.Instances                ()
 import           Web.Settings
 import           Web.Theory
 import           Web.Types
-
 import           Data.List (isPrefixOf, tails, findIndex)
 
 import           Yesod.Core
@@ -192,10 +191,25 @@ deleteLemma idx name = do
                 Nothing -> return $ Left "Lemma not found"
                 Just (Lemma _ _ _ _ oa _) -> do
                     if | SourceLemma `elem` oa -> return $ Left "Can't edit or remove sources lemmas for now"
-                       | ReuseLemma `elem` oa -> return $ Left "TODO"
-                       | otherwise -> case removeLemma name (tiTheory ti) of
+                       | ReuseLemma `elem` oa -> case modifyLemma (lemmafunc ti) (tiTheory ti) of
+                                                        Nothing -> return $ Left "Lemma editing failed"
+                                                        Just nthy -> do
+                                                                        nidx <- replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+                                                                        withTheory nidx $ \ti' -> normalcase ti'
+
+                       | otherwise -> normalcase ti
+
+            where normalcase ti = case removeLemma name (tiTheory ti) of
                                         Nothing -> return $ Left "Lemma editing failed"
-                                        Just nthy -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+                                        Just nthy -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx 
+                  lemmafunc ti (Lemma n pt tq f a lp) = 
+                                        let curr_idx = fromMaybe (-1) (lookupLemmaIndex name (tiTheory ti))
+                                            l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
+                                        in if l_idx > curr_idx
+                                            then case lp of
+                                                    LNode (ProofStep (Sorry Nothing) _) _  -> Lemma n pt tq f a lp
+                                                    _ -> Lemma n pt InvalidatedTrace f a lp 
+                                            else Lemma n pt tq f a lp
     result
 
 -- adds a new Lemma in a theory at an index

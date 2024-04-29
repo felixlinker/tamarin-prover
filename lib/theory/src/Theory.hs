@@ -137,7 +137,7 @@ module Theory (
   , addRestriction
   , addLemma
   , addLemmaAtIndex
---  , modifyLemma
+  , modifyLemma
   , addAccLemma
   , addCaseTest
   , addRestrictionDiff
@@ -285,7 +285,6 @@ module Theory (
 import           Prelude                             hiding (id, (.))
 
 --import           GHC.Generics                        (Generic)
-
 -- import           Data.Typeable
 --import           Data.Binary
 --import           Data.List

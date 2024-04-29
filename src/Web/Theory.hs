@@ -300,6 +300,8 @@ lemmaIndex renderUrl tidx l =
         text " or " 
         <->
         (linkToPath renderUrl lemmaDelete ["delete"] $ text "delete lemma")
+        -- <->
+        -- (text $ " and tq: " ++ (show (get lTraceQuantifier l)))
 
     ) $-$
     proofIndex renderUrl mkRoute annPrf
@@ -2175,13 +2177,14 @@ annotateLemmaProof lem =
         incomplete = if isNothing (psInfo step) then [IncompleteProof] else []
 
     interpret status = case (get lTraceQuantifier lem, status) of
-      (_,           IncompleteProof)   -> Unmarked
-      (_,           UndeterminedProof) -> Unmarked
-      (_,           UnfinishableProof) -> Yellow
-      (AllTraces,   TraceFound)        -> Red
-      (AllTraces,   CompleteProof)     -> Green
-      (ExistsTrace, TraceFound)        -> Green
-      (ExistsTrace, CompleteProof)     -> Red
+      (_,                IncompleteProof)   -> Unmarked
+      (_,                UndeterminedProof) -> Unmarked
+      (_,                UnfinishableProof) -> Yellow
+      (InvalidatedTrace, _)                 -> Yellow
+      (AllTraces,        TraceFound)        -> Red
+      (AllTraces,        CompleteProof)     -> Green
+      (ExistsTrace,      TraceFound)        -> Green
+      (ExistsTrace,      CompleteProof)     -> Red
 
 -- | Annotate a proof for pretty printing.
 -- The boolean flag indicates that the given proof step's children
