@@ -85,6 +85,7 @@ parseOpenDiffTheoryString flags0 = parseString flags0 "<unknown source>" (diffTh
 parseLemma :: String -> Either ParseError (SyntacticLemma ProofSkeleton)
 parseLemma = parseString [] "<unknown source>" (lemma Nothing)
 
+-- | Parse a lemma with a given signature, for Lemma editing (signature is for when Lemma uses functions defined in builtins)
 parsePlainLemma :: MaudeSig -> String -> Either ParseError (Lemma ProofSkeleton)
 parsePlainLemma msig = parseStringWState (mkStateSig msig) "<unknown source>" (lemmaWithMsig msig Nothing)
 
@@ -211,7 +212,6 @@ evalformula flags0 (FAnd t1 t2) = (evalformula flags0 t1) && (evalformula flags0
 theory :: Maybe FilePath
        -> Parser OpenTheory
 theory inFile = do
-    --traceM $ "so far " ++ show inFile
     flags0 <- flags <$> getState
     when ("diff" `S.member` flags0) $ modifyStateSig (`mappend` enableDiffMaudeSig) -- Add the diffEnabled flag into the MaudeSig when the diff flag is set on the command line.
     symbol_ "theory"
@@ -233,11 +233,8 @@ theory inFile = do
            addItems inFile0 thy'
       , do thy' <- liftedAddTactic thy =<< tactic False
            addItems inFile0 thy'
-      , do 
-           --traceM $ "builtins" ++ show inFile0
-           thy' <- builtins thy
+      , do thy' <- builtins thy
            msig <- sig <$> getState
-           traceM $ show msig
            addItems inFile0 $ set (sigpMaudeSig . thySignature) msig thy'
       , do thy' <- options thy
            addItems inFile0 thy'
@@ -248,8 +245,6 @@ theory inFile = do
       , do equations
            msig <- sig <$> getState
            addItems inFile0 $ set (sigpMaudeSig . thySignature) msig thy
---      , do thy' <- foldM liftedAddProtoRule thy =<< transferProto
---           addItems flags thy'
       , do thy' <- liftedAddMacros thy =<< macros
            addItems inFile0 thy'
       , do thy' <- liftedAddRestriction thy =<< restriction msgvar nodevar
@@ -260,20 +255,15 @@ theory inFile = do
       , do test <- caseTest
            thy' <- liftedAddCaseTest thy test
            addItems inFile0 thy'
-      , do --traceM $ "accLemma" ++ show inFile0
-           accLem <- lemmaAcc workDir
+      , do accLem <- lemmaAcc workDir
            let tests = mapMaybe (flip lookupCaseTest $ thy) (get aCaseIdentifiers accLem)
            thy' <- liftedAddAccLemma thy (rewriteAccLemmaOracle inFile0 $ defineCaseTests accLem tests)
            addItems inFile0 thy'
-      , do --traceM $ "lemma" ++ show inFile0
-           lem <- lemma workDir
-           --traceM $ show lem
+      , do lem <- lemma workDir
            thy' <- liftedAddLemma thy (rewriteLemmaOracle inFile0 lem)
            addItems inFile0 thy'
       , do ru <- protoRule
            thy' <- liftedAddProtoRule thy ru
-           -- thy'' <- foldM liftedAddRestriction thy' $
-           --  map (Restriction "name") [get (preRestriction . rInfo) ru]
            addItems inFile0 thy'
       , do r <- intrRule
            addItems inFile0 (addIntrRuleACs [r] thy)

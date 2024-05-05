@@ -1032,7 +1032,7 @@ htmlThyPath renderUrl info path lPlaintext =
         [hamlet|
              <form method="post" action=#{p}>
                 <div contenteditable="true">
-                    <label for="lemmaTextArea">LemmaText
+                    <label for="lemmaTextArea"> Edit Lemma #{name}
                     <textarea name="lemma-text" id="lemmaTextArea" rows=#{textHeight}>#{lPlaintext}
                 <button type="submit">Submit
                 |] renderUrl

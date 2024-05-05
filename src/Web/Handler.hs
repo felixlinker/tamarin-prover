@@ -673,7 +673,16 @@ postTheoryEditR idx (TheoryDelete l) = do
         Right i -> redirect (OverviewR i TheoryHelp)
         Left  e -> do setMessage $ toHtml e
                       redirect (OverviewR idx (TheoryDelete l))
-
+-- -- | Show overview over theory (framed layout).
+-- getOverviewR :: TheoryIdx -> TheoryPath -> Handler Html
+-- getOverviewR idx path = withTheory idx ( \ti -> do
+--   renderF <- getUrlRender
+--   lptxt <- getLemmaPlaintext idx path
+--   --traceM lPlaintext
+--   defaultLayout $ do
+--     overview <- liftIO $ overviewTpl renderF ti path lptxt
+--     setTitle (toHtml $ "Theory: " ++ get thyName (tiTheory ti))
+--     overview )
 
 postTheoryEditR idx path = do
     mLemmaText <- lookupPostParam "lemma-text" 
@@ -690,8 +699,18 @@ postTheoryEditR idx path = do
                         Nothing -> defaultLayout $ do
                             setTitle "Error"
                             [whamlet|<p>Failed to retrieve lemma-text from form data|]
-        Left e -> do setMessage $ toHtml e
-                     redirect (OverviewR idx path)
+        Left e -> withTheory idx $ \ti -> do
+                    renderF <- getUrlRender
+                    let title = titleThyPath (tiTheory ti) path
+                    defaultLayout $ do
+                      overview <- liftIO $ overviewTpl renderF ti path newlptxt
+                     -- setTitle $ toHtml $ "Theory: " ++ get thyName (tiTheory ti)
+                      setTitle $ toHtml title
+                      setMessage $ toHtml e
+                      overview
+
+        -- do setMessage $ toHtml e
+        --              redirect (OverviewR idx path)
 
 
 -- | Show overview over diff theory (framed layout).
@@ -759,7 +778,6 @@ getTheoryPathMR :: TheoryIdx
                 -> TheoryPath
                 -> Handler RepJson
 getTheoryPathMR idx path = do
-    traceM "calles getTheoryPathMR"
     case path of
         (TheoryDelete l) -> do 
             --postTheoryEditR idx path
