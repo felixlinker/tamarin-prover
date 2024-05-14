@@ -54,6 +54,8 @@ addRightLemma lem =
 toSystemTraceQuantifier :: TraceQuantifier -> SystemTraceQuantifier
 toSystemTraceQuantifier AllTraces   = ExistsNoTrace
 toSystemTraceQuantifier ExistsTrace = ExistsSomeTrace
+toSystemTraceQuantifier (InvalidatedTrace "all-traces") = ExistsNoTrace
+toSystemTraceQuantifier (InvalidatedTrace "exists-trace") = ExistsSomeTrace
 
 -- | True iff the lemma can be used as a source lemma.
 isSourceLemma :: Lemma p -> Bool
@@ -164,6 +166,6 @@ prettyDiffLemma ppPrf lem =
 prettyTraceQuantifier :: Document d => TraceQuantifier -> d
 prettyTraceQuantifier ExistsTrace = text "exists-trace"
 prettyTraceQuantifier AllTraces   = text "all-traces"
-prettyTraceQuantifier InvalidatedTrace = text "invalidated-trace"
+prettyTraceQuantifier (InvalidatedTrace s) = text s
 
 -- FIXME: Sort instances into the right files

@@ -208,7 +208,10 @@ deleteLemma idx name = do
                                         in if l_idx > curr_idx
                                             then case lp of
                                                     LNode (ProofStep (Sorry Nothing) _) _  -> Lemma n pt tq f a lp
-                                                    _ -> Lemma n pt InvalidatedTrace f a lp 
+                                                    _ -> case tq of
+                                                                InvalidatedTrace s -> Lemma n pt (InvalidatedTrace s) f a lp 
+                                                                AllTraces -> Lemma n pt (InvalidatedTrace "all-traces") f a lp 
+                                                                ExistsTrace -> Lemma n pt (InvalidatedTrace "exists-trace") f a lp 
                                             else Lemma n pt tq f a lp
     result
 
@@ -232,6 +235,7 @@ addLemma idx maybelemmaIndex (Lemma n pt tq f a lp) = do
 
 editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler (Either String TheoryIdx)
 editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt tq f a lp) = do
+    traceM $ show (Lemma n pt tq f a lp) 
     maybelemmaIndex <- withTheory idx $ \ti -> do
                            return $ (\x -> x - 1) <$> lookupLemmaIndex lemmaName (tiTheory ti)
     case formulaToGuarded f of

@@ -1035,7 +1035,29 @@ htmlThyPath renderUrl info path lPlaintext =
                     <label for="lemmaTextArea"> Edit Lemma #{name}
                     <textarea name="lemma-text" id="lemmaTextArea" rows=#{textHeight}>#{lPlaintext}
                 <button type="submit">Submit
-                |] renderUrl
+                <p>
+                <h3> Introduction to Lemma Edit:
+                <noscript>
+                  <div class="warning">
+                    Warning: JavaScript must be enabled for the
+                    <span class="tamarin">Tamarin</span>
+                    prover GUI to function properly.
+                <p>
+                  <ul>
+                    <li>
+                     Modifying the lemma in the box above and clicking the submit button will attempt to modify the Lemma in the current theory.
+                    <li>
+                     Failures in parsing the Lemma or verifying its well-formedness will result in an Error, and the lemma will NOT be modified.
+                     However, your changes will be kept in this page until you leave this right panel.
+                    <li>
+                     Editing a Lemma will NOT modify the file it was loaded from.
+                    <li>
+                     Clicking on the Download button will download the modified version of the theory (so with the modified lemmas).
+                    <li>
+                     Modifying a Reuse Lemma will invalidate all subsequent proofs.
+                    <li>
+                     Modifying a Sources Lemma has not yet been implemented and will result in an error.
+                  |] renderUrl
         where textHeight = 2 + (length $ filter (=='\n') lPlaintext)
 
     -- go (TheoryEdit name) = do
@@ -1056,7 +1078,26 @@ htmlThyPath renderUrl info path lPlaintext =
         <p> Do you want to delete lemma #{name}?
         <form method="post" action=#{p}>
             <button type="submit">Yes
-            |] renderUrl
+          <p>
+          <h3> Introduction to Lemma Delete:
+          <noscript>
+            <div class="warning">
+              Warning: JavaScript must be enabled for the
+              <span class="tamarin">Tamarin</span>
+              prover GUI to function properly.
+          <p>
+            <ul>
+              <li>
+               Clicking on the button above will delete the lemma from the loaded theory.
+              <li>
+               Deleting a Lemma will NOT modify the file it was loaded from.
+              <li>
+               Clicking on the Download button will download the modified version of the theory (so without deleted lemmas)
+              <li>
+               Deleting a reuse Lemma will invalidate all subsequent proofs
+              <li>
+               Deleting a Source Lemma has not yet been implemented and will result in an error
+                |] renderUrl
 
     go (TheoryAdd name)  = do
         let p = "../../edit/add/" ++ name
@@ -1066,7 +1107,25 @@ htmlThyPath renderUrl info path lPlaintext =
                     <label for="lemmaTextArea">LemmaText
                     <textarea name="lemma-text" id="lemmaTextArea">#{lPlaintext}
                 <button type="submit">Submit
-                |] renderUrl
+              <p>
+              <h3> Introduction to Adding Lemmas:
+              <noscript>
+                <div class="warning">
+                  Warning: JavaScript must be enabled for the
+                  <span class="tamarin">Tamarin</span>
+                  prover GUI to function properly.
+              <p>
+                <ul>
+                  <li>
+                   Adds the lemma in the current position in the Theory.
+                  <li>
+                   Adding a Lemma will NOT modify the loaded source file.
+                  <li>
+                   Clicking on the Download button will download the modified version of the theory (so with the added lemmas)
+                  <li>
+                   Will throw an error if a Lemma with the same name exists, the parsing fails or the lemma isn't well-formed.
+                   |] renderUrl
+
 
     go TheoryHelp              = do
       [hamlet|
@@ -2180,11 +2239,11 @@ annotateLemmaProof lem =
       (_,                IncompleteProof)   -> Unmarked
       (_,                UndeterminedProof) -> Unmarked
       (_,                UnfinishableProof) -> Yellow
-      (InvalidatedTrace, _)                 -> Yellow
       (AllTraces,        TraceFound)        -> Red
       (AllTraces,        CompleteProof)     -> Green
       (ExistsTrace,      TraceFound)        -> Green
       (ExistsTrace,      CompleteProof)     -> Red
+      ((InvalidatedTrace _) ,_ )            -> Yellow
 
 -- | Annotate a proof for pretty printing.
 -- The boolean flag indicates that the given proof step's children

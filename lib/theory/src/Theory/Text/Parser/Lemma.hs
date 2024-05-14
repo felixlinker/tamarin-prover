@@ -59,32 +59,46 @@ traceQuantifier = asum
   , symbol "exists-trace"  *> pure ExistsTrace
   ]
 
--- protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
--- protoLemma parseFormula workDir = skeletonLemma <$> (symbol "lemma" *> optional moduloE *> identifier)
---                       <*> (try $ lookAhead $ manyTill (between (char '"') (char '"') (many anyChar)))
---                       -- <*> (try $ lookAhead $ manyTill anyChar (char '"'))
---                       <*> (option [] $ list (lemmaAttribute False workDir))
---                       <*> (colon *> option AllTraces traceQuantifier)
---                       <*> doubleQuoted parseFormula
---                       <*> (startProofSkeleton <|> pure (unproven ()))
 
+
+-- protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
+-- protoLemma parseFormula workDir = do
+--   name <- symbol "lemma" *> optional moduloE *> identifier
+--   attr <- option [] $ list (lemmaAttribute False workDir)
+--   quan <- colon *> option AllTraces traceQuantifier
+--   formula <- doubleQuoted parseFormula
+--   pskelet <- startProofSkeleton <|> pure (unproven ())
+--   return $ skeletonLemma name "<empty>" attr quan formula pskelet
+--
 
 protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
-protoLemma parseFormula workDir = do
+protoLemma parseFormula workDir = try $ do
+  start <- getInput
   name <- symbol "lemma" *> optional moduloE *> identifier
-  mpattr <- try $ lookAhead $ option "" (try $ lookAhead $ char '[' *> manyTill anyChar (char ']'))
-  pattr <- if mpattr /= "" then do return ("[" ++ mpattr ++ "]") else return ""
-  pquan <- try $ lookAhead $ option "all-traces" (try $ lookAhead $ colon *> symbol "exists-trace")
   attr <- option [] $ list (lemmaAttribute False workDir)
   quan <- colon *> option AllTraces traceQuantifier
- -- ptxt <- (try $ lookAhead $ char '"' *> manyTill anyChar (char '"'))
-  ptxt <- try $ lookAhead $ doubleQuoted $ many
-            ((option "" (try (symbol "//" *> manyTill anyChar (char '\n'))) *> (noneOf "\"")) <|>
-             (option "" (try (symbol "/*" *> manyTill (noneOf "*") (try $ lookAhead $ symbol "*/"))) *> (noneOf "\"")) 
-             ) -- <|>(noneOf "\""))
   formula <- doubleQuoted parseFormula
   pskelet <- startProofSkeleton <|> pure (unproven ())
-  return $ skeletonLemma name ("lemma " ++ name ++ pattr ++ ":\n " ++ pquan ++"\n\"" ++ ptxt ++ "\"") attr quan formula pskelet
+  end <- getInput
+  let inputString = take (length start - length end) start
+  return $ skeletonLemma name inputString attr quan formula pskelet
+
+-- protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
+-- protoLemma parseFormula workDir = do
+--   name <- symbol "lemma" *> optional moduloE *> identifier
+--   mpattr <- try $ lookAhead $ option "" (try $ lookAhead $ char '[' *> manyTill anyChar (char ']'))
+--   pattr <- if mpattr /= "" then do return ("[" ++ mpattr ++ "]") else return ""
+--   pquan <- try $ lookAhead $ option "all-traces" (try $ lookAhead $ colon *> symbol "exists-trace")
+--   attr <- option [] $ list (lemmaAttribute False workDir)
+--   quan <- colon *> option AllTraces traceQuantifier
+--  -- ptxt <- (try $ lookAhead $ char '"' *> manyTill anyChar (char '"'))
+--   ptxt <- try $ lookAhead $ doubleQuoted $ many
+--             ((option "" (try (symbol "//" *> manyTill anyChar (char '\n'))) *> (noneOf "\"")) <|>
+--              (option "" (try (symbol "/*" *> manyTill (noneOf "*") (try $ lookAhead $ symbol "*/"))) *> (noneOf "\"")) 
+--              ) -- <|>(noneOf "\""))
+--   formula <- doubleQuoted parseFormula
+--   pskelet <- startProofSkeleton <|> pure (unproven ())
+--   return $ skeletonLemma name ("lemma " ++ name ++ pattr ++ ":\n " ++ pquan ++"\n\"" ++ ptxt ++ "\"") attr quan formula pskelet
 
 
 
