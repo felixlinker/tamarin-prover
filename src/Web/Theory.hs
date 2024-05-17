@@ -2225,13 +2225,15 @@ annotateLemmaProof :: Lemma IncrementalProof
                    -> Proof (Maybe System, ProofStepColor)
 annotateLemmaProof lem =
 --     error (show (get lProof lem) ++ " - " ++ show prf)
-    mapProofInfo (second interpret) prf
+    mapProofInfo (second (interpret)) prf
   where
     prf = annotateProof annotate $ get lProof lem
-    annotate step cs =
-        ( psInfo step
-        , mconcat $ proofStepStatus step : incomplete ++ map snd cs
-        )
+    annotate step cs  =
+        case get lProof lem of
+           LNode (ProofStep  Invalidated    _)  _ -> (psInfo step, InvalidatedProof)
+           _                                      -> ( psInfo step
+                                                      , mconcat $ proofStepStatus step : incomplete ++ map snd cs
+                                                     )
       where
         incomplete = if isNothing (psInfo step) then [IncompleteProof] else []
 
@@ -2239,11 +2241,11 @@ annotateLemmaProof lem =
       (_,                IncompleteProof)   -> Unmarked
       (_,                UndeterminedProof) -> Unmarked
       (_,                UnfinishableProof) -> Yellow
+      (_,                InvalidatedProof)  -> Yellow
       (AllTraces,        TraceFound)        -> Red
       (AllTraces,        CompleteProof)     -> Green
       (ExistsTrace,      TraceFound)        -> Green
       (ExistsTrace,      CompleteProof)     -> Red
-      ((InvalidatedTrace _) ,_ )            -> Yellow
 
 -- | Annotate a proof for pretty printing.
 -- The boolean flag indicates that the given proof step's children

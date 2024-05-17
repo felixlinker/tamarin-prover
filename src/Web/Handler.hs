@@ -207,11 +207,9 @@ deleteLemma idx name = do
                                             l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
                                         in if l_idx > curr_idx
                                             then case lp of
-                                                    LNode (ProofStep (Sorry Nothing) _) _  -> Lemma n pt tq f a lp
-                                                    _ -> case tq of
-                                                                InvalidatedTrace s -> Lemma n pt (InvalidatedTrace s) f a lp 
-                                                                AllTraces -> Lemma n pt (InvalidatedTrace "all-traces") f a lp 
-                                                                ExistsTrace -> Lemma n pt (InvalidatedTrace "exists-trace") f a lp 
+                                                LNode (ProofStep (Sorry Nothing) _)  _  -> Lemma n pt tq f a lp
+                                                LNode (ProofStep  Invalidated    _)  _  -> Lemma n pt tq f a lp
+                                                LNode (ProofStep  _           info)  _  -> Lemma n pt tq f a (LNode (ProofStep Invalidated info) (M.singleton "" lp))
                                             else Lemma n pt tq f a lp
     result
 

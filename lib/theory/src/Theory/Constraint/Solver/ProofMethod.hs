@@ -195,6 +195,7 @@ data ProofMethod =
   | Induction                            -- ^ Use inductive strengthening on
                                          -- the single formula constraint in
                                          -- the system.
+  | Invalidated                          -- ^ mark as invalidated as a result of editing other lemmas
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | Sound transformations of diff sequents.
@@ -1195,6 +1196,7 @@ smartDiffRanking ctxt sys =
 -- | Pretty-print a proof method.
 prettyProofMethod :: HighlightDocument d => ProofMethod -> d
 prettyProofMethod method = case method of
+    Invalidated          -> lineComment_ "proof may have been invalidated by editing a reuse lemma above"
     Solved               -> keyword_ "SOLVED" <-> lineComment_ "trace found"
     Unfinishable         -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm"
     Induction            -> keyword_ "induction"

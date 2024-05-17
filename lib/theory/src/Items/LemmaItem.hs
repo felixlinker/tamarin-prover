@@ -40,7 +40,7 @@ data LemmaAttribute =
        deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | A 'TraceQuantifier' stating whether we check satisfiability of validity.
-data TraceQuantifier = ExistsTrace | AllTraces | InvalidatedTrace String
+data TraceQuantifier = ExistsTrace | AllTraces
        deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | A lemma describes a property that holds in the context of a theory
