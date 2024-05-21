@@ -1043,35 +1043,35 @@ htmlThyPath renderUrl info path lPlaintext =
                     <span class="tamarin">Tamarin</span>
                     prover GUI to function properly.
                 <p>
-                  <ul>
+                  <ul .wrap-text>
                     <li>
                      Modifying the lemma in the box above and clicking the submit button will attempt to modify the Lemma in the current theory.
+                     <br>&zwnj;
                     <li>
                      Failures in parsing the Lemma or verifying its well-formedness will result in an Error, and the lemma will NOT be modified.
                      However, your changes will be kept in this page until you leave this right panel.
+                     <br>&zwnj;
                     <li>
                      Editing a Lemma will NOT modify the file it was loaded from.
+                     <br>&zwnj;
                     <li>
                      Clicking on the Download button will download the modified version of the theory (so with the modified lemmas).
+                     <br>&zwnj;
                     <li>
                      Modifying a Reuse Lemma will invalidate all subsequent proofs.
+                     <br>&zwnj;
                     <li>
                      Modifying a Sources Lemma has not yet been implemented and will result in an error.
+                  <style>
+                     .wrap-text li {
+                         white-space: normal;
+                         word-wrap: break-word;
+                     }
                   |] renderUrl
         where textHeight = 2 + (length $ filter (=='\n') lPlaintext)
 
-    -- go (TheoryEdit name) = do
-    --     let l = fromMaybe "Cannot edit this Lemma" $ ugglyLNFormula <$> (get lFormula <$> lookupLemma name thy)
-    --         p = "../../edit/edit/"++name
-    --     [hamlet|
-    --          <form method="post" action=#{p}>
-    --             <div contenteditable="true">
-    --                 <label for="lemmaTextArea">LemmaText
-    --                 <textarea name="lemma-text" id="lemmaTextArea">#{l}
-    --             <button type="submit">Submit
-    --             |] renderUrl
-
     go (TheoryLemma _)         = pp $ text "this is a mistake"
+
     go (TheoryDelete name)        = do
         let p = "../../edit/delete/" ++ name
         [hamlet|
@@ -1086,18 +1086,27 @@ htmlThyPath renderUrl info path lPlaintext =
               <span class="tamarin">Tamarin</span>
               prover GUI to function properly.
           <p>
-            <ul>
+            <ul .wrap-text>
               <li>
                Clicking on the button above will delete the lemma from the loaded theory.
+               <br>&zwnj;
               <li>
                Deleting a Lemma will NOT modify the file it was loaded from.
+               <br>&zwnj;
               <li>
                Clicking on the Download button will download the modified version of the theory (so without deleted lemmas)
+               <br>&zwnj;
               <li>
-               Deleting a reuse Lemma will invalidate all subsequent proofs
+               Deleting a Reuse Lemma will invalidate all subsequent proofs
+               <br>&zwnj;
               <li>
                Deleting a Source Lemma has not yet been implemented and will result in an error
-                |] renderUrl
+             <style>
+                 .wrap-text li {
+                     white-space: normal;
+                     word-wrap: break-word;
+                 }
+             |] renderUrl
 
     go (TheoryAdd name)  = do
         let p = "../../edit/add/" ++ name
@@ -1115,16 +1124,24 @@ htmlThyPath renderUrl info path lPlaintext =
                   <span class="tamarin">Tamarin</span>
                   prover GUI to function properly.
               <p>
-                <ul>
+                <ul .wrap-text>
                   <li>
                    Adds the lemma in the current position in the Theory.
+                   <br>&zwnj;
                   <li>
                    Adding a Lemma will NOT modify the loaded source file.
+                   <br>&zwnj;
                   <li>
                    Clicking on the Download button will download the modified version of the theory (so with the added lemmas)
+                   <br>&zwnj;
                   <li>
-                   Will throw an error if a Lemma with the same name exists, the parsing fails or the lemma isn't well-formed.
-                   |] renderUrl
+                   Will throw an error if a Lemma with the same name exists, the parsing fails, or the lemma isn't well-formed.
+                <style>
+                    .wrap-text li {
+                        white-space: normal;
+                        word-wrap: break-word;
+                    }
+                |] renderUrl
 
 
     go TheoryHelp              = do

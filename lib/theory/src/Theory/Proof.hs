@@ -72,6 +72,7 @@ module Theory.Proof (
   , focusDiff
   , checkAndExtendProver
   , checkAndExtendDiffProver
+  , checkProof
   , replaceSorryProver
   , replaceDiffSorryProver
   , contradictionProver

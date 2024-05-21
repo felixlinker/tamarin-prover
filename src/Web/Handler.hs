@@ -73,8 +73,17 @@ import           Theory                       (
     prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof, formulaToGuarded_, formulaToGuarded, Signature (Signature), MaudeHandle (mhMaudeSig), toSignaturePure, sigpMaudeSig
   )
 import           Theory.Proof (
-    AutoProver(..), SolutionExtractor(..), Prover, DiffProver,
-    Proof, LTree(..), ProofStep(..),  ProofMethod(..))
+                        AutoProver(..)
+                        ,SolutionExtractor(..)
+                        ,Prover
+                        ,DiffProver
+                        ,checkProof
+                        ,proofStepStatus
+                        ,foldProof
+                        ,Proof
+                        ,LTree(..)
+                        ,ProofStep(..)
+                        ,ProofMethod(..))
 import           Text.PrettyPrint.Html
 import           Theory.Constraint.System.Dot
 import           Theory.Constraint.System.JSON  -- for export of constraint system to JSON
@@ -88,6 +97,7 @@ import           Data.List (isPrefixOf, tails, findIndex)
 import           Yesod.Core
 
 import           Control.Monad.Trans.Resource (runResourceT)
+import           Data.Monoid (Any(..))
 
 import           Data.Label
 import           Data.Maybe
@@ -205,11 +215,28 @@ deleteLemma idx name = do
                   lemmafunc ti (Lemma n pt tq f a lp) = 
                                         let curr_idx = fromMaybe (-1) (lookupLemmaIndex name (tiTheory ti))
                                             l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
-                                        in if l_idx > curr_idx
+                                            ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
+                                            gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
+                                            prchk = case lp of
+                                                        (LNode (ProofStep Invalidated _) s ) ->
+                                                            case M.lookup "" s of
+                                                                Just old_lp -> 
+                                                                     checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys old_lp
+                                                                Nothing -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
+
+                                                        _ -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
+                                            invalidated = getAny $ foldProof isInvalid prchk 
+                                                where
+                                                  isInvalid (ProofStep _ (_, Nothing)) = Any True--(ProofStep (Sorry (Just "invalid proof step encountered")) _) = Any True
+                                                  isInvalid _ = Any False
+                                            -- check = foldProof (\ (ProofStep m (a,_)) -> proofStepStatus (ProofStep m a)) prchk
+                                            -- I tried, but I'm confused
+                                        in if l_idx > curr_idx && invalidated
                                             then case lp of
-                                                LNode (ProofStep (Sorry Nothing) _)  _  -> Lemma n pt tq f a lp
-                                                LNode (ProofStep  Invalidated    _)  _  -> Lemma n pt tq f a lp
-                                                LNode (ProofStep  _           info)  _  -> Lemma n pt tq f a (LNode (ProofStep Invalidated info) (M.singleton "" lp))
+                                                LNode (ProofStep (Sorry Nothing) _)  _  -> Lemma n (show invalidated) tq f a lp
+                                                LNode (ProofStep  Invalidated    _)  _  -> Lemma n (show invalidated) tq f a lp
+                                                LNode (ProofStep  _           info)  _  -> 
+                                                    Lemma n (show invalidated) tq f a (LNode (ProofStep Invalidated info) (M.singleton "" lp))
                                             else Lemma n pt tq f a lp
     result
 
