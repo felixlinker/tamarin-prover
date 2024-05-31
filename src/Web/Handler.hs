@@ -65,13 +65,13 @@ import           Theory                       (
     TheoryItem(LemmaItem),
     System,
     thyName, thySignature, diffThyName, removeLemma, lookupLemmaIndex, addLemmaAtIndex, modifyLemma,
-    removeLemmaDiff, removeDiffLemma, getLemmaPreItems, 
+    removeLemmaDiff, removeDiffLemma, getLemmaPreItems,
     openTheory, sorryProver, runAutoProver,
     sorryDiffProver, runAutoDiffProver,
     sigmMaudeHandle,
     prettyClosedTheory, prettyOpenTheory,
     openDiffTheory,
-    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof, formulaToGuarded_, formulaToGuarded, Signature (Signature), MaudeHandle (mhMaudeSig), toSignaturePure, sigpMaudeSig, modifyLemmaProof, checkAndExtendProver, lookupLemmaProof, mapProofInfo, theoryRestrictions
+    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof, formulaToGuarded_, formulaToGuarded, Signature (Signature), MaudeHandle (mhMaudeSig), toSignaturePure, sigpMaudeSig, modifyLemmaProof, checkAndExtendProver, lookupLemmaProof, mapProofInfo, theoryRestrictions, Prover (runProver)
   )
 import           Theory.Proof (
                         AutoProver(..)
@@ -212,12 +212,15 @@ editProof idx name = do
                             lp = case olp of
                                         (LNode (ProofStep Invalidated _) s ) ->
                                             case M.lookup "" s of
-                                                Just old_lp -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys old_lp
-                                                Nothing -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
+                                                Just old_lp -> fromMaybe old_lp $ runProver (checkAndExtendProver (sorryProver Nothing)) ctxt 0 gsys old_lp
+                                                --checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys old_lp
+                                                Nothing -> fromMaybe olp $ runProver (checkAndExtendProver (sorryProver Nothing)) ctxt 0 gsys olp
+                                                --checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
 
-                                        _ -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
+                                        _ -> fromMaybe olp $ runProver (checkAndExtendProver (sorryProver Nothing)) ctxt 0 gsys olp
+                                        --checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
                             --lp = checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
-                            editf (Lemma n' pt tq f a olp) = if n'== n then Lemma n' pt tq f a (mapProofInfo snd lp)
+                            editf (Lemma n' pt tq f a olp) = if n'== n then Lemma n' pt tq f a lp --(mapProofInfo snd lp)
                                                              else Lemma n' pt tq f a olp
                             maybe_nthy = modifyLemma editf (tiTheory ti)
                         case maybe_nthy of
