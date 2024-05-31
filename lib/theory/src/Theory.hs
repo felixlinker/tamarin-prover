@@ -152,6 +152,7 @@ module Theory (
   , removeDiffLemma
   , lookupLemma
   , lookupLemmaIndex
+  , getLemmaPreItems
   , lookupDiffLemma
   , lookupAccLemma
   , lookupCaseTest

@@ -339,7 +339,7 @@ data TheoryPath
   | TheoryTactic                        -- ^ Theory tactic
   | TheoryEdit  String                  -- ^ edit lemma at runtime
   | TheoryDelete String                 -- ^ remove lemma at runtime 
-  | TheoryAdd String                       -- ^ add new lemma at index at runtime 
+  | TheoryAdd String                    -- ^ add new lemma at index at runtime
   deriving (Eq, Show, Read)
 
 -- | Simple data type for specifying a path to a specific
@@ -571,6 +571,7 @@ type RenderUrl = Route (WebUI) -> T.Text
 mkYesodData "WebUI" [parseRoutes|
 /                                          RootR                   GET POST
 /thy/trace/#Int/edit/*TheoryPath           TheoryEditR             POST -- Alice's Edit
+/thy/trace/#Int/verify/*TheoryPath         TheoryVerifyR           GET
 /thy/trace/#Int/overview/*TheoryPath          OverviewR               GET
 /thy/trace/#Int/source                           TheorySourceR           GET
 /thy/trace/#Int/message                          TheoryMessageDeductionR GET

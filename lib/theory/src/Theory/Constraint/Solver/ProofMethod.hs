@@ -260,6 +260,7 @@ execProofMethod ctxt method sys =
         Contradiction _
           | null (contradictions ctxt sys)     -> Nothing
           | otherwise                          -> Just M.empty
+        Invalidated                            -> Nothing
   where
     -- at this point it is safe to remove the free substitution, as all
     -- systems have it fully applied (by the virtue of a call to
@@ -1196,7 +1197,7 @@ smartDiffRanking ctxt sys =
 -- | Pretty-print a proof method.
 prettyProofMethod :: HighlightDocument d => ProofMethod -> d
 prettyProofMethod method = case method of
-    Invalidated          -> lineComment_ "proof may have been invalidated by editing a reuse lemma above"
+    Invalidated          -> lineComment_ "proof may have been invalidated by editing a reuse lemma above. You should "
     Solved               -> keyword_ "SOLVED" <-> lineComment_ "trace found"
     Unfinishable         -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm"
     Induction            -> keyword_ "induction"

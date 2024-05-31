@@ -15,6 +15,7 @@ Portability :  non-portable
 module Web.Handler
   ( getOverviewR
   , postTheoryEditR -- Alice's test
+  , getTheoryVerifyR -- Alice's test pt. 2 
   , getOverviewDiffR
   , getRootR
   , postRootR
@@ -63,14 +64,14 @@ import           Theory                       (
     Side,
     TheoryItem(LemmaItem),
     System,
-    thyName, thySignature, diffThyName, removeLemma, lookupLemmaIndex, addLemmaAtIndex, modifyLemma, 
-    removeLemmaDiff, removeDiffLemma,
+    thyName, thySignature, diffThyName, removeLemma, lookupLemmaIndex, addLemmaAtIndex, modifyLemma,
+    removeLemmaDiff, removeDiffLemma, getLemmaPreItems, 
     openTheory, sorryProver, runAutoProver,
     sorryDiffProver, runAutoDiffProver,
     sigmMaudeHandle,
     prettyClosedTheory, prettyOpenTheory,
     openDiffTheory,
-    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof, formulaToGuarded_, formulaToGuarded, Signature (Signature), MaudeHandle (mhMaudeSig), toSignaturePure, sigpMaudeSig
+    prettyClosedDiffTheory, prettyOpenDiffTheory, getLemmas, lName, lPlaintext, lDiffName, getDiffLemmas, getEitherLemmas, thySignature, diffThySignature, toSignatureWithMaude, lookupLemma, DiffTheoryItem (EitherLemmaItem), ProtoLemma, SyntacticNFormula, addLemma, theoryLemmas, ProofSkeleton, unprovenLemma, getProofContext, sFormulas, IncrementalProof, formulaToGuarded_, formulaToGuarded, Signature (Signature), MaudeHandle (mhMaudeSig), toSignaturePure, sigpMaudeSig, modifyLemmaProof, checkAndExtendProver, lookupLemmaProof, mapProofInfo, theoryRestrictions
   )
 import           Theory.Proof (
                         AutoProver(..)
@@ -192,6 +193,43 @@ getLemmaPlaintext nr path = do
 getStartingProof ::  System -> IncrementalProof
 getStartingProof gsys = LNode (ProofStep (Sorry Nothing) (Just gsys)) M.empty
 
+
+editProof :: Int -> String -> Handler (Either String TheoryIdx)
+editProof idx name = do
+    let result = withTheory idx $ \ti -> do
+            let maybeLemma = lookupLemma name (tiTheory ti)
+            case maybeLemma of
+                Nothing -> return $ Left "Lemma not found"
+                Just (Lemma n pt tq f a olp) -> do
+                        -- let ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
+                        --     prover = checkAndExtendProver (sorryProver Nothing)
+                        --     gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
+                        let curr_idx = fromMaybe (-1) (lookupLemmaIndex name (tiTheory ti))
+                            l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
+                            ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
+                            preI = getLemmaPreItems n (tiTheory ti)
+                            gsys = mkSystem ctxt (theoryRestrictions (tiTheory ti)) preI f
+                            lp = case olp of
+                                        (LNode (ProofStep Invalidated _) s ) ->
+                                            case M.lookup "" s of
+                                                Just old_lp -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys old_lp
+                                                Nothing -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
+
+                                        _ -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
+                            --lp = checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
+                            editf (Lemma n' pt tq f a olp) = if n'== n then Lemma n' pt tq f a (mapProofInfo snd lp)
+                                                             else Lemma n' pt tq f a olp
+                            maybe_nthy = modifyLemma editf (tiTheory ti)
+                        case maybe_nthy of
+                            Nothing -> return $ Left "Lemma editing failed"
+                            Just nthy -> do
+                                            nidx <- replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+                                            return $ Right nidx
+    result
+
+
+
+
 -- deletes a Lemma from a theory, used for Theory editing
 deleteLemma :: Int -> String -> Handler (Either String TheoryIdx)
 deleteLemma idx name = do
@@ -209,35 +247,29 @@ deleteLemma idx name = do
 
                        | otherwise -> normalcase ti
 
-            where normalcase ti = case removeLemma name (tiTheory ti) of
-                                        Nothing -> return $ Left "Lemma editing failed"
-                                        Just nthy -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx 
+            where normalcase ti = 
+                     case removeLemma name (tiTheory ti) of
+                         Nothing -> return $ Left "Lemma editing failed"
+                         Just nthy -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx 
                   lemmafunc ti (Lemma n pt tq f a lp) = 
-                                        let curr_idx = fromMaybe (-1) (lookupLemmaIndex name (tiTheory ti))
-                                            l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
-                                            ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
-                                            gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
-                                            prchk = case lp of
-                                                        (LNode (ProofStep Invalidated _) s ) ->
-                                                            case M.lookup "" s of
-                                                                Just old_lp -> 
-                                                                     checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys old_lp
-                                                                Nothing -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
-
-                                                        _ -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
-                                            invalidated = getAny $ foldProof isInvalid prchk 
-                                                where
-                                                  isInvalid (ProofStep _ (_, Nothing)) = Any True--(ProofStep (Sorry (Just "invalid proof step encountered")) _) = Any True
-                                                  isInvalid _ = Any False
-                                            -- check = foldProof (\ (ProofStep m (a,_)) -> proofStepStatus (ProofStep m a)) prchk
-                                            -- I tried, but I'm confused
-                                        in if l_idx > curr_idx && invalidated
-                                            then case lp of
-                                                LNode (ProofStep (Sorry Nothing) _)  _  -> Lemma n (show invalidated) tq f a lp
-                                                LNode (ProofStep  Invalidated    _)  _  -> Lemma n (show invalidated) tq f a lp
-                                                LNode (ProofStep  _           info)  _  -> 
-                                                    Lemma n (show invalidated) tq f a (LNode (ProofStep Invalidated info) (M.singleton "" lp))
-                                            else Lemma n pt tq f a lp
+                     let curr_idx = fromMaybe (-1) (lookupLemmaIndex name (tiTheory ti))
+                         l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
+                         -- ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
+                         -- preI = getLemmaPreItems n (tiTheory ti)
+                         -- gsys = mkSystem ctxt (theoryRestrictions (tiTheory ti)) preI f
+                         -- prchk = case lp of
+                         --            (LNode (ProofStep Invalidated _) s ) ->
+                         --                case M.lookup "" s of
+                         --                    Just old_lp -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys old_lp
+                         --                    Nothing -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
+                         --
+                         --            _ -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
+                         -- lp' = mapProofInfo snd prchk
+                         in if l_idx > curr_idx then case lp of
+                            LNode (ProofStep (Sorry Nothing) _)  _  -> Lemma n pt tq f a lp
+                            LNode (ProofStep  Invalidated    _)  _  -> Lemma n pt tq f a lp
+                            LNode (ProofStep  _           info)  _  -> Lemma n pt tq f a (LNode (ProofStep Invalidated info) (M.singleton "" lp))
+                         else Lemma n pt tq f a lp
     result
 
 -- adds a new Lemma in a theory at an index
@@ -693,6 +725,13 @@ getOverviewR idx path = withTheory idx ( \ti -> do
     setTitle (toHtml $ "Theory: " ++ get thyName (tiTheory ti))
     overview )
 
+getTheoryVerifyR :: TheoryIdx -> TheoryPath -> Handler RepJson
+getTheoryVerifyR  idx (TheoryProof l path) = do
+    idx' <- editProof idx l
+    renderUrl <- getUrlRender
+    case idx' of
+        Right i -> return $ RepJson $ toContent $ object ["redirect" .= (renderUrl $ OverviewR i (TheoryProof l path))]
+        Left e  -> getTheoryPathMR idx TheoryHelp
 
 
 postTheoryEditR :: TheoryIdx -> TheoryPath -> Handler Html

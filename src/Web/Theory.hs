@@ -107,7 +107,7 @@ applyMethodAtPath thy lemmaName proofPath prover i = do
        replaceSorryProver (oneStepProver Simplify)     `mappend`
        replaceSorryProver (contradictionProver)        `mappend`
        replaceSorryProver (oneStepProver Unfinishable) `mappend`
-       replaceSorryProver (oneStepProver Solved)
+       replaceSorryProver (oneStepProver Solved)       
       )
 
 applyMethodAtPathDiff :: ClosedDiffTheory -> Side -> String -> ProofPath
@@ -213,11 +213,13 @@ preformatted cl = withTag "div" [("class", classes cl)]
 
 -- | Render a proof index relative to a theory path constructor.
 proofIndex :: HtmlDocument d
-           => RenderUrl
+           => String
+           -> Int
+           -> RenderUrl
            -> (ProofPath -> Route WebUI)         -- ^ Relative addressing function
            -> Proof (Maybe System, ProofStepColor) -- ^ The annotated incremental proof
            -> d
-proofIndex renderUrl mkRoute =
+proofIndex l tidx renderUrl mkRoute =
     prettyProofWith ppStep ppCase . insertPaths
   where
     ppCase step = markStatus (fst $ psInfo step)
@@ -227,7 +229,7 @@ proofIndex renderUrl mkRoute =
                (Nothing, _)  -> superfluousStep
                (_, Unmarked) -> stepLink ["sorry-step"]
                (_, Green)    -> stepLink ["hl_good"]
-               (_, Yellow)   -> stepLink ["hl_medium"]
+               (_, Yellow)   -> invalidatedStep
                (_, Red)      -> stepLink ["hl_bad"]
         <> case psMethod step of
                Sorry _ -> emptyDoc
@@ -239,6 +241,12 @@ proofIndex renderUrl mkRoute =
             ("proof-step" : cls) ppMethod
 
         superfluousStep = withTag "span" [("class","hl_superfluous")] ppMethod
+
+        invalidatedStep = if psMethod step == Invalidated 
+                            then stepLink ["hl_medium"] <-> 
+                                  (linkToPath renderUrl (TheoryVerifyR tidx $ TheoryProof l []) ["hl_medium"] $ text "check it")
+                            else stepLink ["hl_medium"]
+
 
         removeStep = linkToPath renderUrl (mkRoute . snd . psInfo $ step)
           ["remove-step"] emptyDoc
@@ -301,10 +309,14 @@ lemmaIndex renderUrl tidx l =
         <->
         (linkToPath renderUrl lemmaDelete ["delete"] $ text "delete lemma")
         -- <->
+        -- text " or "
+        -- <->
+        -- (linkToPath renderUrl proofVerify ["verify"] $ text "verify lemma")
+        -- <->
         -- (text $ " and tq: " ++ (show (get lTraceQuantifier l)))
 
     ) $-$
-    proofIndex renderUrl mkRoute annPrf
+    proofIndex (get lName l) tidx renderUrl mkRoute annPrf
     $-$
     text ""
     $-$
@@ -314,6 +326,7 @@ lemmaIndex renderUrl tidx l =
     lemmaEdit = TheoryPathMR tidx $ TheoryEdit $ get lName l
     lemmaDelete = TheoryPathMR tidx $ TheoryDelete $ get lName l
     lemmaAdd = TheoryPathMR tidx $ TheoryAdd $ get lName l
+    -- proofVerify = TheoryEditR tidx $ TheoryEdit $ get lName l
 
 
     annPrf = annotateLemmaProof l
@@ -339,7 +352,7 @@ lemmaIndexDiff renderUrl tidx s l =
                      , doubleQuotes $ prettyLNFormula $ get lFormula l
                      ] )
     ) $-$
-    proofIndex renderUrl mkRoute annPrf
+    proofIndex (get lName l) tidx renderUrl mkRoute annPrf
   where
     -- editPng = png "/static/img/edit.png"
     -- deletePng = png "/static/img/delete.png"
@@ -554,6 +567,10 @@ subProofSnippet renderUrl tidx ti lemma proofPath ctxt prf =
         pms ->
           [ withTag "h3" [] (text "Applicable Proof Methods:" <->
                              comment_ (goalRankingName ranking))
+          -- , linkToPath renderUrl
+          --   (TheoryEditR tidx (TheoryEdit lemma))
+          --   ["test"]
+          --   (keyword_ $ "test") 
           , preformatted (Just "methods") (numbered' $ map prettyPM $ zip [1..] pms)
           , autoProverLinks 'a' ""         emptyDoc      0
           , autoProverLinks 'b' "bounded-" boundDesc bound

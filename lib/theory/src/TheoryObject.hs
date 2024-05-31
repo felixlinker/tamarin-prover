@@ -102,6 +102,7 @@ module TheoryObject (
   , lookupLemmaDiff
   , lookupLemma
   , lookupLemmaIndex
+  , getLemmaPreItems
   , lookupProcessDef
   , filterSide
   , mapMProcesses
@@ -635,6 +636,13 @@ lookupLemma name = find ((name ==) . L.get lName) . theoryLemmas
 
 lookupLemmaIndex :: String -> Theory sig c r p s -> Maybe Int
 lookupLemmaIndex name ti = fmap fst $ listToMaybe $ [(i,l) | (i,(LemmaItem l))<-(zip [1..] $ L.get thyItems ti) , (name == L.get lName l) ]
+
+
+getLemmaPreItems :: String -> Theory sig c r p s -> [TheoryItem r p s]
+getLemmaPreItems name ti = 
+    case lookupLemmaIndex name ti of
+        Nothing -> []
+        Just li -> [i | (nr, i) <- (zip [1..] $ L.get thyItems ti), nr < li]  
 
 
 -- | Find the case test with the given name.
