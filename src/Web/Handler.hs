@@ -1487,6 +1487,7 @@ getDownloadTheoryR idx _ = do
     RepPlain source <- getTheorySourceR idx
     return (typeOctet, source)
 
+-- | prompt appending of the current theory's lemmas to their source file
 getAppendNewLemmasR :: TheoryIdx -> String -> Handler Value
 getAppendNewLemmasR idx fileName = withTheory idx $ \ti -> do
     yesod <- getYesod
@@ -1495,11 +1496,6 @@ getAppendNewLemmasR idx fileName = withTheory idx $ \ti -> do
         allptxts = foldl (\ p (Lemma _ pt _ _ _ _) -> p ++ "\n\n" ++ pt) "" (getLemmas (tiTheory ti))
     liftIO $ appendFile srcThy $ "\n/*" ++ allptxts ++ "\n/*"
     return $ responseToJson (JsonAlert $ "Appended lemmas to " `T.append` (T.pack srcThy))
-    -- defaultLayout $ do
-    --     setTitle "Operation Status"
-    --     [whamlet|
-    --         <p> appended lemmas to #{srcThy}
-    --     |]
 
 -- | Prompt downloading of theory.
 getDownloadTheoryDiffR :: TheoryIdx -> String -> Handler (ContentType, Content)
