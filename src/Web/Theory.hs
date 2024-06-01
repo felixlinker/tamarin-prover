@@ -244,7 +244,7 @@ proofIndex l tidx renderUrl mkRoute =
 
         invalidatedStep = if psMethod step == Invalidated 
                             then stepLink ["hl_medium"] <-> 
-                                  (linkToPath renderUrl (TheoryVerifyR tidx $ TheoryProof l []) ["hl_medium"] $ text "check it")
+                                  (linkToPath renderUrl (TheoryVerifyR tidx $ TheoryProof l []) ["hl_medium"] $ text "verify it")
                             else stepLink ["hl_medium"]
 
 
