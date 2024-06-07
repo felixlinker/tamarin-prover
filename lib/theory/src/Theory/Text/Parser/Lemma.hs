@@ -81,7 +81,7 @@ protoLemma parseFormula workDir = try $ do
   pskelet <- startProofSkeleton <|> pure (unproven ())
   end <- getInput
   let inputString = take (length start - length end) start
-  return $ skeletonLemma name inputString attr quan formula pskelet
+  return $ skeletonLemma name inputString False attr quan formula pskelet
 
 -- protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
 -- protoLemma parseFormula workDir = do

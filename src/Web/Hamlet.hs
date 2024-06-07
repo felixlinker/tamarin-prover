@@ -94,7 +94,7 @@ rootTpl theories = [whamlet|
         <input type=file name="uploadedTheory">
         <div .submit-form>
           <input type=submit value="Load new theory">
-      <p>Note: You can save a theory by downloading the source. You can also append the lemma's plaintexts to their origin file.
+      <p>Note: You can save a theory by downloading the source.
   |]
 
 -- | Template for listing theories.
@@ -191,7 +191,7 @@ headerTpl info = [whamlet|
     <div #header-links>
       <a class=plain-link href=@{RootR}>Index</a>
       <a class=plain-link href=@{DownloadTheoryR idx filename}>Download</a>
-      <a class=save-link  href=@{AppendNewLemmasR idx filename}>Append Lemmas to file</a>
+      <a class=save-link  href=@{AppendNewLemmasR idx filename}>Append modified Lemmas to file</a>
       <ul #navigation>
         <li><a href="#">Actions</a>
           <ul>

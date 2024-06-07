@@ -1072,6 +1072,9 @@ htmlThyPath renderUrl info path lPlaintext =
                      Editing a Lemma will NOT modify the file it was loaded from.
                      <br>&zwnj;
                     <li>
+                     Clicking on the "append lemmas to file" button add all modified lemmas as a comment at the end of the file they were loaded from.
+                     <br>&zwnj;
+                    <li>
                      Clicking on the Download button will download the modified version of the theory (so with the modified lemmas).
                      <br>&zwnj;
                     <li>

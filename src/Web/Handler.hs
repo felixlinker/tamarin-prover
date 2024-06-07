@@ -201,13 +201,13 @@ editProof idx name = do
             let maybeLemma = lookupLemma name (tiTheory ti)
             case maybeLemma of
                 Nothing -> return $ Left "Lemma not found"
-                Just (Lemma n pt tq f a olp) -> do
+                Just (Lemma n m pt tq f a olp) -> do
                         -- let ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
                         --     prover = checkAndExtendProver (sorryProver Nothing)
                         --     gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
                         let curr_idx = fromMaybe (-1) (lookupLemmaIndex name (tiTheory ti))
                             l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
-                            ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
+                            ctxt = getProofContext (Lemma n m pt tq f a lp) (tiTheory ti)
                             preI = getLemmaPreItems n (tiTheory ti)
                             gsys = mkSystem ctxt (theoryRestrictions (tiTheory ti)) preI f
                             lp = case olp of
@@ -221,8 +221,8 @@ editProof idx name = do
                                         _ -> fromMaybe olp $ runProver (checkAndExtendProver (sorryProver Nothing)) ctxt 0 gsys olp
                                         --checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
                             --lp = checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys olp
-                            editf (Lemma n' pt tq f a olp) = if n'== n then Lemma n' pt tq f a lp --(mapProofInfo snd lp)
-                                                             else Lemma n' pt tq f a olp
+                            editf (Lemma n' pt m tq f a olp) = if n'== n then Lemma n' pt m tq f a lp --(mapProofInfo snd lp)
+                                                             else Lemma n' pt m tq f a olp
                             maybe_nthy = modifyLemma editf (tiTheory ti)
                         case maybe_nthy of
                             Nothing -> return $ Left "Lemma editing failed"
@@ -241,7 +241,7 @@ deleteLemma idx name = do
             let maybeLemma = lookupLemma name (tiTheory ti)
             case maybeLemma of
                 Nothing -> return $ Left "Lemma not found"
-                Just (Lemma _ _ _ _ oa _) -> do
+                Just (Lemma _ _ _ _ _ oa _) -> do
                     if | SourceLemma `elem` oa -> return $ Left "Can't edit or remove sources lemmas for now"
                        | ReuseLemma `elem` oa -> case modifyLemma (lemmafunc ti) (tiTheory ti) of
                                                         Nothing -> return $ Left "Lemma editing failed"
@@ -255,39 +255,29 @@ deleteLemma idx name = do
                      case removeLemma name (tiTheory ti) of
                          Nothing -> return $ Left "Lemma editing failed"
                          Just nthy -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx 
-                  lemmafunc ti (Lemma n pt tq f a lp) = 
+                  lemmafunc ti (Lemma n pt m tq f a lp) = 
                      let curr_idx = fromMaybe (-1) (lookupLemmaIndex name (tiTheory ti))
                          l_idx = fromMaybe 0 (lookupLemmaIndex n (tiTheory ti))
-                         -- ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
-                         -- preI = getLemmaPreItems n (tiTheory ti)
-                         -- gsys = mkSystem ctxt (theoryRestrictions (tiTheory ti)) preI f
-                         -- prchk = case lp of
-                         --            (LNode (ProofStep Invalidated _) s ) ->
-                         --                case M.lookup "" s of
-                         --                    Just old_lp -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys old_lp
-                         --                    Nothing -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
-                         --
-                         --            _ -> checkProof ctxt (\ _ _ ->LNode (ProofStep Invalidated Nothing) M.empty) 0 gsys lp
-                         -- lp' = mapProofInfo snd prchk
                          in if l_idx > curr_idx then case lp of
-                            LNode (ProofStep (Sorry Nothing) _)  _  -> Lemma n pt tq f a lp
-                            LNode (ProofStep  Invalidated    _)  _  -> Lemma n pt tq f a lp
-                            LNode (ProofStep  _           info)  _  -> Lemma n pt tq f a (LNode (ProofStep Invalidated info) (M.singleton "" lp))
-                         else Lemma n pt tq f a lp
+                            LNode (ProofStep (Sorry Nothing) _)  _  -> Lemma n pt m tq f a lp
+                            LNode (ProofStep  Invalidated    _)  _  -> Lemma n pt m tq f a lp
+                            LNode (ProofStep  _           info)  _  -> Lemma n pt m tq f a (LNode (ProofStep Invalidated info) (M.singleton "" lp))
+                         else Lemma n pt m tq f a lp
     result
 
 -- adds a new Lemma in a theory at an index
 addLemma :: Int -> Maybe Int -> Lemma ProofSkeleton -> Handler (Either String TheoryIdx)
-addLemma idx maybelemmaIndex (Lemma n pt tq f a lp) = do
+addLemma idx maybelemmaIndex (Lemma n pt _ tq f a lp) = do
     let idx' = withTheory idx $ \ti -> do
-            let ctxt = getProofContext (Lemma n pt tq f a lp) (tiTheory ti)
-                gsys = mkSystem ctxt [] [LemmaItem (Lemma n pt tq f a lp)] f
+            let ctxt = getProofContext (Lemma n pt True tq f a lp) (tiTheory ti)
+                preI = getLemmaPreItems n (tiTheory ti)
+                gsys = mkSystem ctxt (theoryRestrictions (tiTheory ti)) preI f
             case formulaToGuarded f of
                 Left d -> return $ Left $ render d
                 Right _ -> case maybelemmaIndex of
                         Nothing -> return $ Left "Lemma not found"
                         Just lemmaIndex -> do
-                            let newThy = addLemmaAtIndex (Lemma n pt tq f a $ getStartingProof gsys) lemmaIndex (tiTheory ti)
+                            let newThy = addLemmaAtIndex (Lemma n pt True tq f a $ getStartingProof gsys) lemmaIndex (tiTheory ti)
                             case newThy of
                                  Nothing -> return $ Left "lemma editing failed"
                                  (Just nthy) -> Right <$> replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
@@ -295,8 +285,7 @@ addLemma idx maybelemmaIndex (Lemma n pt tq f a lp) = do
 
 
 editLemmaPlaintext :: Int -> TheoryPath -> Lemma ProofSkeleton -> Handler (Either String TheoryIdx)
-editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt tq f a lp) = do
-    traceM $ show (Lemma n pt tq f a lp) 
+editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt m tq f a lp) = do
     maybelemmaIndex <- withTheory idx $ \ti -> do
                            return $ (\x -> x - 1) <$> lookupLemmaIndex lemmaName (tiTheory ti)
     case formulaToGuarded f of
@@ -305,14 +294,14 @@ editLemmaPlaintext idx (TheoryEdit lemmaName) (Lemma n pt tq f a lp) = do
                 idx' <- deleteLemma idx lemmaName
                 case idx' of
                     Left e -> return $ Left e
-                    Right i -> Web.Handler.addLemma i maybelemmaIndex (Lemma n pt tq f a lp)
+                    Right i -> Web.Handler.addLemma i maybelemmaIndex (Lemma n pt m tq f a lp)
 
 
 editLemmaPlaintext idx (TheoryAdd lemmaName) l = do
     maybelemmaIndex <- withTheory idx $ \ti -> do
                             return $ case lemmaName of
                                 "<first>" -> do
-                                            let (Lemma n _ _ _ _ _ ) = head $ theoryLemmas $ tiTheory ti
+                                            let (Lemma n _ _ _ _ _ _ ) = head $ theoryLemmas $ tiTheory ti
                                             (\x -> x - 1) <$> lookupLemmaIndex n (tiTheory ti)
                                 _ -> lookupLemmaIndex lemmaName (tiTheory ti)
     Web.Handler.addLemma idx maybelemmaIndex l
@@ -1493,9 +1482,17 @@ getAppendNewLemmasR idx fileName = withTheory idx $ \ti -> do
     yesod <- getYesod
     let workDirectory = workDir yesod
         srcThy = workDirectory ++"/"++ fileName
-        allptxts = foldl (\ p (Lemma _ pt _ _ _ _) -> p ++ "\n\n" ++ pt) "" (getLemmas (tiTheory ti))
-    liftIO $ appendFile srcThy $ "\n/*" ++ allptxts ++ "\n/*"
-    return $ responseToJson (JsonAlert $ "Appended lemmas to " `T.append` (T.pack srcThy))
+        allptxts = foldl (\ p (Lemma _ pt modified _ _ _ _) -> if modified==True then p ++ "\n\n" ++ pt else p)
+                         "" (getLemmas (tiTheory ti))
+    liftIO $ if allptxts /= "" 
+        then appendFile srcThy $ "\n/*" ++ allptxts ++ "\n*/"
+        else return ()
+    case modifyLemma (\(Lemma n pt _ tq f a lp)  -> (Lemma n pt False tq f a lp) ) (tiTheory ti) of
+            Nothing -> return $ responseToJson (JsonAlert $ "Appended lemmas to " `T.append` (T.pack srcThy))
+            Just nthy -> do
+                            nidx <- replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
+                            return $ responseToJson (JsonAlert $ "Appended lemmas to " `T.append` (T.pack srcThy))
+                            --return $ responseToJson (JsonRedirect $ T.pack $ "/thy/trace/" ++ show nidx ++ "/overview")
 
 -- | Prompt downloading of theory.
 getDownloadTheoryDiffR :: TheoryIdx -> String -> Handler (ContentType, Content)
