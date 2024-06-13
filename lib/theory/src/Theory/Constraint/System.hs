@@ -122,9 +122,11 @@ module Theory.Constraint.System (
   , System
   , DiffProofType(..)
   , DiffSystem
+  , equiv
 
   -- ** Construction
   , emptySystem
+  , isInitialSystem
   , emptyDiffSystem
 
   , SystemTraceQuantifier(..)
@@ -401,6 +403,24 @@ data System = System
     deriving( Eq, Ord, Generic, NFData, Binary )
 
 $(mkLabels [''System, ''GoalStatus])
+
+equiv :: System -> System -> Bool
+equiv s1 s2 = and
+  [ onBoth sEdges (==)
+  , onBoth sLessAtoms (==)
+  , onBoth sLastAtom (==)
+  , onBoth sSubtermStore (==)
+  , onBoth sEqStore (==)
+  , onBoth sFormulas (==)
+  , onBoth sSolvedFormulas (==)
+  , onBoth sLemmas (==)
+  , onBoth sGoals (==)
+  , onBoth sNextGoalNr (==)
+  , onBoth sSourceKind (==)
+  , onBoth sDiffSystem (==) ]
+  where
+    onBoth :: (System :-> a) -> (a -> a -> b) -> b
+    onBoth l f = f (L.get l s1) (L.get l s2)
 
 deriving instance Show System
 
@@ -823,6 +843,11 @@ emptySystem d isdiff = System
     M.empty S.empty S.empty Nothing emptySubtermStore emptyEqStore
     S.empty S.empty S.empty
     M.empty 0 d isdiff
+
+-- TODO: I do not like the second conjunct; this should be done cleaner
+isInitialSystem :: System -> Bool
+isInitialSystem sys = null (L.get sSolvedFormulas sys) && not (S.member bot (L.get sFormulas sys))
+  where bot = GDisj (Disj [])
 
 -- | The empty diff constraint system.
 emptyDiffSystem :: DiffSystem
