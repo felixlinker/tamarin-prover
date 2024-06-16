@@ -82,7 +82,7 @@ import           TheoryObject
 
 import           Web.Settings
 import           Web.Types
-import Yesod.Core (lookupPostParam)
+import           Yesod.Core                    (lookupPostParam)
 
 ------------------------------------------------------------------------------
 -- Various other functions
@@ -294,26 +294,17 @@ lemmaIndex renderUrl tidx l =
 
     ( markStatus (psInfo $ root annPrf) $
         (kwLemma <-> prettyLemmaName l <> colon)
-
-
-        -- <-> (linkToPath renderUrl lemmaDelete ["del-link"] $ text "🗑")
         $-$
         nest 2 ( sep [ prettyTraceQuantifier $ get lTraceQuantifier l
                      , doubleQuotes $ prettyLNFormula $ get lFormula l
                      ] )
 
         $-$
-        (linkToPath renderUrl lemmaEdit ["edit"] $ text "edit lemma") --prettyLNFormula $ get lFormula l
+        (linkToPath renderUrl lemmaEdit ["edit"] $ text "edit lemma") 
         <->
         text " or " 
         <->
         (linkToPath renderUrl lemmaDelete ["delete"] $ text "delete lemma")
-        -- <->
-        -- text " or "
-        -- <->
-        -- (linkToPath renderUrl proofVerify ["verify"] $ text "verify lemma")
-        -- <->
-        -- (text $ " and tq: " ++ (show (get lTraceQuantifier l)))
 
     ) $-$
     proofIndex (get lName l) tidx renderUrl mkRoute annPrf
@@ -326,8 +317,6 @@ lemmaIndex renderUrl tidx l =
     lemmaEdit = TheoryPathMR tidx $ TheoryEdit $ get lName l
     lemmaDelete = TheoryPathMR tidx $ TheoryDelete $ get lName l
     lemmaAdd = TheoryPathMR tidx $ TheoryAdd $ get lName l
-    -- proofVerify = TheoryEditR tidx $ TheoryEdit $ get lName l
-
 
     annPrf = annotateLemmaProof l
     mkRoute proofPath = TheoryPathMR tidx (TheoryProof (get lName l) proofPath)
@@ -343,10 +332,6 @@ lemmaIndexDiff renderUrl tidx s l =
 --     error (show annPrf)
     ( markStatus (psInfo $ root annPrf) $
         (kwLemma <-> prettyLemmaName l <> colon)
-        -- FIXME: Reactivate theory editing.
-        -- <->
-        -- (linkToPath renderUrl lemmaRoute  ["edit-link"] editPng <->
-        -- linkToPath renderUrl lemmaRoute ["delete-link"] deletePng)
         $-$
         nest 2 ( sep [ prettyTraceQuantifier $ get lTraceQuantifier l
                      , doubleQuotes $ prettyLNFormula $ get lFormula l
@@ -354,11 +339,6 @@ lemmaIndexDiff renderUrl tidx s l =
     ) $-$
     proofIndex (get lName l) tidx renderUrl mkRoute annPrf
   where
-    -- editPng = png "/static/img/edit.png"
-    -- deletePng = png "/static/img/delete.png"
-    -- png path = closedTag "img" [("class","icon"),("src",path)]
-    -- lemmaRoute = TheoryPathMR tidx (TheoryLemma $ get lName l)
-
     annPrf = annotateLemmaProof l
     mkRoute proofPath = TheoryPathDiffMR tidx (DiffTheoryProof s (get lName l) proofPath)
 
@@ -372,21 +352,9 @@ diffLemmaIndex renderUrl tidx l =
 --     error (show annPrf)
     ( markStatusDiff (dpsInfo $ root annPrf) $
         (kwLemma <-> prettyDiffLemmaName l {-<> text (show annPrf)-} <> colon)
-        -- FIXME: Reactivate theory editing.
-        -- <->
-        -- (linkToPath renderUrl lemmaRoute  ["edit-link"] editPng <->
-        -- linkToPath renderUrl lemmaRoute ["delete-link"] deletePng)
---         $-$
---         nest 2 ( sep [ prettyTraceQuantifier $ get lTraceQuantifier l
---                      , doubleQuotes $ prettyLNFormula $ get lFormula l
---                      ] )
     ) $-$
     diffProofIndex renderUrl mkRoute annPrf
   where
-    -- editPng = png "/static/img/edit.png"
-    -- deletePng = png "/static/img/delete.png"
-    -- png path = closedTag "img" [("class","icon"),("src",path)]
-    -- lemmaRoute = TheoryPathMR tidx (TheoryLemma $ get lName l)
 
     annPrf = annotateDiffLemmaProof l
     mkRoute proofPath = TheoryPathDiffMR tidx (DiffTheoryDiffProof (get lDiffName l) proofPath)
@@ -567,10 +535,6 @@ subProofSnippet renderUrl tidx ti lemma proofPath ctxt prf =
         pms ->
           [ withTag "h3" [] (text "Applicable Proof Methods:" <->
                              comment_ (goalRankingName ranking))
-          -- , linkToPath renderUrl
-          --   (TheoryEditR tidx (TheoryEdit lemma))
-          --   ["test"]
-          --   (keyword_ $ "test") 
           , preformatted (Just "methods") (numbered' $ map prettyPM $ zip [1..] pms)
           , autoProverLinks 'a' ""         emptyDoc      0
           , autoProverLinks 'b' "bounded-" boundDesc bound
@@ -1072,7 +1036,7 @@ htmlThyPath renderUrl info path lPlaintext =
                      Editing a Lemma will NOT modify the file it was loaded from.
                      <br>&zwnj;
                     <li>
-                     Clicking on the "append lemmas to file" button add all modified lemmas as a comment at the end of the file they were loaded from.
+                     Clicking on the "append lemmas to file" button adds all modified lemmas as a comment at the end of the file they were loaded from.
                      <br>&zwnj;
                     <li>
                      Clicking on the Download button will download the modified version of the theory (so with the modified lemmas).
@@ -1147,6 +1111,9 @@ htmlThyPath renderUrl info path lPlaintext =
                 <ul .wrap-text>
                   <li>
                    Adds the lemma in the current position in the Theory.
+                   <br>&zwnj;
+                  <li>
+                   Clicking on the "append lemmas to file" button appends all added lemmas as a comment at the end of the current theory file.
                    <br>&zwnj;
                   <li>
                    Adding a Lemma will NOT modify the loaded source file.
@@ -2304,5 +2271,6 @@ annotateDiffLemmaProof lem =
       IncompleteProof   -> Unmarked
       UndeterminedProof -> Unmarked
       UnfinishableProof -> Yellow
+      InvalidatedProof -> Yellow
       TraceFound        -> Red
       CompleteProof     -> Green
