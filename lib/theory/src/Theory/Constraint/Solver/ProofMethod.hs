@@ -295,9 +295,6 @@ execProofMethod ctxt method sys =
                           $ uniqueListBy (comparing fst) id distinguish cases
       in case cases of
         []              -> Just M.empty
-        [(_, s)]
-          | equiv s sys -> Nothing
-          | otherwise   -> newCases
         _               -> newCases
       where
         cleanup :: Reduction CaseName
