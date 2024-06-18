@@ -54,6 +54,7 @@ import qualified Data.ByteString.Char8 as BC
 import           Control.Basics
 import           Control.DeepSeq
 import qualified Control.Monad.Trans.PreciseFresh          as Precise
+import qualified Control.Monad.Trans.State                 as St
 
 import           Debug.Trace
 import           Safe
@@ -289,8 +290,8 @@ execProofMethod ctxt method sys =
     process :: Reduction CaseName -> Maybe (M.Map CaseName System)
     process m =
       let cases =   removeRedundantCases ctxt [] snd
-                  . map (uncurry (flip (fmap . L.set sFreshState)))
-                  . getDisj $ runReduction cleanup ctxt sys (L.get sFreshState sys)
+                  . map fst
+                  . getDisj $ runReduction cleanup ctxt sys (avoid sys)
           newCases = Just $ M.fromListWith (error "case names not unique")
                           $ uniqueListBy (comparing fst) id distinguish cases
       in case cases of
@@ -301,6 +302,7 @@ execProofMethod ctxt method sys =
         cleanup = do
           name <- m
           simplifySystem
+          St.modify $ \s -> Precise.evalFresh (renamePrecise s) Precise.nothingUsed
           L.setM sSubst emptySubst
           return name
 
@@ -355,23 +357,23 @@ execDiffProofMethod ctxt method sys =
       guard (meth /= Finished (Contradictory (Just ForbiddenKD)))
       _ <- L.get dsCurrentRule sys
       s <- L.get dsSide sys
-      applyStep meth s =<< sequents
+      applyStep meth s =<< sequent
     DiffMirrored -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
       msys' >>= guard . trivial
       mallSubtermsFinished >>= guard
       mirrorSyss <- mmirrorSyss
-      solved <- isSolved <$> msys'
+      solved <- isSolved <$> mside <*> msys'
       guard (fst (evaluateRestrictions ctxt sys mirrorSyss solved) == TTrue)
       return M.empty
     DiffAttack -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
       s <- L.get dsSide sys
-      solved <- isSolved <$> msys'
+      solved <- isSolved <$> mside <*> msys'
       sys' <- L.get dsSystem sys
-      notContradictory <- not . contradictorySystem (eitherProofContext ctxt s) <$> sequents
+      notContradictory <- not . contradictorySystem (eitherProofContext ctxt s) <$> sequent
       -- In the second case, the system is trivial, has no mirror and restrictions do not get in the way.
       -- If we solve arbitrarily the last remaining trivial goals,
       -- then there will be an attack.
@@ -387,13 +389,13 @@ execDiffProofMethod ctxt method sys =
     DiffUnfinishable -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
-      solved <- isSolved <$> msys'
+      solved <- isSolved <$> mside <*> msys'
       allSubtermsFinished <- mallSubtermsFinished
       guard solved
       guard (not allSubtermsFinished)
       return M.empty
   where
-    sequents             = mapM (L.get dsSystem) sysPath
+    sequent              = L.get dsSystem sys
     mside                = L.get dsSide sys
     msys'                = L.get dsSystem sys
     mmirrorSyss          = getMirrorDG ctxt <$> mside <*> msys'
@@ -444,9 +446,12 @@ execDiffProofMethod ctxt method sys =
     startBackwardSearch :: String -> M.Map CaseName DiffSystem
     startBackwardSearch rulename = M.insert ("LHS") (backwardSearchSystem LHS sys rulename) $ M.insert ("RHS") (backwardSearchSystem RHS sys rulename) $ M.empty
 
+    isSolved :: Side -> System -> Bool
+    isSolved s sys' = isJust $ isFinished (eitherProofContext ctxt s) sys' >>= guard . (== Solved)
+
     applyStep :: ProofMethod -> Side -> System -> Maybe (M.Map CaseName DiffSystem)
-    applyStep m s sys = do
-      cases <- execProofMethod (eitherProofContext ctxt s) m sys
+    applyStep m s dsSys = do
+      cases <- execProofMethod (eitherProofContext ctxt s) m dsSys
       return $ M.map (\x -> L.set dsSystem (Just x) sys) cases
 
 -- | returns True if there are no reducible operators on top of a right side of a subterm in the subterm store
@@ -497,13 +502,13 @@ isFinished :: ProofContext -> System -> Maybe Result
 isFinished ctxt sys
   | isInitialSystem sys = Nothing
   | not $ null cs = Just $ Contradictory (Just $ head cs)
-  | isSolved sys && (stFinished && not weakened) = Just Solved
-  | isSolved sys && (not stFinished || weakened) = Just Unfinishable
+  | null ogs && stFinished = Just Solved
+  | null ogs && not stFinished = Just Unfinishable
   | otherwise = Nothing
   where
     cs = contradictions ctxt sys
+    ogs = openGoals sys
     stFinished = finishedSubterms ctxt sys
-    weakened = isJust (L.get sWeakenedFrom sys)
 
 -- | Use a 'GoalRanking' to generate the ranked, list of possible
 -- 'ProofMethod's and their corresponding results in this 'ProofContext' and
@@ -1190,11 +1195,11 @@ smartDiffRanking ctxt sys =
 prettyProofMethod :: HighlightDocument d => ProofMethod -> d
 prettyProofMethod method = case method of
     Finished Solved -> keyword_ "SOLVED" <-> lineComment_ "trace found"
-    Finished Unfinishable -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm or solved after weakening"
+    Induction  -> keyword_ "induction"
+    Finished Unfinishable -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm"
     Sorry reason ->
         fsep [keyword_ "sorry", maybe emptyDoc closedComment_ reason]
-    Induction  -> keyword_ "induction"
-    SolveGoal goal -> prettyGoal goal
+    SolveGoal goal -> keyword_ "solve(" <-> prettyGoal goal <-> keyword_ ")"
     Simplify -> keyword_ "simplify"
     Finished (Contradictory reason) ->
         sep [ keyword_ "contradiction"

@@ -122,7 +122,6 @@ module Theory.Constraint.System (
   , System
   , DiffProofType(..)
   , DiffSystem
-  , equiv
 
   -- ** Construction
   , emptySystem
@@ -403,24 +402,6 @@ data System = System
     deriving( Eq, Ord, Generic, NFData, Binary )
 
 $(mkLabels [''System, ''GoalStatus])
-
-equiv :: System -> System -> Bool
-equiv s1 s2 = and
-  [ onBoth sEdges (==)
-  , onBoth sLessAtoms (==)
-  , onBoth sLastAtom (==)
-  , onBoth sSubtermStore (==)
-  , onBoth sEqStore (==)
-  , onBoth sFormulas (==)
-  , onBoth sSolvedFormulas (==)
-  , onBoth sLemmas (==)
-  , onBoth sGoals (==)
-  , onBoth sNextGoalNr (==)
-  , onBoth sSourceKind (==)
-  , onBoth sDiffSystem (==) ]
-  where
-    onBoth :: (System :-> a) -> (a -> a -> b) -> b
-    onBoth l f = f (L.get l s1) (L.get l s2)
 
 deriving instance Show System
 
