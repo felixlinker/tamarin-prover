@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections   #-}
 {-# LANGUAGE ViewPatterns    #-}
 {-# LANGUAGE DeriveGeneric   #-}
@@ -40,13 +39,11 @@ module Theory.Constraint.Solver.ProofMethod (
 import           GHC.Generics                              (Generic)
 import           Data.Binary
 import           Data.Function                             (on)
-import           Data.Label                                hiding (get)
 import qualified Data.Label                                as L
 import           Data.List                                 (partition,groupBy,sortBy,isPrefixOf,findIndex,intercalate, uncons)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map                                  as M
 import           Data.Maybe                                (catMaybes, fromMaybe, mapMaybe, isNothing, isJust)
--- import           Data.Monoid
 import           Data.Ord                                  (comparing)
 import qualified Data.Set                                  as S
 import           Extension.Prelude                         (sortOn)
@@ -54,8 +51,7 @@ import qualified Data.ByteString.Char8 as BC
 
 import           Control.Basics
 import           Control.DeepSeq
-import qualified Control.Monad.Trans.PreciseFresh          as Precise
-import qualified Control.Monad.Trans.State                 as St
+import           Control.Monad.Fresh
 
 import           Debug.Trace
 import           Safe
@@ -68,10 +64,10 @@ import           Theory.Constraint.Solver.Goals
 import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.Solver.Simplify
---import           Theory.Constraint.Solver.Heuristics
 import           Theory.Constraint.System
 import           Theory.Model
 import           Theory.Text.Pretty
+
 import qualified Extension.Data.Label as L
 import Control.Monad.Disj (disjunctionOfList)
 import Data.Bool (bool)
@@ -290,7 +286,7 @@ execProofMethod ctxt method sys =
         in case M.toList cases of
           -- Check whether simplified system is equal to previous one; if so,
           -- fail in applying this method.
-          [(_, sys')] -> guard (sys' /= cleanup sys) >> return cases
+          [(_, sys')] -> guard (sys' /= sys) >> return cases
           -- If simplifying resulted in multiple cases, the resulting ones
           -- cannot be equal to the original one so there's nothing to check.
           _ -> return cases
@@ -300,13 +296,15 @@ execProofMethod ctxt method sys =
     process :: Reduction CaseName -> M.Map CaseName System
     process m =
       let cases =   removeRedundantCases ctxt [] snd
-                  . map (fmap cleanup . fst)
-                  . getDisj $ runReduction (m <* simplifySystem) ctxt sys (avoid sys)
+                  . map (uncurry cleanup)
+                  . getDisj $ runReduction (m <* simplifySystem) ctxt sys (L.get sFreshState sys)
       in  M.fromListWith (error "case names not unique")
             $ uniqueListBy (comparing fst) id distinguish cases
 
-    cleanup :: System -> System
-    cleanup s = L.set sSubst emptySubst (Precise.evalFresh (renamePrecise s) Precise.nothingUsed)
+    cleanup :: (a, System) -> FreshState -> (a, System)
+    cleanup s st =
+        L.set sSubst emptySubst
+      . L.set sFreshState st <$> s
 
     -- solve the given goal
     -- PRE: Goal must be valid in this system.

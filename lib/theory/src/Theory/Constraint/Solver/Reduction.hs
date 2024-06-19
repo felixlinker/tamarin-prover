@@ -96,7 +96,6 @@ import           Control.Monad.State                     (StateT, execStateT, ge
 import           Text.PrettyPrint.Class
 
 import           Extension.Data.Label
--- import           Extension.Data.Monoid                   (Monoid(..))
 import           Extension.Prelude
 
 import           Logic.Connectives

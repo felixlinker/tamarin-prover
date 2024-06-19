@@ -42,8 +42,6 @@ import           Data.Binary
 -- import Theory.Model.Rule
 -- import Data.Typeable
 -- import qualified Data.Set                   as S
--- import Control.Monad.Trans.FastFresh
--- import Control.Monad.Trans.FastFresh
 import Term.LTerm
 import Term.Substitution
 

@@ -90,8 +90,6 @@ module Term.LTerm (
   , evalFreshTAvoiding
   , renameAvoiding
   , renameAvoidingIgnoring
-  , avoidPreciseVars
-  , avoidPrecise
   , renamePrecise
   , renameDropNamehint
   , varOccurences
@@ -121,15 +119,12 @@ import           Control.Basics
 import           Control.DeepSeq
 import           Control.Monad.Bind
 import           Control.Monad.Identity
-import qualified Control.Monad.Trans.PreciseFresh as Precise
 
 import           GHC.Generics                     (Generic)
 import           Data.Binary
 import qualified Data.DList                       as D
-import           Data.Foldable                    hiding (concatMap, elem, notElem, any)
 import           Data.Data
 import qualified Data.Map                         as M
-import qualified Data.Map.Strict                  as M'
 import           Data.Monoid
 import qualified Data.Set                         as S
 -- import           Data.Traversable
@@ -593,26 +588,27 @@ someInst = mapFrees (Arbitrary $ \x -> importBinding (`LVar` lvarSort x) x (lvar
 -- | @rename t@ replaces all variables in @t@ with fresh variables.
 --   Note that the result is not guaranteed to be equal for terms that are
 --   equal modulo changing the indices of variables.
+-- TODO: Use freshIdents to increase variable state
 rename :: (MonadFresh m, HasFrees a) => a -> m a
-rename x = case boundsVarIdx x of
-    Nothing                     -> return x
-    Just (minVarIdx, maxVarIdx) -> do
-      freshStart <- freshIdents (succ (maxVarIdx - minVarIdx))
-      return . runIdentity . mapFrees (Monotone $ incVar (freshStart - minVarIdx)) $ x
-  where
-    incVar shift (LVar n so i) = pure $ LVar n so (i+shift)
+rename x = do
+    let varIdx = boundsVarIdx x
+    idxStart <- freshIdents (M.map (\(mn, mx) -> succ (mx - mn)) varIdx)
+    let offsets = M.unionWith (+) idxStart (M.map (negate . fst) varIdx)
+    return $ runIdentity $ mapFrees (Monotone $ incVar offsets) x
+    where
+        incVar offsets (LVar n so i) = pure $ LVar n so (i + offsets M.! n)
 
--- | @renameIgnoring t vars@ replaces all variables in @t@ with fresh variables, excpet for the variables in @vars@.
+-- | @renameIgnoring vars t@ replaces all variables in @t@ with fresh variables, except for the variables in @vars@.
 --   Note that the result is not guaranteed to be equal for terms that are
 --   equal modulo changing the indices of variables.
 renameIgnoring :: (MonadFresh m, HasFrees a) => [LVar] -> a -> m a
-renameIgnoring vars x = case boundsVarIdx x of
-    Nothing                     -> return x
-    Just (minVarIdx, maxVarIdx) -> do
-      freshStart <- freshIdents (succ (maxVarIdx - minVarIdx))
-      return . runIdentity . mapFrees (Monotone $ incVar (freshStart - minVarIdx)) $ x
-  where
-    incVar shift (LVar n so i) = pure $ if elem (LVar n so i) vars then (LVar n so i) else (LVar n so (i+shift))
+renameIgnoring vars x = do
+    let varIdx = boundsVarIdx x
+    idxStart <- freshIdents (M.map (\(mn, mx) -> succ (mx - mn)) varIdx)
+    let offsets = M.unionWith (+) idxStart (M.map (negate . fst) varIdx)
+    return $ runIdentity $ mapFrees (Monotone $ incVar offsets) x
+    where
+        incVar offsets v@(LVar n so i) = pure $ if v `elem` vars then v else LVar n so (i + offsets M.! n)
 
 
 -- | @eqModuloFreshness t1 t2@ checks whether @t1@ is equal to @t2@ modulo
@@ -628,13 +624,13 @@ eqModuloFreshnessNoAC t1 =
                   mapFrees (Arbitrary $ \x -> importBinding (`LVar` lvarSort x) x "")
 
 -- | The mininum and maximum index of all free variables.
-boundsVarIdx :: HasFrees t => t -> Maybe (Integer, Integer)
-boundsVarIdx = getMinMax . foldFrees (minMaxSingleton . lvarIdx)
+boundsVarIdx :: HasFrees t => t -> M.Map String (Integer, Integer)
+boundsVarIdx = getMinMaxMap . foldFrees (\lv -> minMaxMapSingleton (lvarName lv) (lvarIdx lv))
 
 -- | @avoid t@ computes a 'FreshState' that avoids generating
 -- variables occurring in @t@.
 avoid :: HasFrees t => t -> FreshState
-avoid = maybe 0 (succ . snd) . boundsVarIdx
+avoid = M.map (succ . snd) . boundsVarIdx
 
 -- | @m `evalFreshAvoiding` t@ evaluates the monadic action @m@ with a
 -- fresh-variable supply that avoids generating variables occurring in @t@.
@@ -650,23 +646,12 @@ evalFreshTAvoiding m = evalFreshT m . avoid
 -- | @s `renameAvoiding` t@ replaces all free variables in @s@ by
 --   fresh variables avoiding variables in @t@.
 renameAvoiding :: (HasFrees s, HasFrees t) => s -> t -> s
-renameAvoiding s t = evalFreshAvoiding (rename s) t
+renameAvoiding s = evalFreshAvoiding (rename s)
 
 -- | @s `renameAvoiding` t@ replaces all free variables in @s@ by
 --   fresh variables avoiding variables in @t@.
 renameAvoidingIgnoring :: (HasFrees s, HasFrees t) => s -> t -> [LVar] -> s
 renameAvoidingIgnoring s t vars = renameIgnoring vars s `evalFreshAvoiding` t
-
-
-avoidPreciseVars :: [LVar] -> Precise.FreshState
-avoidPreciseVars = foldl' ins M.empty
-  where
-    ins m v = M'.insertWith max (lvarName v) (lvarIdx v + 1) m
-
--- | @avoidPrecise t@ computes a 'Precise.FreshState' that avoids generating
--- variables occurring in @t@.
-avoidPrecise :: HasFrees t => t -> Precise.FreshState
-avoidPrecise = avoidPreciseVars . frees
 
 -- | @renamePrecise t@ replaces all variables in @t@ with fresh variables.
 --   If 'Control.Monad.PreciseFresh' is used with non-AC terms and identical
@@ -686,7 +671,7 @@ renameDropNamehint =
 
 instance HasFrees LVar where
     foldFrees = id
-    foldFreesOcc f c v = f c v
+    foldFreesOcc f = f
     mapFrees (Arbitrary f) = f
     mapFrees (Monotone f)  = f
 

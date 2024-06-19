@@ -25,7 +25,6 @@ import Term.SubtermRule
 import Sapic.Exceptions
 import Sapic.Bindings
 import Control.Monad.Fresh
-import qualified Control.Monad.Trans.PreciseFresh as Precise
 import Data.Bifunctor ( Bifunctor(second) )
 import GHC.Stack (HasCallStack)
 import qualified Data.List as List
@@ -235,10 +234,10 @@ typeTheory th = fst <$> typeTheoryEnv th
 -- p' equals p
 renameUnique :: (Monad m, Apply (Subst Name LVar) ann, GoodAnnotation ann, HasCallStack) =>
     Process ann SapicLVar -> m (Process ann SapicLVar)
-renameUnique p = Precise.evalFreshT actualCall initState
+renameUnique p = evalFreshT actualCall initState
     where
         actualCall = renameUnique' emptySubst p
-        initState = avoidPreciseVars . map (\(SapicLVar lvar _) -> lvar) $ S.toList $ varsProc p
+        initState = avoid . map (\(SapicLVar lvar _) -> lvar) $ S.toList $ varsProc p
 
 renameUnique' ::
   (MonadFresh m, Apply (Subst Name LVar) ann, GoodAnnotation ann) =>

@@ -35,7 +35,6 @@ import Sapic.Annotation
 -- import Theory.Model.Rule
 -- import Data.Typeable
 -- import qualified Data.Set                   as S
--- import Control.Monad.Trans.FastFresh
 
 -- | Return subprocess at position p. Throw exceptions if p is an invalid
 -- positions.
