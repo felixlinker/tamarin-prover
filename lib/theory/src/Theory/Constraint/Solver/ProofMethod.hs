@@ -193,11 +193,11 @@ data Result =
     Solved
   -- ^ A dependency graph was found.
   | Contradictory (Maybe Contradiction)
+  -- ^ A contradiction could be derived, possibly with a reason. The single
+  --    formula constraint in the system.
+  | Unfinishable
   -- ^ The proof cannot be finished (due to reducible operators in subterms or
   --   because a solution was found after weakening).
-  | Unfinishable
-   -- ^ A contradiction could be derived, possibly with a reason. The single
-  --    formula constraint in the system.
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | Sound transformations of sequents.
