@@ -15,7 +15,7 @@ import Control.Monad.Trans
 import qualified Control.Monad.State.Lazy   as L
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Reader
-import Control.Monad.Fresh
+import Control.Monad.Trans.PreciseFresh
 
 
 ------------------------------------------------------------------------------

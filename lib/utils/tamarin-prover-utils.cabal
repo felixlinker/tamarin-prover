@@ -65,7 +65,6 @@ library
         Control.Basics
         Control.Monad.Fresh
         Control.Monad.Trans.PreciseFresh
-        Control.Monad.Trans.FastFresh
         Control.Monad.Bind
         Control.Monad.Disj
 

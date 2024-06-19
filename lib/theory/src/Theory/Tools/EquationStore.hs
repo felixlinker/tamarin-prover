@@ -78,7 +78,6 @@ import           Data.Maybe
 import qualified Data.Set              as S
 import           Extension.Data.Label  hiding (for, get)
 import qualified Extension.Data.Label  as L
--- import           Extension.Data.Monoid
 
 ------------------------------------------------------------------------------
 -- Equation Store                                                --

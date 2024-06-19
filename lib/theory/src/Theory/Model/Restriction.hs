@@ -29,7 +29,7 @@ module Theory.Model.Restriction (
 
 import           Control.DeepSeq
 import qualified Control.Monad.State           as State
-import           Control.Monad.Trans.FastFresh (evalFreshT)
+import           Control.Monad.Fresh           (evalFreshT)
 import           Extension.Data.Label          hiding (get)
 import           GHC.Generics                  (Generic)
 import           Prelude                       hiding (id)
@@ -89,7 +89,7 @@ rewrite :: Traversable syn2 =>
            ProtoFormula syn2 s c2 LVar
            -> (ProtoFormula syn2 s c2 LVar,
                M.Map LVar (Term (Lit c2 LVar)))
-rewrite f = State.runState (evalFreshT (traverseFormulaAtom fAt' f) 0 ) M.empty
+rewrite f = State.runState (evalFreshT (traverseFormulaAtom fAt' f) M.empty) M.empty
     where
                 fAt' atom = Ato <$> traverse fAt atom
                 fAt t -- traverse into term and substitute all subterms that

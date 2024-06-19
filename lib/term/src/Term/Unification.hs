@@ -236,8 +236,7 @@ unifyRaw l0 r0 = do
        (Lit (Var vl), Lit (Var vr))
          | vl == vr  -> return ()
          | otherwise -> case (lvarSort vl, lvarSort vr) of
-             (sl, sr) | sl == sr                 -> if vl < vr then elim vr l
-                                                    else elim vl r
+             (sl, sr) | sl == sr                 -> elim vl r
              _        | sortGeqLTerm sortOf vl r -> elim vl r
              -- If unification can succeed here, then it must work by
              -- elimating the right-hand variable with the left-hand side.

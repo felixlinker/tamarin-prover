@@ -27,8 +27,8 @@ import Theory.Sapic
 import Data.Typeable
 import Data.Maybe
 import qualified Data.Set as S
+import qualified Data.Map as M
 import Extension.Data.Label
-import Control.Monad.Trans.FastFresh   ()
 import Sapic.Exceptions
 import Sapic.Annotation
 import Sapic.SecretChannels
@@ -62,7 +62,7 @@ translate th = case theoryProcesses th of
                   $ annotateSecretChannels
                   $ propagateNames
                   $ toAnProcess p
-                an_proc <- evalFreshT (annotateLocks an_proc_pre) 0
+                an_proc <- evalFreshT (annotateLocks an_proc_pre) M.empty
                 -- compute initial rules
                 (initRules,initTx) <- 
                              checkOps transReport (reportInit an_proc)

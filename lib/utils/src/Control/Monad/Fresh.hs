@@ -39,5 +39,5 @@ import Control.Monad.Fix
 import Control.Monad.Trans
 
 import Control.Monad.Fresh.Class
-import Control.Monad.Trans.FastFresh hiding (freshIdents)
+import Control.Monad.Trans.PreciseFresh hiding (freshIdents)
 

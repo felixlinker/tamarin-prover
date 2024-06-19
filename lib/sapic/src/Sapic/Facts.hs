@@ -58,7 +58,6 @@ import Data.Bits
 import qualified Data.Set as S
 import Data.Color
 import qualified Data.List              as List
--- import Control.Monad.Trans.FastFresh
 
 -- | Facts that are used as actions
 data TransAction =
