@@ -283,17 +283,17 @@ execProofMethod ctxt method sys =
     case method of
       Sorry _               -> return M.empty
       Finished _            -> return M.empty
-      Simplify              -> process $ return ""  -- @process@ simplifies
-      Induction             -> getInductionCases sys >>= process . induction
-      SolveGoal goal        -> process $ solve goal
+      Simplify              -> return $ process $ return "" -- @process@ simplifies
+      Induction             -> process . induction <$> getInductionCases sys
+      SolveGoal goal        -> return $ process $ solve goal
   where
-    process :: Reduction CaseName -> Maybe (M.Map CaseName System)
+    process :: Reduction CaseName -> M.Map CaseName System
     process m =
       let cases =   removeRedundantCases ctxt [] snd
                   . map fst
                   . getDisj $ runReduction cleanup ctxt sys (avoid sys)
-      in Just $ M.fromListWith (error "case names not unique")
-              $ uniqueListBy (comparing fst) id distinguish cases
+      in  M.fromListWith (error "case names not unique")
+            $ uniqueListBy (comparing fst) id distinguish cases
       where
         cleanup :: Reduction CaseName
         cleanup = do
