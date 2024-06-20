@@ -292,11 +292,8 @@ execProofMethod ctxt method sys =
       let cases =   removeRedundantCases ctxt [] snd
                   . map fst
                   . getDisj $ runReduction cleanup ctxt sys (avoid sys)
-          newCases = Just $ M.fromListWith (error "case names not unique")
-                          $ uniqueListBy (comparing fst) id distinguish cases
-      in case cases of
-        []              -> Just M.empty
-        _               -> newCases
+      in Just $ M.fromListWith (error "case names not unique")
+              $ uniqueListBy (comparing fst) id distinguish cases
       where
         cleanup :: Reduction CaseName
         cleanup = do
