@@ -293,7 +293,8 @@ execProofMethod ctxt method sys =
                   . map fst
                   . getDisj $ runReduction cleanup ctxt sys (avoid sys)
       in  M.fromListWith (error "case names not unique")
-            $ uniqueListBy (comparing fst) id distinguish cases
+            $ uniqueListBy (comparing fst) id distinguish
+            $ zipWith (\r f -> L.modify sId f <$> r) cases (subCaseIDs $ length cases)
       where
         cleanup :: Reduction CaseName
         cleanup = do

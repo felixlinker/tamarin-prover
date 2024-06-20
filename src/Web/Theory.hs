@@ -517,7 +517,7 @@ subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf =
         prettyApplicableProofMethods se
         ++
         [ text ""
-        , withTag "h3" [] (text "Constraint system")
+        , withTag "h3" [] (text $ "Constraint system (id: " ++ show (get sId se) ++ ")")
         ] ++
         [ refDotPath renderImgUrl tidx (TheoryProof lemma proofPath)
         | nonEmptyGraph se ]

@@ -237,6 +237,11 @@ module Theory.Constraint.System (
   , isDiffSystem
   , sDiffSystem
 
+  , sId
+  , SystemID(..)
+  , rootID
+  , subCaseIDs
+
   -- * Formula simplification
   , impliedFormulas
 
@@ -259,6 +264,8 @@ import           Prelude                              hiding (id, (.))
 import           GHC.Generics                         (Generic)
 
 import           Data.Binary
+import qualified Data.Word                            as W
+import qualified Data.Bits                            as B
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
 import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy)
@@ -295,6 +302,9 @@ import           System.Directory                     (doesFileExist)
 import           System.FilePath
 import           Text.Show.Functions()
 import           Utils.Misc 
+import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString as SBS
+import qualified Data.ByteString.Builder as BSB
 
 ----------------------------------------------------------------------
 -- ClassifiedRules
@@ -380,6 +390,39 @@ data GoalStatus = GoalStatus
     }
     deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
+data SystemID = SystemID Int W.Word8 BS.ByteString
+  deriving( Eq, Ord, Generic, NFData, Binary )
+
+instance Show SystemID where
+  show (SystemID off acc bs) =
+    let bw = B.finiteBitSize acc  -- bit-width
+        hbs = SBS.toStrict $ if off /= 0 then BS.cons acc bs else bs
+    in      show (SBS.length hbs * bw - ((bw - off) `mod` bw))
+        ++  "-"
+        ++  BC.unpack (SBS.toStrict (BSB.toLazyByteString (BSB.byteStringHex hbs)))
+
+rootID :: SystemID
+rootID = SystemID 1 B.zeroBits BS.empty
+
+subCaseIDs :: Int -> [SystemID -> SystemID]
+subCaseIDs n
+  | n < 1 = error "cannot count to smaller than 1"
+  | otherwise =
+    let width = 1 `max` ceiling (logBase 2 (fromIntegral n) :: Float) :: Int
+    in if width > 29 then error "overflow" else map (inc width) [0..n - 1]
+    where
+      inc :: Int -> Int -> SystemID -> SystemID
+      inc width i s@(SystemID off acc bs)
+        | width <= 0  = s
+        | otherwise   =
+          let accSize = B.finiteBitSize acc
+              head' = acc B..|. fromIntegral (B.shiftL i off)
+              savedBits = (accSize - off) `min` width
+              sid' = if accSize <= savedBits + off
+                then SystemID 0 B.zeroBits (BS.cons head' bs)
+                else SystemID (off + savedBits) head' bs
+          in inc (width - savedBits) (B.shiftR i savedBits) sid'
+
 -- | A constraint system.
 data System = System
     { _sNodes          :: M.Map NodeId RuleACInst
@@ -395,6 +438,7 @@ data System = System
     , _sNextGoalNr     :: Integer
     , _sSourceKind     :: SourceKind
     , _sDiffSystem     :: Bool
+    , _sId             :: SystemID
     }
     -- NOTE: Don't forget to update 'substSystem' in
     -- "Constraint.Solver.Reduction" when adding further fields to the
@@ -823,7 +867,7 @@ emptySystem :: SourceKind -> Bool -> System
 emptySystem d isdiff = System
     M.empty S.empty S.empty Nothing emptySubtermStore emptyEqStore
     S.empty S.empty S.empty
-    M.empty 0 d isdiff
+    M.empty 0 d isdiff rootID
 
 -- TODO: I do not like the second conjunct; this should be done cleaner
 isInitialSystem :: System -> Bool
@@ -1825,13 +1869,13 @@ instance Apply LNSubst SourceKind where
     apply = const id
 
 instance Apply LNSubst System where
-    apply subst (System a b c d e f g h i j k l m) =
+    apply subst (System a b c d e f g h i j k l m n) =
         System (apply subst a)
         -- we do not apply substitutions to node variables, so we do not apply them to the edges either
         b
         (apply subst c) (apply subst d)
         (apply subst e) (apply subst f) (apply subst g) (apply subst h) (apply subst i)
-        j k (apply subst l) (apply subst m)
+        j k (apply subst l) (apply subst m) n
 
 instance HasFrees SourceKind where
     foldFrees = const mempty
@@ -1844,7 +1888,7 @@ instance HasFrees GoalStatus where
     mapFrees  = const pure
 
 instance HasFrees System where
-    foldFrees fun (System a b c d e f g h i j k l m) =
+    foldFrees fun (System a b c d e f g h i j k l m _) =
         foldFrees fun a `mappend`
         foldFrees fun b `mappend`
         foldFrees fun c `mappend`
@@ -1859,7 +1903,7 @@ instance HasFrees System where
         foldFrees fun l `mappend`
         foldFrees fun m
 
-    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m) =
+    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n) =
         foldFreesOcc fun ("a":ctx') a {- `mappend`
         foldFreesCtx fun ("b":ctx') b `mappend`
         foldFreesCtx fun ("c":ctx') c `mappend`
@@ -1873,7 +1917,7 @@ instance HasFrees System where
         foldFreesCtx fun ("k":ctx') k -}
       where ctx' = "system":ctx
 
-    mapFrees fun (System a b c d e f g h i j k l m) =
+    mapFrees fun (System a b c d e f g h i j k l m n) =
         System <$> mapFrees fun a
                <*> mapFrees fun b
                <*> mapFrees fun c
@@ -1887,6 +1931,7 @@ instance HasFrees System where
                <*> mapFrees fun k
                <*> mapFrees fun l
                <*> mapFrees fun m
+               <*> pure n
 
 instance HasFrees Source where
     foldFrees f th =
@@ -1919,11 +1964,11 @@ compareNodesUpToNewVars n1 n2 = compareListsUpToNewVars (M.toAscList n1) (M.toAs
 compareSystemsUpToNewVars :: System -> System -> Ordering
 -- when we have trace systems, we can ignore new variable instantiations
 compareSystemsUpToNewVars
-   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False)
-   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False)
+   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _)
+   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _)
        = if compareNodes == EQ then
-            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False)
-                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False)
+            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False rootID)
+                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False rootID)
          else
             compareNodes
         where
