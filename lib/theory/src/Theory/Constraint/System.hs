@@ -869,10 +869,8 @@ emptySystem d isdiff = System
     S.empty S.empty S.empty
     M.empty 0 d isdiff rootID
 
--- TODO: I do not like the second conjunct; this should be done cleaner
 isInitialSystem :: System -> Bool
-isInitialSystem sys = null (L.get sSolvedFormulas sys) && not (S.member bot (L.get sFormulas sys))
-  where bot = GDisj (Disj [])
+isInitialSystem = (rootID ==) . L.get sId
 
 -- | The empty diff constraint system.
 emptyDiffSystem :: DiffSystem
