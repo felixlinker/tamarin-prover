@@ -1507,7 +1507,6 @@ getAppendNewLemmasR idx fileName = withTheory idx $ \ti -> do
             Just nthy -> do
                             nidx <- replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
                             return $ responseToJson (JsonAlert $ "Appended lemmas to " `T.append` (T.pack srcThy))
-                            --return $ responseToJson (JsonRedirect $ T.pack $ "/thy/trace/" ++ show nidx ++ "/overview")
 
 -- | Prompt downloading of theory.
 getDownloadTheoryDiffR :: TheoryIdx -> String -> Handler (ContentType, Content)
