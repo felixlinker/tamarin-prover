@@ -1496,7 +1496,7 @@ getAppendNewLemmasR :: TheoryIdx -> String -> Handler Value
 getAppendNewLemmasR idx fileName = withTheory idx $ \ti -> do
     yesod <- getYesod
     let workDirectory = workDir yesod
-        srcThy = workDirectory ++"/"++ fileName
+        srcThy =  workDirectory ++"/"++ fileName
         allptxts = foldl (\ p (Lemma _ pt modified _ _ _ _) -> if modified==True then p ++ "\n\n" ++ pt else p)
                          "" (getLemmas (tiTheory ti))
     liftIO $ if allptxts /= "" 

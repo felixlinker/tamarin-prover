@@ -48,6 +48,7 @@ import           Data.Version          (showVersion)
 -- import           System.Locale
 
 import           Paths_tamarin_prover  (version)
+import System.FilePath (takeFileName)
 
 --
 -- Templates
@@ -212,8 +213,11 @@ headerTpl info = [whamlet|
             -- <li><a class=edit-link href=@{EditPathR idx (TheoryLemma "")}>Add lemma</a>
             --
     idx = tiIndex info
-    filename = get thyName (tiTheory info) ++ ".spthy"
-
+    filename = getFileName (tiOrigin info) --get thyName (tiTheory info) ++ ".spthy"
+    
+    getFileName (Local filePath) = takeFileName filePath
+    getFileName (Upload n) = n
+    getFileName Interactive = "No file name"
     {- use this snipped to reactivate saving local theories
     localTheory (Local _) = True
     localTheory _         = False
