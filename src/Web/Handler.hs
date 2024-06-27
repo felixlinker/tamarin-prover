@@ -1493,20 +1493,21 @@ getDownloadTheoryR idx _ = do
 
 -- | prompt appending of the current theory's lemmas to their source file
 getAppendNewLemmasR :: TheoryIdx -> String -> Handler Value
-getAppendNewLemmasR idx fileName = withTheory idx $ \ti -> do
-    yesod <- getYesod
-    let workDirectory = workDir yesod
-        srcThy =  workDirectory ++"/"++ fileName
-        allptxts = foldl (\ p (Lemma _ pt modified _ _ _ _) -> if modified==True then p ++ "\n\n" ++ pt else p)
-                         "" (getLemmas (tiTheory ti))
-    liftIO $ if allptxts /= "" 
-        then appendFile srcThy $ "\n/*" ++ allptxts ++ "\n*/"
-        else return ()
-    case modifyLemma (\(Lemma n pt _ tq f a lp)  -> (Lemma n pt False tq f a lp) ) (tiTheory ti) of
-            Nothing -> return $ responseToJson (JsonAlert $ "Appended lemmas to " `T.append` (T.pack srcThy))
+getAppendNewLemmasR idx _ = withTheory idx $ \ti -> do
+    let maybePath = case tiOrigin ti of 
+                        Local path -> Just path 
+                        _ ->  Nothing 
+        srcThy = fromMaybe "" maybePath 
+        allptxts = foldl (\ p (Lemma _ pt modified _ _ _ _) -> if modified then p ++ "\n\n" ++ pt else p) "" (getLemmas (tiTheory ti))
+
+    liftIO $ when (allptxts /= "" && isJust maybePath) $ appendFile srcThy $ "\n/*" ++ allptxts ++ "\n*/"
+
+    if isNothing maybePath then return $ responseToJson (JsonAlert $ "No origin found for the current theory.")
+    else case modifyLemma (\(Lemma n pt _ tq f a lp)  -> Lemma n pt False tq f a lp ) (tiTheory ti) of
+            Nothing -> return $ responseToJson $ JsonAlert $ "Appended lemmas to " `T.append` T.pack srcThy
             Just nthy -> do
                             nidx <- replaceTheory (Just ti) Nothing nthy ("modified" ++ show idx) idx
-                            return $ responseToJson (JsonAlert $ "Appended lemmas to " `T.append` (T.pack srcThy))
+                            return $ responseToJson $ JsonAlert $ "Appended lemmas to " `T.append` T.pack srcThy
 
 -- | Prompt downloading of theory.
 getDownloadTheoryDiffR :: TheoryIdx -> String -> Handler (ContentType, Content)
