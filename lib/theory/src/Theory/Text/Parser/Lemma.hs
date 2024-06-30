@@ -69,8 +69,20 @@ protoLemma parseFormula workDir = try $ do
   formula <- doubleQuoted parseFormula
   pskelet <- startProofSkeleton <|> pure (unproven ())
   end <- getInput
-  let inputString = take (length start - length end) start
+  let inputString = removeComments $ take (length start - length end) start
   return $ skeletonLemma name inputString False attr quan formula pskelet
+  where
+    removeComments [] = []
+    removeComments('\n' : '/' : '/' : rest) = removeComments (dropWhile (/= '\n') rest)
+    removeComments('/' : '/' : rest) = removeComments (dropWhile (/= '\n') rest)
+    removeComments('\n': '/' : '*' : rest) = removeCommentBlock rest
+    removeComments('/' : '*' : rest) = removeCommentBlock rest
+    removeComments(x : rest) = x : removeComments rest
+    
+    removeCommentBlock  ('*' : '/' : '\n' : rest) = removeComments rest
+    removeCommentBlock  ('*' : '/' : rest) = removeComments rest
+    removeCommentBlock  (_ : rest) = removeCommentBlock rest
+    removeCommentBlock  [] = []
 
 -- | Parse a lemma.
 lemma :: Maybe FilePath -> Parser (SyntacticLemma ProofSkeleton)
