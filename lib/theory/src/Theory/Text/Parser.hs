@@ -295,7 +295,6 @@ theory inFile = do
        addItems inFile0 thy
 
     rewriteLemmaOracle inFile' lem =
-      --traceM $ show (get lAttributes lem)
       set lAttributes (map (rwOracleLemHeurAttr inFile') lattrs) lem
       where
         lattrs  = get lAttributes lem

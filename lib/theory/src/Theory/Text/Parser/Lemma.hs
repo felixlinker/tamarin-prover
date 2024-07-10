@@ -59,6 +59,21 @@ traceQuantifier = asum
   , symbol "exists-trace"  *> pure ExistsTrace
   ]
 
+removeComments :: String -> String
+removeComments [] = []
+removeComments('\n' : '/' : '/' : rest) = removeComments (dropWhile (/= '\n') rest)
+removeComments('/' : '/' : rest) = removeComments (dropWhile (/= '\n') rest)
+removeComments('\n': '/' : '*' : rest) = removeCommentBlock rest
+removeComments('/' : '*' : rest) = removeCommentBlock rest
+removeComments(x : rest) = x : removeComments rest
+
+removeCommentBlock :: String -> String
+removeCommentBlock  ('*' : '/' : '\n' : rest) = removeComments rest
+removeCommentBlock  ('*' : '/' : rest) = removeComments rest
+removeCommentBlock  (_ : rest) = removeCommentBlock rest
+removeCommentBlock  [] = []
+
+
 -- | parse a ProtoLemma
 protoLemma :: Parser f -> Maybe FilePath -> Parser (ProtoLemma f ProofSkeleton)
 protoLemma parseFormula workDir = try $ do
@@ -71,18 +86,7 @@ protoLemma parseFormula workDir = try $ do
   end <- getInput
   let inputString = removeComments $ take (length start - length end) start
   return $ skeletonLemma name inputString False attr quan formula pskelet
-  where
-    removeComments [] = []
-    removeComments('\n' : '/' : '/' : rest) = removeComments (dropWhile (/= '\n') rest)
-    removeComments('/' : '/' : rest) = removeComments (dropWhile (/= '\n') rest)
-    removeComments('\n': '/' : '*' : rest) = removeCommentBlock rest
-    removeComments('/' : '*' : rest) = removeCommentBlock rest
-    removeComments(x : rest) = x : removeComments rest
-    
-    removeCommentBlock  ('*' : '/' : '\n' : rest) = removeComments rest
-    removeCommentBlock  ('*' : '/' : rest) = removeComments rest
-    removeCommentBlock  (_ : rest) = removeCommentBlock rest
-    removeCommentBlock  [] = []
+
 
 -- | Parse a lemma.
 lemma :: Maybe FilePath -> Parser (SyntacticLemma ProofSkeleton)
@@ -99,7 +103,8 @@ lemmaWithMsig s = (return s >>) <$> plainLemma
 -- | Parse a diff lemma.
 diffLemma :: Maybe FilePath -> Parser (DiffLemma DiffProofSkeleton)
 diffLemma workDir = do
-                    traceM "diffLemma"
-                    skeletonDiffLemma <$> (symbol "diffLemma" *> identifier)
-                              <*> (option [] $ list (lemmaAttribute True workDir))
-                              <*> (colon *> (diffProofSkeleton <|> pure (diffUnproven ())))
+    traceM "diffLemma"
+    skeletonDiffLemma 
+     <$> (symbol "diffLemma" *> identifier)
+     <*> (option [] $ list (lemmaAttribute True workDir))
+     <*> (colon *> (diffProofSkeleton <|> pure (diffUnproven ())))

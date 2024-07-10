@@ -457,9 +457,8 @@ modifyLemma :: (Lemma p -> Lemma p) -> Theory sig c r p s -> Maybe (Theory sig c
 modifyLemma f thy = do
     return $ modify thyItems (map mlemma) thy
   where
-    mlemma i = case i of
-                (LemmaItem l) -> (LemmaItem (f l))
-                _ -> i
+    mlemma (LemmaItem l) = (LemmaItem (f l))
+    mlemma i             = i
 
 addProcess :: PlainProcess -> Theory sig c r p TranslationElement -> Theory sig c r p TranslationElement
 addProcess l = modify thyItems (++ [TranslationItem (ProcessItem l)])
@@ -635,15 +634,10 @@ lookupLemma :: String -> Theory sig c r p s -> Maybe (Lemma p)
 lookupLemma name = find ((name ==) . L.get lName) . theoryLemmas
 
 lookupLemmaIndex :: String -> Theory sig c r p s -> Maybe Int
-lookupLemmaIndex name ti = fmap fst $ listToMaybe $ [(i,l) | (i,(LemmaItem l))<-(zip [1..] $ L.get thyItems ti) , (name == L.get lName l) ]
-
+lookupLemmaIndex name ti = (+1) <$> findIndex (\i -> case i of (LemmaItem l) -> name == L.get lName l; _ -> False) (L.get thyItems ti)
 
 getLemmaPreItems :: String -> Theory sig c r p s -> [TheoryItem r p s]
-getLemmaPreItems name ti = 
-    case lookupLemmaIndex name ti of
-        Nothing -> []
-        Just li -> [i | (nr, i) <- (zip [1..] $ L.get thyItems ti), nr < li]  
-
+getLemmaPreItems name ti = fromMaybe [] $ (\li -> [i | (nr, i) <- zip [1..] (L.get thyItems ti), nr < li]) <$> lookupLemmaIndex name ti
 
 -- | Find the case test with the given name.
 lookupCaseTest :: CaseIdentifier -> Theory sig c r p TranslationElement -> Maybe CaseTest

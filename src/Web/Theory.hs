@@ -107,7 +107,7 @@ applyMethodAtPath thy lemmaName proofPath prover i = do
        replaceSorryProver (oneStepProver Simplify)     `mappend`
        replaceSorryProver (contradictionProver)        `mappend`
        replaceSorryProver (oneStepProver Unfinishable) `mappend`
-       replaceSorryProver (oneStepProver Solved)       
+       replaceSorryProver (oneStepProver Solved)
       )
 
 applyMethodAtPathDiff :: ClosedDiffTheory -> Side -> String -> ProofPath
@@ -291,7 +291,6 @@ lemmaIndex :: HtmlDocument d
            -> Lemma IncrementalProof      -- ^ The lemma
            -> d
 lemmaIndex renderUrl tidx l =
-
     ( markStatus (psInfo $ root annPrf) $
         (kwLemma <-> prettyLemmaName l <> colon)
         $-$
@@ -1735,7 +1734,7 @@ nextThyPath thy = go
     go (TheorySource RawSource _ _)     = TheorySource RefinedSource 0 0
     go (TheorySource RefinedSource _ _) = fromMaybe TheoryHelp firstLemma
     go (TheoryLemma lemma)              = TheoryProof lemma []
-    go (TheoryEdit _)                   = TheoryHelp --Alice's prob worng 
+    go (TheoryEdit _)                   = TheoryHelp 
     go (TheoryAdd _)                    = TheoryHelp
     go (TheoryDelete _)                 = TheoryHelp
     go (TheoryProof l p)
@@ -1829,7 +1828,7 @@ prevThyPath thy = go
     go TheoryTactic                      = TheoryRules
     go (TheorySource RawSource _ _)      = TheoryTactic
     go (TheorySource RefinedSource _ _)  = TheorySource RawSource 0 0
-    go (TheoryEdit  _ )                  = TheoryHelp --Alice Edit
+    go (TheoryEdit  _ )                  = TheoryHelp 
     go (TheoryAdd _)                     = TheoryHelp
     go (TheoryDelete _)                  = TheoryHelp
     go (TheoryLemma l)
@@ -1948,7 +1947,7 @@ nextSmartThyPath thy = go
     go TheoryTactic                       = TheorySource RawSource 0 0
     go (TheorySource RawSource _ _)       = TheorySource RefinedSource 0 0
     go (TheorySource RefinedSource   _ _) = fromMaybe TheoryHelp firstLemma
-    go (TheoryEdit  _ )                   = TheoryHelp --Alice idk
+    go (TheoryEdit  _ )                   = TheoryHelp 
     go (TheoryAdd _ )                     = TheoryHelp
     go (TheoryDelete _)                   = TheoryHelp
     go (TheoryLemma lemma)                = TheoryProof lemma []
@@ -2049,7 +2048,7 @@ prevSmartThyPath thy = go
     go TheoryTactic                        = TheoryRules
     go (TheorySource RawSource _ _)        = TheoryTactic
     go (TheorySource RefinedSource   _ _)  = TheorySource RawSource 0 0
-    go (TheoryEdit  _)                     = TheoryHelp --Alice idk
+    go (TheoryEdit  _)                     = TheoryHelp 
     go (TheoryAdd _ )                      = TheoryHelp
     go (TheoryDelete _ )                   = TheoryHelp
     go (TheoryLemma l)
@@ -2229,15 +2228,13 @@ annotateLemmaProof :: Lemma IncrementalProof
                    -> Proof (Maybe System, ProofStepColor)
 annotateLemmaProof lem =
 --     error (show (get lProof lem) ++ " - " ++ show prf)
-    mapProofInfo (second (interpret)) prf
+    mapProofInfo (second interpret) prf
   where
     prf = annotateProof annotate $ get lProof lem
     annotate step cs  =
         case get lProof lem of
-           LNode (ProofStep  Invalidated    _)  _ -> (psInfo step, InvalidatedProof)
-           _                                      -> ( psInfo step
-                                                      , mconcat $ proofStepStatus step : incomplete ++ map snd cs
-                                                     )
+           LNode (ProofStep  Invalidated _) _ -> (psInfo step, InvalidatedProof)
+           _                                  -> ( psInfo step, mconcat $ proofStepStatus step : incomplete ++ map snd cs)
       where
         incomplete = if isNothing (psInfo step) then [IncompleteProof] else []
 

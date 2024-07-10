@@ -69,7 +69,6 @@ module Theory.Model.Formula (
   -- ** Pretty-Printing
   , prettyLNFormula
   , prettySyntacticLNFormula
---  , ugglyLNFormula
 
   ) where
 
