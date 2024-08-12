@@ -302,15 +302,17 @@ editLemma idx (TheoryEdit lemmaName) (Lemma n pt m tq f a lp) = do
                 Right i -> Web.Handler.addLemma i maybelemmaIndex (Lemma n pt m tq f a lp)
 
 
-editLemma idx (TheoryAdd lemmaName) l = do
+editLemma idx (TheoryAdd lemmaName) (Lemma n pt m tq f a lp)  = do
     maybelemmaIndex <- withTheory idx $ \ti -> do
                             return $ case lemmaName of
                                 "<first>" -> do
-                                            let (Lemma n _ _ _ _ _ _ ) = head $ theoryLemmas $ tiTheory ti
-                                            (\x -> x - 1) <$> lookupLemmaIndex n (tiTheory ti)
+                                            let (Lemma n' _ _ _ _ _ _ ) = head $ theoryLemmas $ tiTheory ti
+                                            (\x -> x - 1) <$> lookupLemmaIndex n' (tiTheory ti)
                                 _ -> lookupLemmaIndex lemmaName (tiTheory ti)
-    Web.Handler.addLemma idx maybelemmaIndex l
 
+    if SourceLemma `elem` a
+        then return $ Left "Can't add source lemmas for now"
+        else Web.Handler.addLemma idx maybelemmaIndex (Lemma n pt m tq f a lp)
 
 editLemma _ _ _ = return $ Left "called editLemma with weird input"
 
