@@ -21,6 +21,7 @@ import Text.PrettyPrint.Highlight
 import Theory.Text.Pretty
 import Control.Category
 import Data.Maybe
+import Theory.Constraint.System.Results (prettyResult)
 
 ------------------------------------------------------------------------------
 -- Specific proof types
@@ -78,7 +79,7 @@ prettyIncrementalProof :: HighlightDocument d => IncrementalProof -> d
 prettyIncrementalProof = prettyProofWith ppStep (const id)
   where
     ppStep step = sep
-      [ prettyProofMethod (psMethod step)
+      [ either prettyProofMethod prettyResult (psMethod step)
       , if isNothing (psInfo step) then multiComment_ ["unannotated"]
                                    else emptyDoc
       ]

@@ -279,6 +279,17 @@ a.remove-step:hover {
     filter: alpha(opacity=100);
 }
 
+div.weaken {
+    overflow-wrap: break-word;
+    white-space: normal;
+    word-break: break-all;
+}
+
+a.weaken {
+    margin: 3pt;
+    white-space: nowrap;
+}
+
 ul#navigation {
     list-style: none;
     float: right;

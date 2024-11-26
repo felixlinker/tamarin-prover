@@ -37,6 +37,7 @@ import           Safe
 
 import qualified Data.Map                                as M
 import qualified Data.Set                                as S
+import qualified Data.List.NonEmpty                      as NE
 
 import           Control.Basics
 import           Control.Category
@@ -57,7 +58,6 @@ import           Extension.Prelude
 
 import           Theory.Constraint.Solver.Contradictions (contradictorySystem)
 import           Theory.Constraint.Solver.Goals
-import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.Solver.Simplify
 import           Theory.Constraint.System
@@ -104,6 +104,7 @@ initialSource ctxt restrictions goal =
   where
     polish ((name, se), _) = ([name], se)
     se0   = insertLemmas restrictions $ emptySystem RawSource $ get pcDiffContext ctxt
+    -- TODO: I might need to come up with the FreshState for se0 differently
     cases = polish <$> runReduction instantiate ctxt se0 (avoid (goal, se0))
     instantiate = do
         insertGoal goal False
@@ -162,6 +163,8 @@ solveAllSafeGoals ths' openChainsLimit =
         SplitG _      -> doSplit --extensiveSplitting &&
         -- SplitG _      -> False
         SubtermG _    -> doSplit
+        Weaken _ -> False
+        Cut _ -> False
 
     usefulGoal (_, (_, Useful)) = True
     usefulGoal _                = False
@@ -175,8 +178,8 @@ solveAllSafeGoals ths' openChainsLimit =
     solve ths caseNames lastChainTerm chainsLeft = do
         simplifySystem
         ctxt <- ask
-        contradictoryIf =<< (gets (contradictorySystem ctxt))
-        goals  <- gets openGoals
+        contradictoryIf =<< gets (contradictorySystem ctxt . NE.singleton)
+        goals  <- gets (annotateGoalsSimple ctxt)
         chains <- gets unsolvedChains
         -- Filter out chain goals where the term in the conclusion is identical to one we just solved,
         -- as this indicates our chain can loop
@@ -296,8 +299,8 @@ matchToGoal ctxt th0 goalTerm =
   where
     -- this code reflects the precomputed cases in 'precomputeSources'
     maybeMatcher (PremiseG _ faTerm, PremiseG _ faPat)  = factTag faTerm == factTag faPat
-    maybeMatcher ( ActionG _ (Fact KUFact _ [tTerm])
-                 , ActionG _ (Fact KUFact _ [tPat]))      =
+    maybeMatcher ( ActionG _ (Fact KUFact _ _ [tTerm])
+                 , ActionG _ (Fact KUFact _ _ [tPat]))      =
         case (viewTerm tPat, viewTerm tTerm) of
             (Lit  (Var v),_) | lvarSort v == LSortFresh -> sortOfLNTerm tPat == LSortFresh
             (FApp o _, FApp o' _)                       -> o == o'
@@ -403,18 +406,18 @@ precomputeSources parameters ctxt restrictions =
     protoGoals = someProtoGoal <$> absProtoFacts
     msgGoals   = someKUGoal <$> absMsgFacts
 
-    getProtoFact (Fact KUFact _ _ ) = mzero
-    getProtoFact (Fact KDFact _ _ ) = mzero
-    getProtoFact fa                 = return fa
+    getProtoFact (Fact KUFact _ _ _) = mzero
+    getProtoFact (Fact KDFact _ _ _) = mzero
+    getProtoFact fa                  = return fa
 
     -- remove annotations to avoid precomputing the same source with multiple annotations
-    absFact (Fact tag _ ts) = (tag, length ts)
+    absFact (Fact tag _ inj ts) = (tag, inj, length ts)
 
     nMsgVars n = [ varTerm (LVar "t" LSortMsg i) | i <- [1..fromIntegral n] ]
 
-    someProtoGoal :: (FactTag, Int) -> Goal
-    someProtoGoal (tag, arity) =
-        PremiseG (someNodeId, PremIdx 0) (Fact tag S.empty (nMsgVars arity))
+    someProtoGoal :: (FactTag, Maybe [[MonotonicBehaviour]], Int) -> Goal
+    someProtoGoal (tag, inj, arity) =
+        PremiseG (someNodeId, PremIdx 0) (Fact tag S.empty inj (nMsgVars arity))
 
     someKUGoal :: LNTerm -> Goal
     someKUGoal m = ActionG someNodeId (kuFact m)
@@ -425,7 +428,7 @@ precomputeSources parameters ctxt restrictions =
     rules = get pcRules ctxt
     absProtoFacts = sortednub $ do
         ru <- joinAllRules rules
-        fa@(tag,_) <- absFact <$> (getProtoFact =<< (get rConcs ru ++ get rPrems ru))
+        fa@(tag,_,_) <- absFact <$> (getProtoFact =<< (get rConcs ru ++ get rPrems ru))
         -- exclude facts handled specially by the prover
         guard (not $ tag `elem` [OutFact, InFact, FreshFact])
         return fa

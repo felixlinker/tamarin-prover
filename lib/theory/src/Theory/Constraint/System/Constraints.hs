@@ -33,9 +33,12 @@ module Theory.Constraint.System.Constraints (
 
   -- * Goal constraints
   , Goal(..)
+  , UpTo
+  , WeakenEl(..)
   , isActionGoal
   , isStandardActionGoal
   , isSubtermGoal
+  , getGoalNodeId
   , isPremiseGoal
   , isChainGoal
   , isSplitGoal
@@ -49,10 +52,12 @@ module Theory.Constraint.System.Constraints (
   , prettyLess
   , prettyGoal
   ) where
+
 import           GHC.Generics (Generic)
 import           Data.Binary
 import           Data.Data
 import           Data.Label (mkLabels)
+import qualified Data.Set as S
 
 import           Control.DeepSeq
 
@@ -64,6 +69,7 @@ import           Theory.Constraint.System.Guarded
 import           Theory.Model
 import           Theory.Text.Pretty
 import           Theory.Tools.EquationStore
+import Data.List (intersperse)
 
 ------------------------------------------------------------------------------
 -- Graph part of a sequent                                                  --
@@ -82,9 +88,12 @@ data Edge = Edge {
     }
   deriving (Show, Ord, Eq, Data, Typeable, Generic, NFData, Binary)
 
--- | A reason to explain the less
--- | Order is from the most important to the least important 
-data Reason = Formula | InjectiveFacts | Fresh | Adversary | NormalForm
+-- | Note that the default instance of Ord will order reasons from left to right
+--   (smallest to largets). The reasoning behind the ordering here is to go from
+--   the most important to the least important.
+--   Weakening relies on the invariant that the reason Adversary is introduced
+--   if and only if the less atom tracks adversary deduction.
+data Reason = KeepWeakened | Formula | InjectiveFacts | Fresh | Adversary | NormalForm
       deriving (Ord, Eq, Data, Typeable, Generic, NFData, Binary)
 
 -- Instances
@@ -93,6 +102,7 @@ instance Show Reason where
     show Fresh              = "fresh value"
     show Formula            = "formula"
     show InjectiveFacts     = "injective facts"
+    show KeepWeakened       = "keep order of weakened nodes"
     show NormalForm         = "normal form condition"
     show Adversary          = "adversary"
 
@@ -149,14 +159,27 @@ instance HasFrees LessAtom where
 -- Goals
 ------------------------------------------------------------------------------
 
+type UpTo = S.Set LNGuarded
+
+data WeakenEl
+  = WeakenLessAtom NodeId NodeId
+  | WeakenNode NodeId
+  | WeakenGoal Goal
+  | WeakenEdge Edge
+  | WeakenFormula LNGuarded
+  | WeakenCyclic
+  deriving( Eq, Ord, Show, Generic, NFData, Binary )
+
 -- | A 'Goal' denotes that a constraint reduction rule is applicable, which
 -- might result in case splits. We either use a heuristic to decide what goal
 -- to solve next or leave the choice to user (in case of the interactive UI).
 data Goal =
        ActionG LVar LNFact
-       -- ^ An action that must exist in the trace.
+       -- ^ An action that must exist in the trace. This goal resembles a
+      --    formula of form "L(t1, ...) @ x".
      | ChainG NodeConc NodePrem
-       -- ^ A destruction chain.
+       -- ^ A destruction chain. ConcIdx of NodeConc will always be 0.
+       --   This invariant is estalished by @insertGoal@.
      | PremiseG NodePrem LNFact
        -- ^ A premise that must have an incoming direct edge.
      | SplitG SplitId
@@ -165,6 +188,8 @@ data Goal =
        -- ^ A case split over a disjunction.
      | SubtermG (LNTerm, LNTerm)
        -- ^ A split of a Subterm which is in SubtermStore -> _subterms
+     | Weaken WeakenEl
+     | Cut UpTo
      deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- Indicators
@@ -198,10 +223,37 @@ isSubtermGoal :: Goal -> Bool
 isSubtermGoal (DisjG _) = True
 isSubtermGoal _         = False
 
-
+getGoalNodeId :: Goal -> Maybe NodeId
+getGoalNodeId (ActionG n _) = Just n
+getGoalNodeId _ = Nothing
 
 -- Instances
 ------------
+
+instance HasFrees WeakenEl where
+  foldFrees f (WeakenLessAtom nid1 nid2) = foldFrees f nid1 <> foldFrees f nid2
+  foldFrees f (WeakenNode nid) = foldFrees f nid
+  foldFrees f (WeakenGoal g) = foldFrees f g
+  foldFrees f (WeakenEdge e) = foldFrees f e
+  foldFrees f (WeakenFormula guarded) = foldFrees f guarded
+  foldFrees _ WeakenCyclic = mempty
+
+  foldFreesOcc _ _ _ = mempty
+
+  mapFrees f (WeakenLessAtom nid1 nid2) = WeakenLessAtom <$> mapFrees f nid1 <*> mapFrees f nid2
+  mapFrees f (WeakenNode nid) = WeakenNode <$> mapFrees f nid
+  mapFrees f (WeakenGoal g) = WeakenGoal <$> mapFrees f g
+  mapFrees f (WeakenEdge e) = WeakenEdge <$> mapFrees f e
+  mapFrees f (WeakenFormula guarded) = WeakenFormula <$> mapFrees f guarded
+  mapFrees _ WeakenCyclic = pure WeakenCyclic
+
+instance Apply LNSubst WeakenEl where
+  apply subst (WeakenLessAtom n1 n2) = WeakenLessAtom (apply subst n1) (apply subst n2)
+  apply subst (WeakenNode nid) = WeakenNode (apply subst nid)
+  apply subst (WeakenGoal g) = WeakenGoal (apply subst g)
+  apply subst (WeakenEdge e) = WeakenEdge (apply subst e)
+  apply subst (WeakenFormula f) = WeakenFormula (apply subst f)
+  apply _ WeakenCyclic = WeakenCyclic
 
 instance HasFrees Goal where
     foldFrees f goal = case goal of
@@ -211,6 +263,8 @@ instance HasFrees Goal where
         SplitG i      -> foldFrees f i
         DisjG x       -> foldFrees f x
         SubtermG p    -> foldFrees f p
+        Weaken el     -> foldFrees f el
+        Cut phis      -> foldFrees f phis
 
     foldFreesOcc  f c goal = case goal of
         ActionG i fa -> foldFreesOcc f ("ActionG":c) (i, fa)
@@ -224,6 +278,8 @@ instance HasFrees Goal where
         SplitG i      -> SplitG   <$> mapFrees f i
         DisjG x       -> DisjG    <$> mapFrees f x
         SubtermG p    -> SubtermG <$> mapFrees f p
+        Weaken el     -> Weaken <$> mapFrees f el
+        Cut upTo      -> Cut <$> mapFrees f upTo
 
 instance Apply LNSubst Goal where
     apply subst goal = case goal of
@@ -233,6 +289,8 @@ instance Apply LNSubst Goal where
         SplitG i      -> SplitG   (apply subst i)
         DisjG x       -> DisjG    (apply subst x)
         SubtermG p    -> SubtermG (apply subst p)
+        Weaken el     -> Weaken   (apply subst el)
+        Cut phis      -> Cut      (apply subst phis)
 
 
 ------------------------------------------------------------------------------
@@ -257,27 +315,45 @@ prettyNodePrem (v, PremIdx i) = parens (prettyNodeId v <> comma <-> int i)
 -- | Pretty print a edge as @src >-i--j-> tgt@.
 prettyEdge :: HighlightDocument d => Edge -> d
 prettyEdge (Edge c p) =
-    prettyNodeConc c <-> operator_ ">-->" <-> prettyNodePrem p
+    prettyNodeConc c <-> opEdge <-> prettyNodePrem p
 
 -- | Pretty print a less-atom as @src < tgt@.
 prettyLess :: HighlightDocument d => LessAtom -> d
 prettyLess (LessAtom i j r) = prettyNAtom (Less (varTerm i) (varTerm j)) <> colon <-> prettyReason r
 
+solve :: HighlightDocument d => d -> d
+solve inner = keyword_ "solve(" <-> inner <-> keyword_ ")"
+
+weaken :: HighlightDocument d => String -> d -> d
+weaken what inner = keyword_ ("weaken " ++ what ++ "(") <-> inner <-> keyword_ ")"
+
+cut :: HighlightDocument d => d -> d
+cut inner = keyword_ "cut(" <-> inner <-> keyword_ ")"
+
+prettyUpTo :: HighlightDocument d => UpTo -> d
+prettyUpTo = fsep . intersperse comma . map prettyGuarded . S.toList
+
 -- | Pretty print a goal.
 prettyGoal :: HighlightDocument d => Goal -> d
-prettyGoal (ActionG i fa) = prettyNAtom (Action (varTerm i) fa)
+prettyGoal (ActionG i fa) = solve $ prettyNAtom (Action (varTerm i) fa)
 prettyGoal (ChainG c p)   =
-    prettyNodeConc c <-> operator_ "~~>" <-> prettyNodePrem p
+    solve $ prettyNodeConc c <-> operator_ "~~>" <-> prettyNodePrem p
 prettyGoal (PremiseG (i, (PremIdx v)) fa) =
     -- Note that we can use "▷" for conclusions once we need them.
-    prettyLNFact fa <-> text ("▶" ++ subscript (show v)) <-> prettyNodeId i
+    solve $ prettyLNFact fa <-> text ("▶" ++ subscript (show v)) <-> prettyNodeId i
     -- prettyNodePrem p <> brackets (prettyLNFact fa)
-prettyGoal (DisjG (Disj []))  = text "Disj" <-> operator_ "(⊥)"
-prettyGoal (DisjG (Disj gfs)) = fsep $
+prettyGoal (DisjG (Disj []))  = solve $ text "Disj" <-> operator_ "(⊥)"
+prettyGoal (DisjG (Disj gfs)) = solve $ fsep $
     punctuate (operator_ "  ∥") (map (nest 1 . parens . prettyGuarded) gfs)
     -- punctuate (operator_ " |") (map (nest 1 . parens . prettyGuarded) gfs)
 prettyGoal (SplitG x) =
-    text "splitEqs" <> parens (text $ show (unSplitId x))
+    solve $ text "splitEqs" <> parens (text $ show (unSplitId x))
 prettyGoal (SubtermG (l,r)) =
-    prettyLNTerm l <-> operator_ "⊏" <-> prettyLNTerm r
-
+    solve $ prettyLNTerm l <-> operator_ "⊏" <-> prettyLNTerm r
+prettyGoal (Cut ut) = cut $ prettyUpTo ut
+prettyGoal (Weaken (WeakenLessAtom n1 n2)) = weaken "lessAtom" $ prettyNodeId n1 <-> opLess <-> prettyNodeId n2
+prettyGoal (Weaken (WeakenNode i)) = weaken "node" $ prettyNodeId i
+prettyGoal (Weaken (WeakenGoal g)) = weaken "goal" $ prettyGoal g
+prettyGoal (Weaken (WeakenEdge e)) = weaken "edge" $ prettyEdge e
+prettyGoal (Weaken (WeakenFormula f)) = weaken "formula" $ prettyGuarded f
+prettyGoal (Weaken WeakenCyclic) = keyword_ "minimize for cyclic proofs"

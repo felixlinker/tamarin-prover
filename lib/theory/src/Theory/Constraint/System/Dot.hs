@@ -246,7 +246,7 @@ renderLNFact fact = do
     else return $ prettyLNFact fact
 
 -- | Dot a node in record based (compact) format.
-dotNodeCompact :: Node -> Maybe String -> SeDot ()
+dotNodeCompact :: GraphNode -> Maybe String -> SeDot ()
 dotNodeCompact node manualNodeColor = do
   let v = get nNodeId node
   (graph, colorMap, dotOptions) <- ask
@@ -286,8 +286,9 @@ dotNodeCompact node manualNodeColor = do
                 | otherwise          = [("color","darkblue")]
       mkSimpleNode (render lbl) attrs
     LastActionAtom -> cacheState dsNodes v $ mkSimpleNode (show v) []
-    MissingNode (Left conc) -> cacheState dsConcs (v, conc) $ dotConcC (v, conc)
-    MissingNode (Right prem) -> cacheState dsPrems (v, prem) $ dotPremC (v, prem)
+    MissingEdgeNode (Left conc) -> cacheState dsConcs (v, conc) $ dotConcC (v, conc)
+    MissingEdgeNode (Right prem) -> cacheState dsPrems (v, prem) $ dotPremC (v, prem)
+    MissingLessAtomNode -> cacheState dsNodes v $ mkSimpleNode (show v) []
   where
     hasOutgoingEdge graph v =
       let repr = get gRepr graph
@@ -353,11 +354,11 @@ dotNodeCompact node manualNodeColor = do
             <> (if null lbl then mempty else brackets (vcat $ punctuate comma lbl))
 
 
-        isNotDiffAnnotation fa = (fa /= (Fact (ProtoFact Linear ("Diff" ++ getRuleNameDiff ru) 0) S.empty []))
+        isNotDiffAnnotation fa = (fa /= (Fact (ProtoFact Linear ("Diff" ++ getRuleNameDiff ru) 0) S.empty Nothing []))
 
         -- check if a fact is from auto-source
         isAutoSource ::  LNFact -> Bool
-        isAutoSource (Fact tag _ _) =not $ hasAutoLabel (showFactTag $ tag)
+        isAutoSource (Fact tag _ _ _) =not $ hasAutoLabel (showFactTag $ tag)
 
         -- check if a fact has the label of auto-source 
         hasAutoLabel :: String -> Bool
@@ -618,3 +619,4 @@ mergeLessEdges edges = (merged, rest)
          Fresh          -> "blue3"
          InjectiveFacts -> "purple"
          NormalForm     -> "darkorange3"
+         KeepWeakened   -> "gray"

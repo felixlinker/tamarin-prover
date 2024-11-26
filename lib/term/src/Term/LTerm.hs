@@ -140,6 +140,7 @@ import           Logic.Connectives
 
 import           Term.Rewriting.Definitions
 import           Term.VTerm
+import qualified Data.List.NonEmpty as NE
 
 ------------------------------------------------------------------------------
 -- Sorts.
@@ -784,6 +785,11 @@ instance HasFrees a => HasFrees [a] where
     foldFrees    f      = foldMap  (foldFrees f)
     foldFreesOcc f c xs = mconcat $ (map (\(i,x) -> foldFreesOcc f (show i:c) x)) $ zip [(0::Int)..] xs
     mapFrees     f      = traverse (mapFrees f)
+
+instance HasFrees a => HasFrees (NE.NonEmpty a) where
+    foldFrees f = foldMap (foldFrees f)
+    foldFreesOcc f c = foldFreesOcc f c . NE.toList
+    mapFrees f = traverse (mapFrees f)
 
 instance HasFrees a => HasFrees (Disj a) where
     foldFrees    f     = foldMap  (foldFrees f)

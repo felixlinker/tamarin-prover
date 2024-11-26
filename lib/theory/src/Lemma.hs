@@ -93,6 +93,7 @@ prettyLemmaAttribute (LemmaHeuristic h) = text ("heuristic=" ++ (prettyGoalRanki
 prettyLemmaAttribute (LemmaModule h)    = text ("output=[" ++ intercalate "," (map show h)  ++ "]")
 prettyLemmaAttribute LHSLemma           = text "left"
 prettyLemmaAttribute RHSLemma           = text "right"
+prettyLemmaAttribute NoCyclicProofs     = text "no_cyclic"
 prettyLemmaAttribute _                  = emptyDoc
 --     prettyLemmaAttribute BothLemma      = text "both"
 

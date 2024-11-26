@@ -3,6 +3,7 @@
 {-# LANGUAGE TupleSections #-}
 -- FIXME: for functions prefixedShowDot
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE ViewPatterns #-}
 {- |
 Module      :  Web.Theory
 Description :  Pretty-printing security protocol theories into HTML code.
@@ -44,6 +45,7 @@ import           Debug.Trace                  (trace, traceM)
 
 import           Data.Char                    (toUpper)
 import           Data.List
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map                     as M
 import           Data.Maybe
 -- import           Data.Monoid
@@ -69,7 +71,7 @@ import           Text.Blaze.Html              (preEscapedToMarkup, toHtml)
 import qualified Text.Dot                     as D
 import           Text.Hamlet                  (Html, hamlet)
 import           Text.PrettyPrint.Html
-import           Utils.Misc                   (stringSHA256)
+import           Utils.Misc                   (stringSHA256, (!?), peak)
 
 import           System.Exit
 import           System.Process
@@ -81,7 +83,12 @@ import           TheoryObject
 
 import           Web.Settings
 import           Web.Types
-import Theory.Constraint.System (usesOracle)
+import Theory.Constraint.Solver.Goals (isSolved)
+import Data.List.NonEmpty (NonEmpty((:|)))
+import Theory.Proof.Cyclic (CyclicProof(MaybeSoundProof, UnsoundProof), ProofSoundness (Unsound, Sound, Undetermined), soundness, BackLink (BackLink), ProgressingVars (PVs))
+import Theory.Constraint.System.Results (prettyResult, Contradiction (Cyclic))
+import Data.Semigroup (Semigroup(sconcat))
+import Theory.Constraint.Renaming (prettyRenaming)
 
 ------------------------------------------------------------------------------
 -- Various other functions
@@ -89,19 +96,30 @@ import Theory.Constraint.System (usesOracle)
 
 applyMethodAtPath :: ClosedTheory -> String -> ProofPath
                   -> AutoProver            -- ^ How to extract/order the proof methods.
-                  -> Int                   -- What proof method to use.
+                  -> Either Int WeakenPath -- What proof method to use.
                   -> Maybe ClosedTheory
-applyMethodAtPath thy lemmaName proofPath prover i = do
+applyMethodAtPath thy lemmaName proofPath prover lr = do
     lemma <- lookupLemma lemmaName thy
-    subProof <- get lProof lemma `atPath` proofPath
+    (_, sysPath) <- get lProof lemma `atPath` proofPath
     let ctxt  = getProofContext lemma thy
-        sys   = psInfo (root subProof)
         heuristic = selectHeuristic prover ctxt
         ranking = useHeuristic heuristic (length proofPath)
         tactic = selectTactic prover ctxt
-    methods <- map fst . rankProofMethods ranking tactic ctxt <$> sys
-    method <- if length methods >= i then Just (methods !! (i-1)) else Nothing
-    applyProverAtPath thy lemmaName proofPath (oneStepProver method)
+        methods = map fst $ rankProofMethods ranking tactic ctxt sysPath
+        method = either ((methods !?) . (+ (-1))) (weakeningMethod (NE.head sysPath)) lr
+    method >>= applyProverAtPath thy lemmaName proofPath . oneStepProver
+  where
+    weaken :: WeakenEl -> Maybe ProofMethod
+    weaken = Just . SolveGoal . Weaken
+
+    weakeningMethod :: System -> WeakenPath -> Maybe ProofMethod
+    weakeningMethod _ (PathLessAtom n1 n2) = weaken (WeakenLessAtom n1 n2)
+    weakeningMethod _ (PathNode n) = weaken (WeakenNode n)
+    weakeningMethod _ (PathEdge e) = weaken (WeakenEdge e)
+    weakeningMethod s (PathGoal i) =
+      let goal = map snd $ filter ((== i) . fst) $ zip [0..] $ M.keys (get sGoals s)
+      in peak goal >>= weaken . WeakenGoal
+    weakeningMethod s (PathFormula i) = S.toList (get sFormulas s) !? i >>= weaken . WeakenFormula
 
 applyMethodAtPathDiff :: ClosedDiffTheory -> Side -> String -> ProofPath
                       -> AutoProver             -- ^ How to extract/order the proof methods.
@@ -109,20 +127,16 @@ applyMethodAtPathDiff :: ClosedDiffTheory -> Side -> String -> ProofPath
                       -> Maybe ClosedDiffTheory
 applyMethodAtPathDiff thy s lemmaName proofPath prover i = do
     lemma <- lookupLemmaDiff s lemmaName thy
-    subProof <- get lProof lemma `atPath` proofPath
+    (_, sysPath) <- get lProof lemma `atPath` proofPath
     let ctxt  = getProofContextDiff s lemma thy
-        sys   = psInfo (root subProof)
         heuristic = selectHeuristic prover ctxt
         ranking = useHeuristic heuristic (length proofPath)
         tactic = selectTactic prover ctxt
-    methods <- (map fst . rankProofMethods ranking tactic ctxt) <$> sys
+    let methods = map fst (rankProofMethods ranking tactic ctxt sysPath)
     method <- if length methods >= i then Just (methods !! (i-1)) else Nothing
     applyProverAtPathDiff thy s lemmaName proofPath
-      (oneStepProver method                                       `mappend`
-       replaceSorryProver (oneStepProver Simplify)                `mappend`
-       replaceSorryProver (contradictionProver)                   `mappend`
-       replaceSorryProver (oneStepProver (Finished Unfinishable)) `mappend`
-       replaceSorryProver (oneStepProver (Finished Solved))
+      (   oneStepProver method
+       <> replaceSorryProver (oneStepProver Simplify)
       )
 
 applyDiffMethodAtPath :: ClosedDiffTheory -> String -> ProofPath
@@ -131,18 +145,16 @@ applyDiffMethodAtPath :: ClosedDiffTheory -> String -> ProofPath
                       -> Maybe ClosedDiffTheory
 applyDiffMethodAtPath thy lemmaName proofPath prover i = do
     lemma <- lookupDiffLemma lemmaName thy
-    subProof <- get lDiffProof lemma `atPathDiff` proofPath
+    (_, sysPath) <- get lDiffProof lemma `atPathDiff` proofPath
     let ctxt  = getDiffProofContext lemma thy
-        sys   = dpsInfo (root subProof)
         heuristic = selectDiffHeuristic prover ctxt
         ranking = useHeuristic heuristic (length proofPath)
         tactic = selectDiffTactic prover ctxt
-    methods <- (map fst . rankDiffProofMethods ranking tactic ctxt) <$> sys
+    let methods = map fst $ rankDiffProofMethods ranking tactic ctxt sysPath
     method <- if length methods >= i then Just (methods !! (i-1)) else Nothing
     applyDiffProverAtPath thy lemmaName proofPath
       (   oneStepDiffProver method                                 
        <> replaceDiffSorryProver (oneStepDiffProver (DiffBackwardSearchStep Simplify))
-       <> replaceDiffSorryProver contradictionDiffProver
        <> replaceDiffSorryProver (oneStepDiffProver DiffMirrored)
        <> replaceDiffSorryProver (oneStepDiffProver DiffUnfinishable)
       )
@@ -228,10 +240,10 @@ proofIndex renderUrl mkRoute =
                (_, Yellow)   -> stepLink ["hl_medium"]
                (_, Red)      -> stepLink ["hl_bad"]
         <> case psMethod step of
-               Sorry _ -> emptyDoc
+               Left (Sorry _) -> emptyDoc
                _       -> removeStep
       where
-        ppMethod = prettyProofMethod $ psMethod step
+        ppMethod = either prettyProofMethod prettyResult $ psMethod step
         stepLink cls = linkToPath renderUrl
             (mkRoute . snd . psInfo $ step)
             ("proof-step" : cls) ppMethod
@@ -512,32 +524,53 @@ subProofSnippet :: HtmlDocument d
                 -> ProofPath                 -- ^ The proof path.
                 -> ProofContext              -- ^ The proof context.
                 -> IncrementalProof          -- ^ The sub-proof.
+                -> NonEmpty System
                 -> d
-subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf =
+subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf syss@(se:|_) =
     case psInfo $ root prf of
       Nothing -> text $ "no annotated constraint system / " ++ nCases ++ " sub-case(s)"
       Just se -> vcat $
-        prettyApplicableProofMethods se
+        prettyApplicableProofMethods
         ++
         [ text ""
-        , withTag "h3" [] (text "Constraint system")
+        , withTag "h3" [] (text $ "Constraint system (id: " ++ show (get sId se) ++ ")")
         ] ++
         [ refDotPath renderImgUrl tidx (TheoryProof lemma proofPath)
         | nonEmptyGraph se ]
+        ++
+        -- TODO: It would be better if I wouldn't have to recompute contradictions
+        -- here but pass them as an argument
+        maybe [] prettyCyclicContradiction (peak (contradictions ctxt syss))
         ++
         [ preformatted (Just "sequent") (prettyNonGraphSystem se)
         , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
         ] ++
         subCases
   where
-    prettyApplicableProofMethods sys = case proofMethods sys of
-        [] | finishedSubterms ctxt sys  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
+    prettyApplicableProofMethods = case proofMethods syss of
+        -- TODO: Use result type here
+        [] | finishedSubterms ctxt se   -> [ withTag "h3" [] (text "Constraint System is Solved") ]
         []                              -> [ withTag "h3" [] (text "Constraint System is Unfinishable") ]
         pms ->
           [ withTag "h3" [] (text "Applicable Proof Methods:" <->
                              comment_ (goalRankingName ranking))
-          , preformatted (Just "methods") (numbered' $ zipWith prettyPM [1..] pms)
-          , autoProverLinks 'a' ""         emptyDoc      0
+          , preformatted (Just "methods") (numbered' $ zipWith prettyPM [1..] pms) ] ++
+          [ preformatted (Just "weaken") $ text "weaken goal: "
+            $-$ foldr1 ($-$) (map (uncurry prettyWeakenGoal) gs)
+          | let gs = filter (isActionGoal . snd) $ zip [(0 :: Int)..] (M.keys (get sGoals se))
+          , not (null gs) ] ++
+          [ preformatted (Just "weaken") $ text "weaken node: " <-> mconcat (map prettyWeakenNode (M.keys ns))
+          | let ns = get sNodes se, not (M.null ns) ] ++
+          [ preformatted (Just "weaken") $ text "weaken edge: " <-> mconcat (map prettyWeakenEdge (S.toList es))
+          | let es = get sEdges se, not (S.null es) ] ++
+          [ preformatted (Just "weaken") $ text "weaken less atoms: " <-> mconcat (map prettyWeakenLessAtom (S.toList las))
+          | let las = get sLessAtoms se
+          , not (S.null las) ] ++
+          [ preformatted (Just "weaken") $ text "weaken formulas: "
+            $-$ foldr1 ($-$) (zipWith prettyWeakenFormula [0..] fs)
+          | let fs = S.toList $ get sFormulas se
+          , not (null fs) ] ++
+          [ autoProverLinks 'a' ""         emptyDoc      0
           , autoProverLinks 'b' "bounded-" boundDesc bound ] ++
           [ autoProverLinks 'o' "oracle-"  oracleDesc    0
           | usesOracle heuristic ] ++
@@ -547,6 +580,15 @@ subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf =
           bound     = fromMaybe 5 $ apBound $ tiAutoProver ti
           oracleDesc = text "until oracle returns nothing"
           allProve  = text " for all lemmas "
+    prettyCyclicContradiction (Cyclic (BackLink (_, tgtId) subst (PVs (S.toList  -> progresses) (S.toList -> preserves)))) =
+      [ withTag "h3" [] (text "Cyclic backlink details")
+      , withTag "h4" [] (text "Substitution")
+      , preformatted Nothing $ prettyRenaming subst
+      , preformatted Nothing $ text "Progresses:" <-> maybe (text "none") sconcat (NE.nonEmpty (punctuate (comma <> space) (map (text . show) progresses)))
+      , preformatted Nothing $ text "Preserves:" <-> maybe (text "none") sconcat (NE.nonEmpty (punctuate (comma <> space) (map (text . show) preserves)))
+      , withTag "h4" [] (text "Backlink target system")
+      , refDotPath renderImgUrl tidx (TheoryProof lemma (pathToParentWithID tgtId proofPath (NE.toList syss))) ]
+    prettyCyclicContradiction _ = []
     autoProverLinks key "all-" nameSuffix bound = hsep
       [ text (key : ".")
       , linkToPath renderUrl
@@ -585,9 +627,19 @@ subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf =
 
     prettyPM i (m, (_cases, expl)) =
       linkToPath renderUrl
-        (TheoryPathMR tidx (TheoryMethod lemma proofPath i))
+        (TheoryPathMR tidx (TheoryMethod lemma proofPath (Left i)))
         ["proof-method"] (prettyProofMethod m)
       <-> (if null expl then emptyDoc else lineComment_ expl)
+
+    prettyWeakenWith :: HtmlDocument d => WeakenPath -> d -> d
+    prettyWeakenWith pth = linkToPath renderUrl (TheoryPathMR tidx (TheoryMethod lemma proofPath (Right pth))) ["weaken"]
+
+    prettyWeakenNode n = prettyWeakenWith (PathNode n) (text $ show n)
+    prettyWeakenEdge e = prettyWeakenWith (PathEdge e) (prettyEdge e)
+    prettyWeakenGoal gi (ActionG n f) = prettyWeakenWith (PathGoal gi) (text $ showFactTag (factTag f) ++ "(...) @ " ++ show n)
+    prettyWeakenGoal _ _ = error "invariant violated"
+    prettyWeakenLessAtom (LessAtom n1 n2 _) = prettyWeakenWith (PathLessAtom n1 n2) (text (show n1) <-> opLess <-> text (show n2))
+    prettyWeakenFormula i f = prettyWeakenWith (PathFormula i) (prettyGuarded f)
 
     nCases                  = show $ M.size $ children prf
     depth                   = length proofPath
@@ -603,6 +655,13 @@ subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf =
                 (psInfo $ root prf')
         ]
 
+    pathToParentWithID csId path = go (length path)
+      where
+        go _ [] = error "unreachable"
+        go c (s:ss)
+          | get sId s == csId = take c path
+          | otherwise = go (c - 1) ss
+
 -- | A snippet that explains a sub-proof by displaying its proof state, the
 -- open-goals, and the new cases.
 subProofDiffSnippet :: HtmlDocument d
@@ -614,26 +673,24 @@ subProofDiffSnippet :: HtmlDocument d
                     -> ProofPath                 -- ^ The proof path.
                     -> ProofContext              -- ^ The proof context.
                     -> IncrementalProof          -- ^ The sub-proof.
+                    -> NonEmpty System
                     -> d
-subProofDiffSnippet renderUrl tidx ti s lemma proofPath ctxt prf =
-    case psInfo $ root prf of
-      Nothing -> text $ "no annotated constraint system / " ++ nCases ++ " sub-case(s)"
-      Just se -> vcat $
-        prettyApplicableProofMethods se
-        ++
-        [ text ""
-        , withTag "h3" [] (text "Constraint system")
-        ] ++
-        [ refDotDiffPath renderUrl tidx (DiffTheoryProof s lemma proofPath) False
-        | nonEmptyGraph se ]
-        ++
-        [ preformatted (Just "sequent") (prettyNonGraphSystem se)
-        , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
-        ] ++
-        subCases
+subProofDiffSnippet renderUrl tidx ti s lemma proofPath ctxt prf syss@(se:|_) = vcat $
+  prettyApplicableProofMethods
+  ++
+  [ text ""
+  , withTag "h3" [] (text "Constraint system")
+  ] ++
+  [ refDotDiffPath renderUrl tidx (DiffTheoryProof s lemma proofPath) False
+  | nonEmptyGraph se ]
+  ++
+  [ preformatted (Just "sequent") (prettyNonGraphSystem se)
+  , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
+  ] ++
+  subCases
   where
-    prettyApplicableProofMethods sys = case proofMethods sys of
-        [] | finishedSubterms ctxt sys  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
+    prettyApplicableProofMethods = case proofMethods syss of
+        [] | finishedSubterms ctxt se   -> [ withTag "h3" [] (text "Constraint System is Solved") ]
         []                              -> [ withTag "h3" [] (text "Constraint System is Unfinishable") ]
         pms ->
           [ withTag "h3" [] (text "Applicable Proof Methods:" <->
@@ -707,60 +764,59 @@ subDiffProofSnippet :: HtmlDocument d
                     -> ProofPath                 -- ^ The proof path.
                     -> DiffProofContext          -- ^ The proof context.
                     -> IncrementalDiffProof      -- ^ The sub-proof.
+                    -> NonEmpty DiffSystem
                     -> d
-subDiffProofSnippet renderUrl tidx ti lemma proofPath ctxt prf =
-    case dpsInfo $ root prf of
-      Nothing -> text $ "no annotated constraint system / " ++ nCases ++ " sub-case(s)"
-      Just se -> vcat $
-        prettyApplicableDiffProofMethods se
-        ++
-        [ text ""
-        , withTag "h3" [] (text "Constraint system")
-        ] ++
-        [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) False
-        | nonEmptyGraphDiff se ]
-        ++
-        mirrorSystem
-        ++
-        [ preformatted (Just "sequent") (prettyNonGraphSystemDiff ctxt se)
-        , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
-        ] ++
-        subCases
+subDiffProofSnippet renderUrl tidx ti lemma proofPath ctxt prf syss@(se:|_) = vcat $
+  prettyApplicableDiffProofMethods
+  ++
+  [ text ""
+  , withTag "h3" [] (text "Constraint system")
+  ] ++
+  [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) False
+  | nonEmptyGraphDiff se ]
+  ++
+  mirrorSystem
+  ++
+  [ preformatted (Just "sequent") (prettyNonGraphSystemDiff ctxt se)
+  , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
+  ] ++
+  subCases
   where
-    prettyApplicableDiffProofMethods sys = case (diffProofMethods sys, get dsSide sys, get dsSystem sys) of
-        ([], Nothing, _)                                                                  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
-        ([], _, Nothing)                                                                  -> [ withTag "h3" [] (text "Constraint System is Solved") ]
-        ([], Just side, Just sys') | finishedSubterms (eitherProofContext ctxt side) sys' -> [ withTag "h3" [] (text "Constraint System is Solved") ]
-        ([], _, _)                                                                           -> [ withTag "h3" [] (text "Constraint System is Unfinishable") ]
-        (pms, _, _) ->
-          [ withTag "h3" [] (text "Applicable Proof Methods:" <->
-                             comment_ (goalRankingName ranking))
-          , preformatted (Just "methods") (numbered' $ zipWith prettyPM [1..] pms)
-          , autoProverLinks 'a' ""         emptyDoc      0
-          , autoProverLinks 'b' "bounded-" boundDesc bound
-          , autoProverLinks 's' "all-"     allProve      0
-          ]
+    prettyApplicableDiffProofMethods =
+      let methods = diffProofMethods syss
+      in  if null methods
+          then [ withTag "h3" [] (text (fromMaybe "Constraint System is Solved" (do
+            s <- get dsSide se
+            se' <- get dsSystem se
+            guard (not $ finishedSubterms (eitherProofContext ctxt s) se')
+            return "Constraint System is Unfinishable"))) ]
+          else  [ withTag "h3" [] (text "Applicable Proof Methods:" <-> comment_ (goalRankingName ranking))
+                , preformatted (Just "methods") (numbered' $ zipWith prettyPM [1..] methods)
+                , autoProverLinks 'a' ""         emptyDoc      0
+                , autoProverLinks 'b' "bounded-" boundDesc bound
+                , autoProverLinks 's' "all-"     allProve      0 ]
         where
           boundDesc = text $ " with proof-depth bound " ++ show bound
           bound     = fromMaybe 5 $ apBound $ dtiAutoProver ti
           allProve  = text " for all lemmas "
 
-    mirrorSystem =
-        if dpsMethod (root prf) == DiffMirrored
-           then [ text "", withTag "h3" [] (text "mirror:") ] ++
-                [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True ] ++
-                [ text "" ]
-        else if dpsMethod (root prf) == DiffAttack
-           then [ text "", withTag "h3" [] (text "attack:") ] ++
-                [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True ] ++
-                [ text "(If no attack graph is shown, the current graph has no mirrors. If one of the mirror graphs violates a restriction, this graph is shown.)" ] ++
-                [ text "" ]
-        else if dpsMethod (root prf) == DiffUnfinishable
-           then [ text "", withTag "h3" [] (text "mirror:") ] ++
-                [ refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True ] ++
-                [ text "The proof cannot be finished as there are reducible operators at the top of subterms in the subterm store." ] ++
-                [ text "" ]
-           else []
+    mirrorSystem
+      | dpsMethod (root prf) == DiffMirrored =
+        [ text ""
+        , withTag "h3" [] (text "mirror:")
+        , refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True
+        , text "" ]
+      | dpsMethod (root prf) == DiffAttack =
+        [ text "", withTag "h3" [] (text "attack:")
+        , refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True
+        , text "(If no attack graph is shown, the current graph has no mirrors. If one of the mirror graphs violates a restriction, this graph is shown.)"
+        , text "" ]
+      | dpsMethod (root prf) == DiffUnfinishable =
+        [ text "", withTag "h3" [] (text "mirror:")
+        , refDotDiffPath renderUrl tidx (DiffTheoryDiffProof lemma proofPath) True
+        , text "The proof cannot be finished as there are reducible operators at the top of subterms in the subterm store."
+        , text "" ]
+      | otherwise = []
 
     autoProverLinks key "all-" nameSuffix bound = hsep
       [ text (key : ".")
@@ -891,7 +947,7 @@ rulesSnippet thy = vcat
     ]
   where
     msrRules   = get crProtocol $ getClassifiedRules thy
-    injFacts   = S.toList $ getInjectiveFactInsts thy
+    injFacts   = M.toList $ getInjectiveFactInsts thy
     showInjFact (tag, behaviours) = showFactTag tag ++ "(" ++ concat (intersperse "," ("id":positions)) ++ ")"
       where positions = [case bb of
                           [b] -> show b
@@ -957,7 +1013,7 @@ rulesDiffSnippetSide s isdiff thy = vcat
     ]
   where
     msrRules = get crProtocol $ getDiffClassifiedRules s isdiff thy
-    injFacts = S.toList $ getDiffInjectiveFactInsts s isdiff thy
+    injFacts = M.toList $ getDiffInjectiveFactInsts s isdiff thy
     showInjFact (tag, behaviours) = showFactTag tag ++ "(" ++ concat (intersperse "," ("id":positions)) ++ ")"
       where positions = [case bb of
                           [b] -> show b
@@ -1012,7 +1068,7 @@ htmlThyPath renderUrl renderImgUrl info = go
     go (TheoryProof l p)       = pp $
         fromMaybe (text "No such lemma or proof path.") $ do
            lemma <- lookupLemma l thy
-           subProofSnippet renderUrl renderImgUrl tidx info l p (getProofContext lemma thy)
+           uncurry (subProofSnippet renderUrl renderImgUrl tidx info l p (getProofContext lemma thy))
              <$> resolveProofPath thy l p
 
     go (TheoryLemma _)         = pp $ text "Implement lemma pretty printing!"
@@ -1148,13 +1204,13 @@ htmlDiffThyPath renderUrl info path =
     go (DiffTheoryProof s l p)         = pp $
         fromMaybe (text "No such lemma or proof path.") $ do
            lemma <- lookupLemmaDiff s l thy
-           subProofDiffSnippet renderUrl tidx info s l p (getProofContextDiff s lemma thy)
+           uncurry (subProofDiffSnippet renderUrl tidx info s l p (getProofContextDiff s lemma thy))
              <$> resolveProofPathDiff thy s l p
 
     go (DiffTheoryDiffProof l p)       = pp $
         fromMaybe (text "No such lemma or proof path.") $ do
            lemma <- lookupDiffLemma l thy
-           subDiffProofSnippet renderUrl tidx info l p (getDiffProofContext lemma thy)
+           uncurry (subDiffProofSnippet renderUrl tidx info l p (getDiffProofContext lemma thy))
              <$> resolveProofPathDiffLemma thy l p
 
     go (DiffTheoryLemma _ _)           = pp $ text "Implement lemma pretty printing!"
@@ -1283,15 +1339,14 @@ imgThyPath :: ImageFormat                  -- ^ The preferred image output forma
            -> ClosedTheory                 -- ^ Theory from which to extract the 'System'.
            -> TheoryPath                   -- ^ Path of the 'System' in the theory.
            -> IO (Maybe FilePath)          -- ^ Path to the generated file.
-imgThyPath imageFormat outputCommand cacheDir_ toDot toJSON thy thyPath = 
-    case thyPathSystem thyPath of
-      Nothing -> return Nothing
-      Just (jsonLabel, system) -> do
-        let code = case ocFormat outputCommand of
-                     OutDot -> prefixedShowDot $ toDot system
-                     OutJSON -> toJSON jsonLabel system 
-        renderGraphCode code
+imgThyPath imageFormat outputCommand cacheDir_ toDot toJSON thy thyPath =
+  maybe (return Nothing) (renderGraphCode . getCode) (thyPathSystem thyPath)
   where
+    getCode :: (String, System) -> String
+    getCode (jsonLabel, sys) = case ocFormat outputCommand of
+      OutDot -> prefixedShowDot $ toDot sys
+      OutJSON -> toJSON jsonLabel sys
+
     thyPathSystem :: TheoryPath -> Maybe (String, System)
     thyPathSystem (TheorySource k i j)          = casesSystem k i j
     thyPathSystem (TheoryProof lemma proofPath) = proofPathSystem lemma proofPath
@@ -1306,7 +1361,7 @@ imgThyPath imageFormat outputCommand cacheDir_ toDot toJSON thy thyPath =
     -- | Get string serialization for proof path in lemma.
     proofPathSystem lemma proofPath = do
       let jsonLabel = "Theory: " ++ (get thyName thy) ++ " Lemma: " ++ lemma 
-      subProof <- resolveProofPath thy lemma proofPath
+      (subProof, _) <- resolveProofPath thy lemma proofPath
       sequent <- psInfo $ root subProof
       return (jsonLabel, sequent)
 
@@ -1427,24 +1482,22 @@ imgDiffThyPath imgFormat dotCommand cacheDir_ compact thy path mirror = go path
     -- Get dot code for proof path in lemma
     proofPathDotCode s lemma proofPath =
       D.showDot "G" $ fromMaybe (return ()) $ do
-        subProof <- resolveProofPathDiff thy s lemma proofPath
+        (subProof, _) <- resolveProofPathDiff thy s lemma proofPath
         sequent <- psInfo $ root subProof
         return $ compact sequent
 
     -- Get dot code for proof path in lemma
     proofPathDotCodeDiff lemma proofPath mir =
       D.showDot "G" $ fromMaybe (return ()) $ do
-        subProof <- resolveProofPathDiffLemma thy lemma proofPath
+        (subProof, _) <- resolveProofPathDiffLemma thy lemma proofPath
         diffSequent <- dpsInfo $ root subProof
         if mir
           then do
             lem <- lookupDiffLemma lemma thy
             let ctxt = getDiffProofContext lem thy
-            side <- get dsSide diffSequent
-            let isSolved s sys' = (rankProofMethods GoalNrRanking [defaultTactic] (eitherProofContext ctxt s) sys') == [] -- checks if the system is solved
             nsequent <- get dsSystem diffSequent
             -- Here we can potentially get Nothing if there is no mirror DG
-            let sequentList = snd $ getMirrorDGandEvaluateRestrictions ctxt diffSequent (isSolved side nsequent)
+            let sequentList = snd $ getMirrorDGandEvaluateRestrictions ctxt diffSequent (isSolved nsequent)
             if null sequentList then Nothing else return $ compact $ head sequentList
           else do
             sequent <- get dsSystem diffSequent
@@ -1522,7 +1575,7 @@ titleThyPath thy path = go path
     methodName l p =
       case resolveProofPath thy l p of
         Nothing -> "None"
-        Just proof -> renderHtmlDoc $ prettyProofMethod $ psMethod $ root proof
+        Just (proof, _) -> renderHtmlDoc $ either prettyProofMethod prettyResult $ psMethod $ root proof
 
 -- | Get title to display for a given proof path.
 titleDiffThyPath :: ClosedDiffTheory -> DiffTheoryPath -> String
@@ -1550,42 +1603,44 @@ titleDiffThyPath thy path = go path
     methodName s l p =
       case resolveProofPathDiff thy s l p of
         Nothing -> "None"
-        Just proof -> renderHtmlDoc $ prettyProofMethod $ psMethod $ root proof
+        Just (proof, _) -> renderHtmlDoc $ either prettyProofMethod prettyResult $ psMethod $ root proof
 
     diffMethodName l p =
       case resolveProofPathDiffLemma thy l p of
         Nothing -> "None"
-        Just proof -> renderHtmlDoc $ prettyDiffProofMethod $ dpsMethod $ root proof
+        Just (proof, _) -> renderHtmlDoc $ prettyDiffProofMethod $ dpsMethod $ root proof
 
 
 -- | Resolve a proof path.
 resolveProofPath :: ClosedTheory            -- ^ Theory to resolve in
                  -> String                  -- ^ Name of lemma
                  -> ProofPath               -- ^ Path to resolve
-                 -> Maybe IncrementalProof
+                 -> Maybe (IncrementalProof, NonEmpty System)
 resolveProofPath thy lemmaName path = do
   lemma <- lookupLemma lemmaName thy
-  get lProof lemma `atPath` path
+  (prf, p) <- get lProof lemma `atPath` path
+  return (prf, p)
 
 -- | Resolve a diff proof path.
 resolveProofPathDiff :: ClosedDiffTheory       -- ^ Theory to resolve in
                     -> Side                    -- ^ Side of lemma
                     -> String                  -- ^ Name of lemma
                     -> ProofPath               -- ^ Path to resolve
-                    -> Maybe IncrementalProof
+                    -> Maybe (IncrementalProof, NonEmpty System)
 resolveProofPathDiff thy s lemmaName path = do
   lemma <- lookupLemmaDiff s lemmaName thy
-  get lProof lemma `atPath` path
+  (prf, p) <- get lProof lemma `atPath` path
+  return (prf, p)
 
 -- | Resolve a proof path for a diff lemma.
 resolveProofPathDiffLemma :: ClosedDiffTheory       -- ^ Theory to resolve in
                     -> String                  -- ^ Name of lemma
                     -> ProofPath               -- ^ Path to resolve
-                    -> Maybe IncrementalDiffProof
+                    -> Maybe (IncrementalDiffProof, NonEmpty DiffSystem)
 resolveProofPathDiffLemma thy lemmaName path = do
   lemma <- lookupDiffLemma lemmaName thy
-  get lDiffProof lemma `atPathDiff` path
-
+  (prf, p) <- get lDiffProof lemma `atPathDiff` path
+  return (prf, p)
 
 ------------------------------------------------------------------------------
 -- Moving to next/prev proof path
@@ -1787,10 +1842,8 @@ prevDiffThyPath thy = go
                   l  -> DiffTheoryProof RHS (fst (last l)) (lastPath RHS (fst (last l)))
 
 -- | Interesting proof methods that are not skipped by next/prev-smart.
-isInterestingMethod :: ProofMethod -> Bool
-isInterestingMethod (Sorry _) = True
-isInterestingMethod (Finished Solved) = True
-isInterestingMethod (Finished Unfinishable) = True
+isInterestingMethod :: Either ProofMethod (Result Contradiction) -> Bool
+isInterestingMethod (Left (Sorry _)) = True
 isInterestingMethod _ = False
 
 -- | Interesting diff proof methods that are not skipped by next/prev-smart.
@@ -2026,7 +2079,7 @@ prevSmartDiffThyPath thy = go
       l  -> DiffTheoryProof RHS (fst (last l)) (lastPath RHS (fst (last l)))
 
 -- | Extract proof paths out of a proof.
-getProofPaths :: LTree CaseName (ProofStep a) -> [([String], ProofMethod)]
+getProofPaths :: LTree CaseName (ProofStep a) -> [([String], ProofStepMethod)]
 getProofPaths proof = ([], psMethod . root $ proof) : go proof
   where
     go = concatMap paths . M.toList . children
@@ -2086,13 +2139,7 @@ annotateLemmaProof lem =
 --     error (show (get lProof lem) ++ " - " ++ show prf)
     mapProofInfo (second interpret) prf
   where
-    prf = annotateProof annotate $ get lProof lem
-    annotate step cs =
-        ( psInfo step
-        , mconcat $ proofStepStatus step : incomplete ++ map snd cs
-        )
-      where
-        incomplete = if isNothing (psInfo step) then [IncompleteProof] else []
+    prf = annotateProofStatus $ get lProof lem
 
     interpret status = case (get lTraceQuantifier lem, status) of
       (_,           IncompleteProof)   -> Unmarked
@@ -2102,6 +2149,10 @@ annotateLemmaProof lem =
       (AllTraces,   CompleteProof)     -> Green
       (ExistsTrace, TraceFound)        -> Green
       (ExistsTrace, CompleteProof)     -> Red
+      (_,           PartiallyCompleteProof p) -> case soundness p of
+        Unsound -> Yellow
+        Sound -> Green
+        Undetermined -> Unmarked
 
 -- | Annotate a proof for pretty printing.
 -- The boolean flag indicates that the given proof step's children
@@ -2125,3 +2176,7 @@ annotateDiffLemmaProof lem =
       UnfinishableProof -> Yellow
       TraceFound        -> Red
       CompleteProof     -> Green
+      PartiallyCompleteProof p -> case soundness p of
+        Unsound -> Yellow
+        Sound -> Green
+        Undetermined -> Unmarked

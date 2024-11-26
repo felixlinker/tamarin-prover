@@ -9,6 +9,7 @@ module Term.Unification (
   -- * Unification modulo AC
     unifyLTerm
   , unifyLNTerm
+  , unifyLNTerms
   , unifiableLNTerms
 
   , unifyLTermFactored
@@ -132,12 +133,15 @@ unifyLTerm sortOf eqs = flattenUnif <$> unifyLTermFactored sortOf eqs
 
 
 -- | @unifyLNTerm eqs@ returns a complete set of unifiers for @eqs@ modulo AC.
-unifyLNTerm :: [Equal LNTerm] -> WithMaude [SubstVFresh Name LVar]
+unifyLNTerm :: [Equal LNTerm] -> WithMaude [LNSubstVFresh]
 unifyLNTerm = unifyLTerm sortOfName
+
+unifyLNTerms :: LNTerm -> LNTerm -> WithMaude [LNSubstVFresh]
+unifyLNTerms fa1 fa2 = unifyLNTerm [Equal fa1 fa2]
 
 -- | 'True' iff the terms are unifiable.
 unifiableLNTerms :: LNTerm -> LNTerm -> WithMaude Bool
-unifiableLNTerms t1 t2 = (not . null) <$> unifyLNTerm [Equal t1 t2]
+unifiableLNTerms t = fmap (not . null) . unifyLNTerms t
 
 -- | Flatten a factored substitution to a list of substitutions.
 flattenUnif :: IsConst c => (LSubst c, [LSubstVFresh c]) -> [LSubstVFresh c]

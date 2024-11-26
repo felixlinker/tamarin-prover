@@ -35,6 +35,7 @@ module Web.Types
   , getEitherTheoryOrigin
   , getEitherTheoryIndex
   , TheoryPath(..)
+  , WeakenPath(..)
   , DiffTheoryPath(..)
   , TheoryOrigin(..)
   , JsonResponse(..)
@@ -73,6 +74,7 @@ import           Control.DeepSeq
 import           GHC.Generics (Generic)
 
 import           Text.Hamlet
+import qualified Text.ParserCombinators.ReadP as R
 import           Yesod.Core
 import           Yesod.Static
 
@@ -339,6 +341,66 @@ instance Eq (EitherTheoryInfo) where
 instance Ord (EitherTheoryInfo) where
   compare = compareEDTI
 
+readp :: Read a => R.ReadP a
+readp = R.readS_to_P reads
+
+data WeakenPath
+  = PathLessAtom NodeId NodeId
+  | PathNode NodeId
+  | PathGoal Int
+  | PathEdge Edge
+  | PathFormula Int
+  deriving Eq
+
+showNode :: NodeId -> String
+showNode n = lvarName n ++ "." ++ show (lvarIdx n)
+
+showEdgePart :: (NodeId, Int) -> String
+showEdgePart (n, i) = show i ++ "@" ++ showNode n
+
+-- | All characters used below must be URL safe (@, :, ., and - are).
+instance Show WeakenPath where
+  show (PathLessAtom n1 n2) = "wla:" ++ showNode n1 ++ "-" ++ showNode n2
+  show (PathNode n) = "wn:" ++ showNode n
+  show (PathGoal i) = "wg:" ++ show i
+  show (PathEdge (Edge  (showEdgePart . fmap getConcIdx -> srcs)
+                        (showEdgePart . fmap getPremIdx -> tgts))) = "we:" ++ srcs ++ "-" ++ tgts
+  show (PathFormula i) = "wf:" ++ show i
+
+instance Read WeakenPath where
+  readsPrec _ = R.readP_to_S $ R.choice
+      [ R.string "wla:" >> readLatom
+      , R.string "wn:" >> readNode
+      , R.string "wg:" >> readGoal
+      , R.string "we:" >> readEdge
+      , R.string "wf:" >> readFormula ]
+    where
+      readLatom, readNode, readGoal, readEdge :: R.ReadP WeakenPath
+      readLatom = do
+        (PathNode n1) <- readNode
+        _ <- R.char '-'
+        (PathNode n2) <- readNode
+        return $ PathLessAtom n1 n2
+      readNode = do
+        varName <- R.manyTill (R.satisfy (/= '.')) (R.char '.')
+        PathNode . LVar varName LSortNode <$> readp
+      readGoal = PathGoal <$> readp
+      readEdge = do
+        srci <- readp
+        _ <- R.char '@'
+        PathNode srcn <- readNode
+        _ <- R.char '-'
+        tgti <- readp
+        _ <- R.char '@'
+        PathNode tgtn <- readNode
+        return (PathEdge (Edge (srcn, ConcIdx srci) (tgtn, PremIdx tgti)))
+      readFormula = PathFormula <$> readp
+
+readMethodPath :: ReadS (Either Int WeakenPath)
+readMethodPath = R.readP_to_S $ R.choice
+  [ Left <$> (readp :: R.ReadP Int)
+  , Right <$> (readp :: R.ReadP WeakenPath) ]
+
 -- | Simple data type for specifying a path to a specific
 -- item within a theory.
 data TheoryPath
@@ -346,7 +408,8 @@ data TheoryPath
   | TheoryLemma String                  -- ^ Theory lemma with given name
   | TheorySource SourceKind Int Int     -- ^ Required cases (i'th source, j'th case)
   | TheoryProof String ProofPath        -- ^ Proof path within proof for given lemma
-  | TheoryMethod String ProofPath Int   -- ^ Apply the proof method to proof path
+  | TheoryMethod String ProofPath (Either Int WeakenPath)
+                                        -- ^ Apply the proof method to proof path
   | TheoryRules                         -- ^ Theory rules
   | TheoryMessage                       -- ^ Theory message deduction
   | TheoryTactic                        -- ^ Theory tactic
@@ -382,7 +445,7 @@ renderTheoryPath =
     go (TheoryLemma name) = ["lemma", name]
     go (TheorySource k i j) = ["cases", show k, show i, show j]
     go (TheoryProof lemma path) = "proof" : lemma : path
-    go (TheoryMethod lemma path idx) = "method" : lemma : show idx : path
+    go (TheoryMethod lemma path idx) = "method" : lemma : either show show idx : path
     go TheoryTactic = ["tactic"]
 
 -- | Render a theory path to a list of strings. Note that we prefix an
@@ -423,6 +486,12 @@ unprefixUnderscore "_"              = ""
 unprefixUnderscore ('_':cs@('_':_)) = cs
 unprefixUnderscore cs               = cs
 
+safeReadS :: Read a => ReadS a -> String -> Maybe a
+safeReadS rs = listToMaybe . map fst . rs
+
+safeRead :: Read a => String -> Maybe a
+safeRead = safeReadS reads
+
 -- | Parse a list of strings into a theory path.
 parseTheoryPath :: [String] -> Maybe TheoryPath
 parseTheoryPath =
@@ -440,14 +509,13 @@ parseTheoryPath =
       "method"  -> parseMethod xs
       _         -> Nothing
 
-    safeRead = listToMaybe . map fst . reads
-
     parseLemma ys = TheoryLemma <$> listToMaybe ys
 
     parseProof (y:ys) = Just (TheoryProof y ys)
     parseProof _      = Nothing
 
-    parseMethod (y:z:zs) = safeRead z >>= Just . TheoryMethod y zs
+    -- TODO: Adjust parser for synthetic methods
+    parseMethod (y:z:zs) = safeReadS readMethodPath z >>= Just . TheoryMethod y zs
     parseMethod _        = Nothing
 
     parseCases (kind:y:z:_) = do
@@ -478,9 +546,6 @@ parseDiffTheoryPath =
       "method"    -> parseMethod xs
       "diffMethod"-> parseDiffMethod xs
       _           -> Nothing
-
-    safeRead :: Read a => String -> Maybe a
-    safeRead  = listToMaybe . map fst . reads
 
     parseRules :: [String] -> Maybe DiffTheoryPath
     parseRules (y:z:_) = do
@@ -581,17 +646,13 @@ mkYesodData "WebUI" [parseRoutes|
 /thy/trace/#Int/autoproveAll/#SolutionExtractor/#Int/*TheoryPath AutoProverAllR             GET
 /thy/trace/#Int/next/#String/*TheoryPath      NextTheoryPathR         GET
 /thy/trace/#Int/prev/#String/*TheoryPath      PrevTheoryPathR         GET
--- /thy/trace/#Int/save                             SaveTheoryR             GET
 /thy/trace/#Int/download/#String                 DownloadTheoryR         GET
--- /thy/trace/#Int/edit/source                      EditTheoryR             GET POST
--- /thy/trace/#Int/edit/path/*TheoryPath         EditPathR               GET POST
 /thy/trace/#Int/del/path/*TheoryPath          DeleteStepR             GET
 /thy/trace/#Int/unload                           UnloadTheoryR           GET
 /thy/equiv/#Int/overview/*DiffTheoryPath      OverviewDiffR               GET
 /thy/equiv/#Int/source                           TheorySourceDiffR           GET
 /thy/equiv/#Int/message                          TheoryMessageDeductionDiffR GET
 /thy/equiv/#Int/main/*DiffTheoryPath          TheoryPathDiffMR            GET
--- /thy/equiv/#Int/debug/*DiffTheoryPath             TheoryPathDiffDR            GET
 /thy/equiv/#Int/graph/*DiffTheoryPath         TheoryGraphDiffR            GET
 /thy/equiv/#Int/mirror/*DiffTheoryPath        TheoryMirrorDiffR            GET
 /thy/equiv/#Int/autoprove/#SolutionExtractor/#Int/#Side/*DiffTheoryPath AutoProverDiffR             GET
@@ -599,10 +660,7 @@ mkYesodData "WebUI" [parseRoutes|
 /thy/equiv/#Int/autoproveDiff/#SolutionExtractor/#Int/*DiffTheoryPath AutoDiffProverR             GET
 /thy/equiv/#Int/next/#String/*DiffTheoryPath  NextTheoryPathDiffR         GET
 /thy/equiv/#Int/prev/#String/*DiffTheoryPath  PrevTheoryPathDiffR         GET
--- /thy/equiv/#Int/save                             SaveTheoryR             GET
 /thy/equiv/#Int/download/#String                 DownloadTheoryDiffR         GET
--- /thy/equiv/#Int/edit/source                      EditTheoryR             GET POST
--- /thy/equiv/#Int/edit/path/*DiffTheoryPath         EditPathDiffR               GET POST
 /thy/equiv/#Int/del/path/*DiffTheoryPath      DeleteStepDiffR             GET
 /thy/equiv/#Int/unload                           UnloadTheoryDiffR           GET
 /kill                                      KillThreadR             GET

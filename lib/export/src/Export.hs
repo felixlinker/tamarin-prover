@@ -428,7 +428,7 @@ ppLNTerm tc = pppLNTerm tc False
 
 -- pretty print a Fact, collecting the constant that need to be declared
 ppFact :: TranslationContext -> Fact SapicTerm -> (Doc, S.Set ProVerifHeader)
-ppFact tc (Fact tag _ ts)
+ppFact tc (Fact tag _ _ ts)
   | factTagArity tag /= length ts = sppFact ("MALFORMED-" ++ show tag) ts
   | otherwise = sppFact ('e' : factTagName tag) ts
   where
@@ -505,9 +505,9 @@ ppAction _ tc (ChOut t1 t2) = (text "out(" <> pt1 <> text "," <> pt2 <> text ")"
   where
     (pt1, sh1) = getAttackerChannel tc t1
     (pt2, sh2) = ppSapicTerm tc t2
-ppAction _ tc@TranslationContext {trans = ProVerif} (Event (Fact tag m ts)) = (text "event " <> pa, sh, True) -- event Headers are definde globally inside loadHeaders
+ppAction _ tc@TranslationContext {trans = ProVerif} (Event (Fact tag m i ts)) = (text "event " <> pa, sh, True) -- event Headers are definde globally inside loadHeaders
   where
-    (pa, sh) = ppFact tc (Fact tag m ts)
+    (pa, sh) = ppFact tc (Fact tag m i ts)
 ppAction _ TranslationContext {trans = DeepSec} (Event _) = (text "", S.empty, False)
 -- For pure states, we do not put locks and unlocks
 ppAction ProcessAnnotation {pureState = True} TranslationContext {trans = ProVerif} (Lock _) =
@@ -628,7 +628,7 @@ ppSapic tc (ProcessComb (Cond a) _ pl pr) =
   where
     (ppl, pshl) = ppSapic tc pl
     (pa, sh) = ppFact' a
-    ppFact' (Ato (Syntactic (Pred (Fact (ProtoFact _ "Smaller" _) _ [v1, v2]))))
+    ppFact' (Ato (Syntactic (Pred (Fact (ProtoFact _ "Smaller" _) _ _ [v1, v2]))))
       | Lit (Var (Free vn1)) <- viewTerm v1,
         Lit (Var (Free vn2)) <- viewTerm v2 =
         (ppUnTypeVar vn1 <> text "<" <> ppUnTypeVar vn2, S.empty)
@@ -754,7 +754,7 @@ addAttackerReportProc tc thy p =
   where
     att = fst $ getAttackerChannel tc Nothing
     reportPreds =
-      List.find (\(Predicate (Fact tag _ _) _) -> showFactTag tag == "Report") $
+      List.find (\(Predicate (Fact tag _ _ _) _) -> showFactTag tag == "Report") $
         theoryPredicates thy
     (_, (formula, _)) = case reportPreds of
       Nothing -> translationFail "Translation Error, the Report predicate must be defined."
@@ -885,15 +885,8 @@ typeVarsEvent TypingEnvironment {events = ev} tag ts =
         (zip ts t)
     Nothing -> M.empty
 
-ppProtoAtom
-  :: (HighlightDocument d, Ord k, Show k, Show c)
-  => TypingEnvironment
-  -> Bool
-  -> (s (Term (Lit c k)) -> d)
-  -> (Term (Lit c k) -> d)
-  -> ProtoAtom s (Term (Lit c k))
-  -> (d, M.Map k SapicType)
-ppProtoAtom te _ _ ppT (Action v f@(Fact tag _ ts))
+ppProtoAtom :: (HighlightDocument d, Ord k, Show k, Show c) => TypingEnvironment -> Bool -> (s (Term (Lit c k)) -> d) -> (Term (Lit c k) -> d) -> ProtoAtom s (Term (Lit c k)) -> (d, M.Map k SapicType)
+ppProtoAtom te _ _ ppT (Action v f@(Fact tag _ _ ts))
   | factTagArity tag /= length ts = translationFail $ "MALFORMED function" ++ show tag
   | (tag == KUFact) || isKLogFact f  -- treat KU() and K() facts the same
       = (ppFactL "attacker" ts <> opAction <> ppT v, M.empty)

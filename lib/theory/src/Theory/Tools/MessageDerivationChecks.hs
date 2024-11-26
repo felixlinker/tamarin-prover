@@ -153,10 +153,10 @@ reportDiffVars analysisresults rules vars = case rulesAndVars of
                 ++ ": \nFailed to derive Variable(s): " ++ intercalate ", " (map (show . snd) $ filter ((/= TraceFound) . fst) (zip results vars'))
 
 checkProofStatuses :: ClosedTheory -> [ProofStatus]
-checkProofStatuses thy =  map (foldProof proofStepStatus . L.get lProof) $ theoryLemmas thy
+checkProofStatuses thy =  map (proofStatus . L.get lProof) $ theoryLemmas thy
 
 checkDiffProofStatuses :: ClosedDiffTheory -> [ProofStatus]
-checkDiffProofStatuses thy = map (foldProof proofStepStatus . L.get lProof . snd) $ diffTheoryLemmas thy
+checkDiffProofStatuses thy = map (proofStatus . L.get lProof . snd) $ diffTheoryLemmas thy
 
 -----------------------------------------------
 -- Convenience getter functions
@@ -179,7 +179,7 @@ generateAction :: [LVar] ->Int -> LNFact
 generateAction vars idx = protoFact Persistent ("Generated_" ++ show idx) (map lvarToLnterm (deleteGlobals vars))
 
 generateSeparatedLemmas :: Int -> [LVar]-> [ProtoLemma (ProtoFormula Unit2 (String, LSort) Name LVar) (Proof ())]
-generateSeparatedLemmas idx vars = map (\v -> Lemma (show v) ExistsTrace (existsTimeFormula $ existFormula $ landFormula $ generateAction vars idx : [(lntermToKUFact (lvarToLnterm v))]) [] (unproven ())) vars
+generateSeparatedLemmas idx vars = map (\v -> Lemma (show v) ExistsTrace (existsTimeFormula $ existFormula $ landFormula $ generateAction vars idx : [lntermToKUFact (lvarToLnterm v)]) [NoCyclicProofs] (unproven ())) vars
 
 deleteGlobals :: [LVar] -> [LVar]
 deleteGlobals = filter (\v -> lvarSort v /= LSortPub)

@@ -306,8 +306,8 @@ freeVarsInstantiatedByPubVars freeFactTerms pubFactTerms = all (isPubVar . snd)
 
 -- | Check if the free variables of actions in the case tests are instantiated by public variables in the rules.
 caseTestsInstantiatedByPubVars :: OpenTheory -> Bool
-caseTestsInstantiatedByPubVars thy = and [ freeVarsInstantiatedByPubVars cTerms rTerms | (Fact cTag _ cTerms) <- caseTestsFacts thy
-                                                                                       , (Fact rTag _ rTerms) <- rulesActions thy
+caseTestsInstantiatedByPubVars thy = and [ freeVarsInstantiatedByPubVars cTerms rTerms | (Fact cTag _ _ cTerms) <- caseTestsFacts thy
+                                                                                       , (Fact rTag _ _ rTerms) <- rulesActions thy
                                                                                        , cTag == rTag ]
 
 -- | Check if the rules of a theory contain public names.

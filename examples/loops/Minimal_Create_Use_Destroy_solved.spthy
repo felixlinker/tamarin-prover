@@ -1,0 +1,281 @@
+theory Minimal_Create_Use_Destroy begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, pair/2, snd/1
+equations: fst(<x.1, x.2>) = x.1, snd(<x.1, x.2>) = x.2
+
+
+
+
+
+/* looping facts with injective instances: Object/1 */
+
+text{*
+  Author: Simon Meier <simon.meier@inf.ethz.ch>
+  Date:   2011 12 01
+  Status: Working
+
+  One model of the key mechanism for certificate revocation.
+  For every certificate, we create a single fact denoting that
+  it has not yet been revoked. In every use of the certificate,
+  we check that this fact still exists.
+
+*}
+
+rule (modulo E) Create:
+   [ Fr( x ) ] --[ Create( x ) ]-> [ Object( x ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Use:
+   [ Object( x ) ] --[ Use( x ) ]-> [ Object( x ) ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Destroy:
+   [ Object( x ) ] --[ Destroy( x ) ]-> [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma Use_charn:
+  all-traces
+  "∀ x #j. (Use( x ) @ #j) ⇒ (∃ #i. (Create( x ) @ #i) ∧ (#i < #j))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #j. (Use( x ) @ #j) ∧ ∀ #i. (Create( x ) @ #i) ⇒ ¬(#i < #j)"
+*/
+simplify
+solve( Object( x.1 ) ▶₀ #j )
+  case Create
+  by CONTRADICTION /* from formulas */
+next
+  case Use
+  cut( Use( x.1 ) @ #vr , ∀ #i. (Create( x.1 ) @ #i) ⇒ ¬(#i < #vr) )
+    case cut
+    by CONTRADICTION /* cyclic proof with CS id 2-00 */
+  next
+    case negate_0
+    by CONTRADICTION /* from formulas */
+  next
+    case negate_1
+    by CONTRADICTION /* from formulas */
+  qed
+qed
+
+lemma Destroy_Create:
+  all-traces
+  "∀ x #j.
+    (Destroy( x ) @ #j) ⇒ (∃ #i. (Create( x ) @ #i) ∧ (#i < #j))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #j.
+  (Destroy( x ) @ #j) ∧ ∀ #i. (Create( x ) @ #i) ⇒ ¬(#i < #j)"
+*/
+simplify
+solve( Object( x.1 ) ▶₀ #j )
+  case Create
+  by CONTRADICTION /* from formulas */
+next
+  case Use
+  weaken edge( (#vr, 0) >--> (#j, 0) )
+  solve( Object( x.1 ) ▶₀ #vr )
+    case Create
+    by CONTRADICTION /* from formulas */
+  next
+    case Use
+    by CONTRADICTION /* cyclic proof with CS id 4-04 */
+  qed
+qed
+
+lemma Destroy_Use:
+  all-traces
+  "∀ x #j #i. ((Destroy( x ) @ #j) ∧ (Use( x ) @ #i)) ⇒ (#i < #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #j #i. (Destroy( x ) @ #j) ∧ (Use( x ) @ #i) ∧ ¬(#i < #j)"
+*/
+simplify
+solve( Object( x.2 ) ▶₀ #i )
+  case Create
+  by CONTRADICTION /* cyclic */
+next
+  case Use
+  cut( Use( x.2 ) @ #vr , #j < #vr , ((#vr = #j) ∨ (#j < #vr)) )
+    case cut
+    by CONTRADICTION /* cyclic proof with CS id 2-00 */
+  next
+    case negate_0
+    by CONTRADICTION /* from formulas */
+  next
+    case negate_1
+    by CONTRADICTION /* from formulas */
+  next
+    case negate_2
+    by CONTRADICTION /* from formulas */
+  qed
+qed
+
+lemma Destroy_unique:
+  all-traces
+  "∀ x #j #i.
+    ((Destroy( x ) @ #j) ∧ (Destroy( x ) @ #i)) ⇒ (#i = #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #j #i. (Destroy( x ) @ #j) ∧ (Destroy( x ) @ #i) ∧ ¬(#i = #j)"
+*/
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( Object( x.2 ) ▶₀ #j )
+    case Create
+    by CONTRADICTION /* cyclic */
+  next
+    case Use
+    weaken node( #j )
+    solve( Object( x.2 ) ▶₀ #vr )
+      case Create
+      by CONTRADICTION /* cyclic */
+    next
+      case Use
+      by CONTRADICTION /* cyclic proof with CS id 5-08 */
+    qed
+  qed
+next
+  case case_2
+  solve( Object( x.2 ) ▶₀ #i )
+    case Create
+    by CONTRADICTION /* cyclic */
+  next
+    case Use
+    weaken node( #i )
+    solve( Object( x.2 ) ▶₀ #vr )
+      case Create
+      by CONTRADICTION /* cyclic */
+    next
+      case Use
+      by CONTRADICTION /* cyclic proof with CS id 5-0c */
+    qed
+  qed
+qed
+
+lemma Destroy_charn:
+  all-traces
+  "∀ x #j.
+    (Destroy( x ) @ #j) ⇒
+    (((∃ #i. (Create( x ) @ #i) ∧ (#i < #j)) ∧
+      (∀ #i. (Use( x ) @ #i) ⇒ (#i < #j))) ∧
+     (∀ #i. (Destroy( x ) @ #i) ⇒ (#i = #j)))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ x #j.
+  (Destroy( x ) @ #j)
+ ∧
+  ((∀ #i. (Create( x ) @ #i) ⇒ ¬(#i < #j)) ∨
+   (∃ #i. (Use( x ) @ #i) ∧ ¬(#i < #j)) ∨
+   (∃ #i. (Destroy( x ) @ #i) ∧ ¬(#i = #j)))"
+*/
+simplify
+solve( (∀ #i. (Create( x.1 ) @ #i) ⇒ ¬(#i < #j))  ∥
+       (∃ #i. (Use( x.1 ) @ #i) ∧ ¬(#i < #j))  ∥
+       (∃ #i. (Destroy( x.1 ) @ #i) ∧ ¬(#i = #j)) )
+  case case_1
+  solve( Object( x.1 ) ▶₀ #j )
+    case Create
+    by CONTRADICTION /* from formulas */
+  next
+    case Use
+    weaken edge( (#vr, 0) >--> (#j, 0) )
+    solve( Object( x.1 ) ▶₀ #vr )
+      case Create
+      by CONTRADICTION /* from formulas */
+    next
+      case Use
+      by CONTRADICTION /* cyclic proof with CS id 6-10 */
+    qed
+  qed
+next
+  case case_2
+  solve( Object( x.2 ) ▶₀ #i )
+    case Create
+    by CONTRADICTION /* cyclic */
+  next
+    case Use
+    cut( Use( x.2 ) @ #vr , #j < #vr , ((#vr = #j) ∨ (#j < #vr)) )
+      case cut
+      by CONTRADICTION /* cyclic proof with CS id 4-04 */
+    next
+      case negate_0
+      by CONTRADICTION /* from formulas */
+    next
+      case negate_1
+      by CONTRADICTION /* from formulas */
+    next
+      case negate_2
+      by CONTRADICTION /* from formulas */
+    qed
+  qed
+next
+  case case_3
+  solve( (#i < #j)  ∥ (#j < #i) )
+    case case_1
+    solve( Object( x.2 ) ▶₀ #j )
+      case Create
+      by CONTRADICTION /* cyclic */
+    next
+      case Use
+      weaken node( #j )
+      solve( Object( x.2 ) ▶₀ #vr )
+        case Create
+        by CONTRADICTION /* cyclic */
+      next
+        case Use
+        by CONTRADICTION /* cyclic proof with CS id 7-28 */
+      qed
+    qed
+  next
+    case case_2
+    solve( Object( x.2 ) ▶₀ #i )
+      case Create
+      by CONTRADICTION /* cyclic */
+    next
+      case Use
+      weaken node( #i )
+      solve( Object( x.2 ) ▶₀ #j )
+        case Create
+        solve( Object( ~n ) ▶₀ #vr )
+          case Use
+          by CONTRADICTION /* cyclic proof with CS id 8-38 */
+        qed
+      next
+        case Use
+        solve( Object( x.2 ) ▶₀ #vr )
+          case Create
+          by CONTRADICTION /* cyclic */
+        next
+          case Use
+          by CONTRADICTION /* cyclic proof with CS id 8-b8 */
+        qed
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.9.0
+Maude version 3.3.1
+Git revision: 091232c102511b638b3116a61c8afffef08a4240, branch: cyclic
+Compiled at: 2024-08-07 14:49:34.171269 UTC
+*/
+
+end

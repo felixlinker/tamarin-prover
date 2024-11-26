@@ -68,6 +68,7 @@ import           Data.Map ( Map )
 import qualified Data.Map as M
 import qualified Data.Set as S
 import           Data.List
+import qualified Data.List.NonEmpty as NE
 import           Data.Binary
 -- import           Data.Monoid (mempty)
 
@@ -286,6 +287,9 @@ instance (Apply s a, Apply s b) => Apply s (Either a b) where
     apply subst = either (Left . apply subst) (Right . apply subst)
 
 instance Apply s a => Apply s [a] where
+    apply subst = fmap (apply subst)
+
+instance Apply s a => Apply s (NE.NonEmpty a) where
     apply subst = fmap (apply subst)
 
 instance Apply s a => Apply s (Map k a) where

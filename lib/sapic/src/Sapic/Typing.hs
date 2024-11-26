@@ -145,7 +145,7 @@ typeProcess = traverseProcess fNull fAct fComb gAct gComb
         fAct ann ac       = F.traverse_ insertVar (bindingsAct ann ac)
         fComb ann c        = F.traverse_ insertVar (bindingsComb ann c)
         -- gAct/gComb reconstruct process tree assigning types to the terms
-        gAct ac@(Event (Fact tag _ ts)) ann r = do -- r is typed subprocess
+        gAct ac@(Event (Fact tag _ _ ts)) ann r = do -- r is typed subprocess
             ac' <- traverseTermsAction (typeWith' $ ProcessAction ac ann r) typeWithFact typeWithVar ac
             argTypes <- mapM (`typeWith` Nothing) ts
             te <- get

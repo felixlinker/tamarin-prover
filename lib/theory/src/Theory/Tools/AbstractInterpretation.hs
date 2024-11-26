@@ -123,8 +123,8 @@ partialEvaluation evalStyle ruEs = reader $ \hnd ->
     -- the same position provided they have the same sort.
     absFact :: LNFact -> LNFact
     absFact fa = case fa of
-        Fact OutFact _ _ -> outFact (varTerm (LVar "z" LSortMsg 0))
-        Fact tag an ts    -> Fact tag an $ evalAbstraction $ traverse absTerm ts
+        Fact OutFact _ _ _ -> outFact (varTerm (LVar "z" LSortMsg 0))
+        Fact tag an i ts   -> Fact tag an i $ evalAbstraction $ traverse absTerm ts
       where
         evalAbstraction = (`evalBind` noBindings) . (`evalFreshT` nothingUsed)
 

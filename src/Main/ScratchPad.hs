@@ -1,11 +1,22 @@
-module Main.ScratchPad where
+module Main.ScratchPad
+  ( weakenNode
+  , weakenEdge
+  , steps
+  , paths
+  , methodsAt
+  , getDebugInput
+  , debug
+  ) where
 
 import qualified Data.Label as L
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Debug.Trace
 import Main.REPL
 import Theory
+
+import Control.Monad.Reader (ReaderT (runReaderT))
 
 {- This module meant for playing around with the Tamarin interactive proving
    REPL that can be found in @Main.REPL@. Before you make any changes to this
@@ -22,21 +33,101 @@ import Theory
    the console.
 -}
 
--- | The theory to debug.
-thy = loadThy "examples/ake/dh/NAXOS_eCK.spthy"
--- | Constraint solving steps to apply and on which lemma.
-steps = getProofForLemma "eCK_key_secrecy"
-  >>= trace "--- starting constraint solving ---"
-      solve 0 0  -- simplify
-  >>= solve 0 0  -- solve first applicable constraint on simplified constraint system
+thy :: IO ClosedTheory
+thy = loadThy "examples/features/cyclic/nested-loop.spthy"
 
--- | Pretty-print the tree of constraint systems after having applied all steps
---   above.
-paths = showPaths thy steps
--- | Pretty-print the applicable proof methods at the given leaf-index. Leaf
---   indices will be shown when running @paths@ above.
-methodsAt i = showMethodsAt thy i steps
--- | Run the debug monad @debugM@ defined below.
+steps :: REPL REPLProof
+steps = getProofForLemma "FreshSeedInstantiate"
+  >>= trace "--- starting constraint solving ---"
+      stepAt 0 (solve 0) -- simplify
+  >>= stepAt 0 (solve 0)
+  >>= stepAt 1 (solve 0)
+  >>= stepAt 1 (weakenNode "#t")
+  >>= stepAt 1 (solve 0)
+
+  -- Steps below for Signal
+  -- >>= stepAt 0 (weakenAGAt "#x")
+  -- >>= stepAt 0 (weakenNode "#x")
+  -- >>= stepAt 0 (weakenLessAtom "#vk" "#x")
+  -- >>= stepAt 0 (solve 0)
+  -- >>= stepAt 0 (solve 1)
+  -- >>= stepAt 0 (weakenNode "#vk")
+  -- >>= stepAt 0 (weakenNode "#vl")
+  -- >>= stepAt 0 (weakenNode "#vr.1")
+  -- >>= stepAt 0 (weakenNode "#vr.2")
+  -- >>= stepAt 0 (weakenAGAt "#vk")
+  -- >>= stepAt 0 (weakenLessAtom "#vl" "#vr.1")
+  -- >>= stepAt 0 (weakenLessAtom "#vr" "#vk")
+  -- >>= stepAt 0 (weakenLessAtom "#vr" "#vl")
+  -- >>= stepAt 0 (weakenLessAtom "#vr" "#vr.1")
+  -- >>= stepAt 0 (weakenLessAtom "#vr" "#vr.2")
+  -- >>= stepAt 0 (weakenLessAtom "#vk.1" "#vr.2")
+  -- >>= stepAt 0 (weakenLessAtom "#vr.1" "#vr.2")
+  -- >>= stepAt 0 (weakenLessAtom "#vr.2" "#vk")
+  -- >>= stepAt 0 (solve 3)
+  -- >>= stepAt 0 (solve 3)
+  -- >>= stepAt 0 (solve 3)
+  -- >>= stepAt 0 (weakenNode "#vk.1")
+  -- >>= stepAt 0 (weakenNode "#vk.4")
+  -- >>= stepAt 0 (weakenAGAt "#vk.1")
+  -- >>= stepAt 0 (weakenAGAt "#vk.2")
+  -- >>= stepAt 0 (weakenAGAt "#vk.3")
+  -- >>= stepAt 0 (weakenAGAt "#vk.4")
+  -- >>= stepAt 0 (weakenAGAt "#vk.5")
+  -- >>= stepAt 0 (weakenAGAt "#vk.6")
+  -- >>= stepAt 0 (weakenLessAtom "#vk.2" "#vk.1")
+  -- >>= stepAt 0 (weakenLessAtom "#vk.3" "#vk.2")
+  -- >>= stepAt 0 (weakenLessAtom "#vk.4" "#vk.2")
+  -- >>= stepAt 0 (weakenLessAtom "#vk.5" "#vk.4")
+  -- >>= stepAt 0 (weakenLessAtom "#vk.6" "#vk.5")
+  -- >>= stepAt 0 (weakenLessAtom "#vk.7" "#vk.5")
+  -- >>= stepAt 0 (solve 0)
+  -- >>= stepAt 0 (weakenNode "#vr")
+  -- >>= stepAt 0 (weakenNode "#vf.2")
+  -- >>= stepAt 0 (weakenNode "#vf.3")
+  -- >>= stepAt 0 (weakenLessAtom "#vf.2" "#vr")
+  -- >>= stepAt 0 (weakenLessAtom "#vf.3" "#vr")
+  -- >>= stepAt 0 (solve 4)
+  -- >>= stepAt 0 (solve 0)
+  -- >>= stepAt 0 (solve 5)
+
+  -- Steps below for nested loop
+  -- >>= stepAt 0 (weakenAGAt "#x")
+  -- >>= stepAt 0 (weakenNode "#x")
+  -- >>= stepAt 0 (weakenLessAtom "#vk" "#x")
+  -- >>= stepAt 0 (solve 1)
+  -- >>= stepAt 0 (solve 0)
+  -- >>= stepAt 1 (solve 0)
+  -- >>= stepAt 1 (solve 0)
+  -- >>= stepAt 2 (weakenAGAt "#t")
+  -- >>= stepAt 2 (weakenNode "#t")
+  -- >>= stepAt 2 (solve 1)
+  -- >>= stepAt 2 (weakenAGAt "#vk")
+  -- >>= stepAt 2 (weakenNode "#vk")
+  -- >>= stepAt 2 (weakenLessAtom "#vk.1" "#vk")
+  -- >>= stepAt 2 (solve 0)
+  -- >>= stepAt 2 (weakenNode "#vr")
+  -- >>= stepAt 2 (solve 0)
+  -- >>= stepAt 3 (solve 0)
+  -- >>= stepAt 3 (solve 0)
+  -- >>= stepAt 4 (solve 1)
+  -- >>= stepAt 5 (solve 0)
+  -- >>= stepAt 5 (solve 0)
+  -- >>= stepAt 6 (solve 0)
+  -- >>= stepAt 6 (solve 0)
+  -- >>= stepAt 7 (solve 1)
+  -- >>= stepAt 8 (solve 0)
+  -- >>= stepAt 8 (solve 0)
+  -- >>= stepAt 9 (solve 0)
+  -- >>= stepAt 9 (solve 0)
+
+paths :: REPL REPLProof -> IO ()
+paths = showPaths thy
+
+methodsAt :: Int -> REPL REPLProof -> IO ()
+methodsAt = showMethodsAt thy
+
+debug :: IO ()
 debug = showWith thy debugM debugInput
 
 {- Executing @paths steps@ in GHCI will show a visual representation of the
@@ -48,17 +139,23 @@ debug = showWith thy debugM debugInput
   find the indices required to apply more @solve@ steps in @steps@.
 -}
 
+type DebugInput = (ProofContext, MaudeHandle, REPLProof, NE.NonEmpty System)
+
 -- | Execute the constraint solving steps defined above, and provide input to
 --   debug monad @debugM@ defined below. The returned values will be provided as
 --   arguments to @debugM@.
+debugInput :: REPL DebugInput
 debugInput = do
   prf <- steps
   let ctxt = rpCtxt prf
   let hnd = L.get pcMaudeHandle ctxt
-  s <- systemAt 0 prf
-  return (ctxt, hnd, prf, s)
+  syss <- systemsAt 0 prf
+  return (ctxt, hnd, prf, syss)
+
+getDebugInput :: IO DebugInput
+getDebugInput = thy >>= runReaderT debugInput
 
 -- | Use the values returned above to perform debugging.
-debugM (_, _, _, s) = do
-  putStrLn "The constraint system contains the following annotated nodes"
-  mapM_ print (M.keys $ L.get sNodes s)
+debugM :: DebugInput -> IO ()
+debugM _ = do
+  putStrLn "debugging..."

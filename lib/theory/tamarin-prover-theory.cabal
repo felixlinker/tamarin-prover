@@ -77,12 +77,14 @@ library
     exposed-modules:
       Theory
       Theory.Proof
+      Theory.Proof.Cyclic
+      Theory.Proof.CyclicTest
       Theory.ProofSkeleton
 
+      Theory.Constraint.Renaming
       Theory.Constraint.Solver
       Theory.Constraint.Solver.Sources
       Theory.Constraint.Solver.Contradictions
-      Theory.Constraint.Solver.AnnotatedGoals
       Theory.Constraint.Solver.Goals
       Theory.Constraint.Solver.ProofMethod
       Theory.Constraint.Solver.Reduction
@@ -91,12 +93,15 @@ library
       Theory.Constraint.System
       Theory.Constraint.System.Constraints
       Theory.Constraint.System.Dot
+      Theory.Constraint.System.ID
+      Theory.Constraint.System.Inclusion
       Theory.Constraint.System.JSON
       Theory.Constraint.System.Guarded
       Theory.Constraint.System.Graph.GraphRepr
       Theory.Constraint.System.Graph.Abbreviation
       Theory.Constraint.System.Graph.Simplification
       Theory.Constraint.System.Graph.Graph
+      Theory.Constraint.System.Results
 
       Theory.Sapic.Term
       Theory.Sapic.Pattern

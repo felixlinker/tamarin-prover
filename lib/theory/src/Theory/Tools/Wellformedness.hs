@@ -561,7 +561,7 @@ specialFactsUsage' rules = do
 freshFactArguments' :: [ProtoRuleE] -> WfErrorReport
 freshFactArguments' rules = do
     ru                        <- rules
-    fa@(Fact FreshFact _ [m]) <- get rPrems ru
+    fa@(Fact FreshFact _ _ [m]) <- get rPrems ru
     guard (not (isMsgVar m || isFreshVar m))
     return $ (,) (underlineTopic "Fr facts must only use a fresh- or a msg-variable") $
         text ("rule " ++ quote (showRuleCaseName ru)) <->
@@ -1050,7 +1050,7 @@ multRestrictedReport' irreducible ru0 = do
       where
         ruAbstr = abstractRule ru
 
-        mults = [ mt | Fact _ _ ts <- get rConcs ru, t <- ts, mt <- multTerms t ]
+        mults = [ mt | Fact _ _ _ ts <- get rConcs ru, t <- ts, mt <- multTerms t ]
 
         multTerms t@(viewTerm -> FApp (AC Mult) _)  = [t]
         multTerms   (viewTerm -> FApp _         as) = concatMap multTerms as

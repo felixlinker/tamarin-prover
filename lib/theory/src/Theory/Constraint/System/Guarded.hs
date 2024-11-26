@@ -169,7 +169,7 @@ guardFactTags =
     foldGuarded mempty (mconcat . getDisj) (mconcat . getConj) getTags
   where
     getTags _qua _ss atos inner =
-        mconcat [ D.singleton tag | Action _ (Fact tag _ _) <- atos ] <> inner
+        mconcat [ D.singleton tag | Action _ (Fact tag _ _ _) <- atos ] <> inner
 
 
 -- | Atoms that are allowed as guards.

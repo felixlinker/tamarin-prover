@@ -10,7 +10,7 @@ Portability :  non-portable
 
 {-# LANGUAGE
     OverloadedStrings, QuasiQuotes, TypeFamilies, FlexibleContexts,
-    RankNTypes, TemplateHaskell, CPP #-}
+    RankNTypes, TemplateHaskell, CPP, ViewPatterns #-}
 
 module Web.Handler
   ( getOverviewR
@@ -25,7 +25,6 @@ module Web.Handler
   , getTheoryVariantsDiffR
   , getTheoryPathMR
   , getTheoryPathDiffMR
-  -- , getTheoryPathDR
   , getTheoryGraphR
   , getTheoryGraphDiffR
   , getTheoryMirrorDiffR
@@ -45,20 +44,14 @@ module Web.Handler
   , getSaveTheoryR
   , getDownloadTheoryR
   , getDownloadTheoryDiffR
-  -- , getEditTheoryR
-  -- , postEditTheoryR
-  -- , getEditPathR
-  -- , postEditPathR
   , getUnloadTheoryR
   , getUnloadTheoryDiffR
-  -- , getThreadsR
   )
 where
 
 import           Theory                       (
     ClosedTheory,
     ClosedDiffTheory,
---     EitherClosedTheory,
     Side,
     thyName, diffThyName, removeLemma,
     removeLemmaDiff, removeDiffLemma,
@@ -118,7 +111,6 @@ import Main.Console (renderDoc)
 import Theory.Tools.Wellformedness (prettyWfErrorReport)
 import           Text.Read                    (readMaybe)
 import           Theory.Constraint.System.Graph.Graph
-import           Theory.Constraint.System.Dot (BoringNodeStyle, dotSystemCompact, doNodeStyle)
 
 -- Quasi-quotation syntax changed from GHC 6 to 7,
 -- so we need this switch in order to support both
@@ -209,24 +201,6 @@ getTheories = do
     yesod <- getYesod
     liftIO $ withMVar (theoryVar yesod) return
 
-
--- -- | Modify a theory in the map of theories.
--- adjTheory :: TheoryIdx
---           -> (TheoryInfo -> TheoryInfo)
---           -> Handler ()
--- adjTheory idx f = do
---     yesod <- getYesod
---     liftIO $ modifyMVar_ (theoryVar yesod) $ \theories ->
---       case M.lookup idx theories of
---         Just th -> do
---           case th of
---             Trace thy -> do
---               let newThy =  f thy
---               storeTheory yesod (Trace newThy) idx
---               return $ M.insert idx (Trace newThy) theories
---             Diff _ -> error "adjTheory: found DiffTheory"
---         Nothing -> error "adjTheory: invalid theory index"
-
 -- | Modify a theory in the map of theories.
 adjEitherTheory :: TheoryIdx
                 -> (EitherTheoryInfo -> EitherTheoryInfo)
@@ -240,24 +214,6 @@ adjEitherTheory idx f = do
             storeTheory yesod newThy idx
             return $ M.insert idx newThy theories
         Nothing -> error "adjEitherTheory: invalid theory index"
-
--- -- | Modify a theory in the map of theories.
--- adjDiffTheory :: TheoryIdx
---               -> (DiffTheoryInfo -> DiffTheoryInfo)
---               -> Handler ()
--- adjDiffTheory idx f = do
---     yesod <- getYesod
---     liftIO $ modifyMVar_ (theoryVar yesod) $ \theories ->
---       case M.lookup idx theories of
---         Just th -> do
---           case th of
---             Diff thy -> do
---               let newThy =  f thy
---               storeTheory yesod (Diff newThy) idx
---               return $ M.insert idx (Diff newThy) theories
---             Trace _ -> error "adjTheory: found normal Theory"
---         Nothing -> error "adjTheory: invalid theory index"
-
 
 -- | Debug tracing.
 dtrace :: WebUI -> String -> a -> a
@@ -295,15 +251,6 @@ getThread str = do
       withMVar (threadVar yesod) $ return . M.lookup str
   where
     msg = "Retrieving thread id of: " ++ T.unpack str
-
-{-
--- | Get the map of all threads.
--- getThreads :: MonadIO m
---            => GenericHandler m [T.Text]
-getThreads = do
-    yesod <- getYesod
-    liftIO $ withMVar (threadVar yesod) (return . M.keys)
--}
 
 ------------------------------------------------------------------------------
 -- Helper functions
@@ -406,27 +353,6 @@ withEitherTheory idx handler = do
   case maybeThy of
     Just ti  -> handler ti
     Nothing -> notFound
-
-
-{-
--- | Run a form and provide a JSON response.
--- formHandler :: (HamletValue h, HamletUrl h ~ WebUIRoute, h ~ Widget ())
---             => T.Text                              -- ^ The form title
---             -> Form WebUI WebUI a                  -- ^ The formlet to run
---             -> (Widget () -> Enctype -> Html -> h) -- ^ Template to render form with
---             -> (a -> GenericHandler IO RepJson)    -- ^ Function to call on success
---             -> Handler RepJson
-formHandler title formlet template success = do
-    -- (result, widget, enctype, nonce) <- runFormPost formlet
-    ((result, widget), enctype) <- runFormPost formlet
-    case result of
-      FormMissing -> do
-        RepHtml content <- ajaxLayout (template widget enctype)
-        jsonResp $ JsonHtml title content
-      FormFailure _ -> jsonResp $ JsonAlert
-        "Missing fields in form. Please fill out all required fields."
-      FormSuccess ret -> lift (success ret)
--}
 
 
 -- | Modify a theory, redirect if successful.
@@ -878,33 +804,6 @@ getAutoDiffProverR idx extractor bound =
         CutSingleThreadDFS -> ("the autoprover",   []     )
         CutBFS     -> ("the autoprover",   ["bfs"])
 
-
-{-
--- | Show a given path within a theory (debug view).
-getTheoryPathDR :: TheoryIdx -> TheoryPath -> Handler Html
-getTheoryPathDR idx path = withTheory idx $ \ti -> ajaxLayout $ do
-  -- let maybeDebug = htmlThyDbgPath (tiTheory ti) path
-  -- let maybeWidget = wrapHtmlDoc <$> maybeDebug
-  return [hamlet|
-    <h2>Theory information</h2>
-    <ul>
-      <li>Index = #{show (tiIndex ti)}
-      <li>Path = #{show path}
-      <li>Time = #{show (tiTime ti)}
-      <li>Origin = #{show (tiOrigin ti)}
-      <li>NextPath = #{show (nextThyPath (tiTheory ti) path)}
-      <li>PrevPath = #{show (prevThyPath (tiTheory ti) path)}
-      <li>NextSmartPath = #{show (nextSmartThyPath (tiTheory ti) path)}
-      <li>PrevSmartPath = #{show (prevSmartThyPath (tiTheory ti) path)}
-  |]
-    {-
-    $if isJust maybeWidget
-      <h2>Current sequent</h2><br>
-      \^{fromJust maybeWidget}
-  |]
-  -}
--}
-
 -- | Read the render options from a request to render a sequent.
 getOptions :: Handler (GraphOptions, DotOptions)
 getOptions = do
@@ -1039,98 +938,6 @@ getPrevTheoryPathDiffR idx md path = withDiffTheory idx  (\ti -> do
     prevDiff "smart" = prevSmartDiffThyPath
     prevDiff _ = const id
 
-{-
--- | Get the edit theory page.
-getEditTheoryR :: TheoryIdx -> Handler RepJson
-getEditTheoryR = postEditTheoryR
-
--- | Post edit theory page form data.
-postEditTheoryR :: TheoryIdx -> Handler RepJson
-postEditTheoryR idx = withTheory idx $ \ti -> formHandler
-    "Edit theory"
-    (theoryFormlet ti)
-    theoryFormTpl $ \(Textarea input) ->
-      E.handle exHandler $ do
-        yesod <- getYesod
-        closedThy <- checkProofs <$> parseThy yesod (T.unpack input)
-        newIdx <- putTheory (Just ti) Nothing closedThy
-        jsonResp . JsonRedirect =<<
-          getUrlRender <*> pure (OverviewR newIdx)
-  where
-    -- theoryFormlet ti = fieldsToDivs $ textareaField
-    theoryFormlet ti = textareaField
-      (FieldSettings
-        ("Edit theory source: " `T.append` name ti)
-        (toHtml $ name ti) Nothing Nothing)
-      (Just $ Textarea $ T.pack $ render $ prettyClosedTheory $ tiTheory ti)
-
-    exHandler :: MonadBaseControl IO m => E.SomeException -> GHandler m RepJson
-    exHandler err = jsonResp $ JsonAlert $ T.unlines
-      [ "Unable to load theory due to parse error!"
-      , "Parser returned the message:"
-      , T.pack $ show err ]
-
-    name = T.pack . get thyName . tiTheory
-    theoryFormTpl = formTpl (EditTheoryR idx) "Load as new theory"
--}
-
-{-
-SM: Path editing hs bitrotted. Re-enable/implement once we really need it.
-
--- | Get the add lemma page.
-getEditPathR :: TheoryIdx -> TheoryPath -> Handler RepJson
-getEditPathR = postEditPathR
-
--- | Post edit theory page form data.
-postEditPathR :: TheoryIdx -> TheoryPath -> Handler RepJson
-postEditPathR idx (TheoryLemma lemmaName) = withTheory idx $ \ti -> do
-    yesod <- getYesod
-    let lemma = lookupLemma lemmaName (tiTheory ti)
-    formHandler
-      (T.pack $ action lemma)
-      (formlet lemma)
-      (lemmaFormTpl lemma) $ \(Textarea input) ->
-        case parseLemma (T.unpack input) of
-          Left err -> jsonResp $ JsonAlert $ T.unlines
-            [ "Unable to add lemma to theory due to parse error!"
-            , "Parser returned the message:"
-            , T.pack $ show err ]
-          Right newLemma -> (RepJson . toContent . fromValue) <$> modifyTheory ti
-            -- Add or replace lemma
-            (\thy -> do
-              let openThy  = openTheory thy
-                  openThy' = case lemma of
-                    Nothing -> addLemma newLemma openThy
-                    Just _  -> removeLemma lemmaName openThy
-                                  >>= addLemma newLemma
-              -- SM: Theory closing has to be implemented again.
-              -- Probably, the whole path editing has to be rethought.
-              traverse (closeThy yesod) openThy')
-            -- Error response
-            (JsonAlert $ T.unwords
-               [ "Unable to add lemma to theory."
-               , "Does a lemma with the same name already exist?" ])
-  where
-    path (Just l) = TheoryLemma (get lName l)
-    path Nothing = TheoryLemma ""
-
-    action (Just l) = "Edit lemma " ++ get lName l
-    action Nothing = "Add new lemma"
-
-    -- formlet lemma = fieldsToDivs $ textareaField
-    formlet lemma = textareaField
-      (FieldSettings
-        (T.pack $ action lemma)
-        (toHtml $ action lemma)
-        Nothing Nothing)
-      (Textarea . T.pack . render . prettyLemma prettyProof <$> lemma)
-
-    lemmaFormTpl lemma = formTpl (EditPathR idx (path lemma)) "Submit"
-
-postEditPathR _ _ =
-  jsonResp $ JsonAlert $ "Editing for this path is not implemented!"
--}
-
 -- | Delete a given proof step.
 getDeleteStepR :: TheoryIdx -> TheoryPath -> Handler RepJson
 getDeleteStepR idx path = do
@@ -1233,7 +1040,6 @@ getSaveTheoryR idx = withEitherTheory idx $ \eti -> do
     setPrimary bool (Trace ti)  = Trace (ti { tiPrimary  = bool })
     setPrimary bool (Diff ti)     = Diff    (ti { dtiPrimary = bool })
 
-
 -- | Prompt downloading of theory.
 getDownloadTheoryR :: TheoryIdx -> String -> Handler (ContentType, Content)
 getDownloadTheoryR idx _ = do
@@ -1253,13 +1059,3 @@ getUnloadTheoryR idx = do
 -- | Unload a theory from the interactive server.
 getUnloadTheoryDiffR :: TheoryIdx -> Handler RepPlain
 getUnloadTheoryDiffR = getUnloadTheoryR
-
-{-
--- | Show a list of all currently running threads.
-getThreadsR :: Handler Html
-getThreadsR = do
-    threads <- getThreads
-    defaultLayout $ do
-      setTitle "Registered threads"
-      addWidget (threadsTpl threads)
--}

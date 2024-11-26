@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ViewPatterns #-}
 module Rule (
     module Rule
     ,module Items.RuleItem
@@ -13,8 +14,8 @@ import           Prelude                             hiding (id, (.))
 import           Data.List
 
 import qualified Data.Set                            as S
+import qualified Data.Map                            as M
 
-import           Control.Basics
 import           Control.Category
 import           Control.Monad.Reader
 
@@ -100,7 +101,7 @@ closeProtoRule _   _      (OpenProtoRule ruE ruAC) = map (ClosedProtoRule ruE) r
 -- | Close an intruder rule; i.e., compute maximum number of consecutive applications and variants
 --   Should be parallelized like the variant computation for protocol rules (JD)
 closeIntrRule :: MaudeHandle -> IntrRuleAC -> [IntrRuleAC]
-closeIntrRule hnd (Rule (DestrRule name (-1) subterm constant) prems@((Fact KDFact _ [t]):_) concs@[Fact KDFact _ [rhs]] acts nvs) =
+closeIntrRule hnd (Rule (DestrRule name (-1) subterm constant) prems@((Fact KDFact _ _ [t]):_) concs@[Fact KDFact _ _ [rhs]] acts nvs) =
   if subterm then [ru] else variantsIntruder hnd id False ru
     where
       ru = (Rule (DestrRule name (if runMaude (unifiableLNTerms rhs t)
@@ -133,7 +134,7 @@ closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules int
         classifiedRules rawSources refinedSources injFactInstances
   where
     ctxt0 = ProofContext
-        sig classifiedRules injFactInstances RawSource [] AvoidInduction Nothing Nothing 
+        sig classifiedRules RawSource [] AvoidInduction Nothing Nothing
         (error "closeRuleCache: trace quantifier should not matter here")
         (error "closeRuleCache: lemma name should not matter here") [] verbose isdiff
         (all isSubtermRule {-- $ trace (show destr ++ " - " ++ show (map isSubtermRule destr))-} destr) (any isConstantRule destr)
@@ -143,10 +144,10 @@ closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules int
     hnd = L.get sigmMaudeHandle sig
     reducibles = reducibleFunSyms $ mhMaudeSig hnd
 
-    forcedInjFacts' = S.map (\x -> (x, replicate (factTagArity x) [Unspecified])) forcedInjFacts
+    forcedInjFacts' = M.fromSet (\x -> replicate (factTagArity x) [Unspecified]) forcedInjFacts
     -- inj fact instances
-    injFactInstances = forcedInjFacts' `S.union`
-        simpleInjectiveFactInstances reducibles (L.get cprRuleE <$> protoRules)
+    injFactInstances = simpleInjectiveFactInstances reducibles (L.get cprRuleE <$> protoRules)
+      <> forcedInjFacts'
 
     -- precomputing the case distinctions: we make sure to only add safety
     -- restrictions. Otherwise, it wouldn't be sound to use the precomputed case
@@ -159,8 +160,13 @@ closeRuleCache parameters restrictions typAsms forcedInjFacts sig protoRules int
     intrRulesAC = concat $ map (closeIntrRule hnd) intrRules
 
     -- classifying the rules
+    tagFact f@(Fact tag _ _ _) = f { injectiveBehavior = M.lookup tag injFactInstances }
+    tagFactsRule = L.modify rConcs (map tagFact) . L.modify rPrems (map tagFact)
+    tagFactsClosedRule (ClosedProtoRule re rac) = ClosedProtoRule (tagFactsRule re) (tagFactsRule rac)
+
+    taggedRules = map tagFactsClosedRule protoRules
     rulesAC = (fmap IntrInfo                      <$> intrRulesAC) ++
-              ((fmap ProtoInfo . L.get cprRuleAC) <$> protoRules)
+              ((fmap ProtoInfo . L.get cprRuleAC) <$> taggedRules)
 
     anyOf ps = partition (\x -> any ($ x) ps)
 

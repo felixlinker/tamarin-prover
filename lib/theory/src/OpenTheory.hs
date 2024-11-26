@@ -654,17 +654,9 @@ normalizeTheory =
     stripProofAnnotations = fmap stripProofStepAnnotations
     stripProofStepAnnotations (ProofStep method ()) = ProofStep
       (case method of
-        Sorry _         -> Sorry Nothing
-        Finished (Contradictory _) -> Finished (Contradictory Nothing)
-        _               -> method)
+        Left (Sorry _) -> Left (Sorry Nothing)
+        _ -> method)
       ()
-
-
-
-
-
-
-
 
 -- | Pretty print an open rule together with its assertion soundness proof.
 prettyOpenProtoRule :: HighlightDocument d => OpenProtoRule -> d

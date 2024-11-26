@@ -123,7 +123,7 @@ searchTermForBitstrings =
 makeTableHeaders :: [LNFact] -> [LNFact] -> [(String, String)]
 makeTableHeaders rprems rconcls = headers
   where
-    getFactInfo (Fact tag _ ts) = (showFactName tag, length ts)
+    getFactInfo (Fact tag _ _ ts) = (showFactName tag, length ts)
     allFactInfos = S.toList $ S.fromList (map getFactInfo rprems ++ map getFactInfo rconcls)
     tableInfos = filter (\(t, _) -> t `notElem` ["Fr", "In", "Out"]) allFactInfos
     headers = map (\(t,n) -> (t, "(" ++ intercalate ", " (replicate n "bitstring") ++ ")")) tableInfos
@@ -131,7 +131,7 @@ makeTableHeaders rprems rconcls = headers
 makeEventHeaders :: [LNFact] -> [(String, String)]
 makeEventHeaders racts = headers
   where
-    getFactInfo (Fact tag _ ts) = (showEventName tag, length ts)
+    getFactInfo (Fact tag _ _ ts) = (showEventName tag, length ts)
     allFactInfos = S.toList $ S.fromList (map getFactInfo racts)
     headers = map (\(t,n) -> (t, "(" ++ intercalate ", " (replicate n "bitstring") ++ ")")) allFactInfos
 
@@ -264,7 +264,7 @@ translatePatterns facts factType filterFunction vars helperVars destructors =
     -- destructors. Also returns the updated set of variables from the current rule translation,
     -- the updated map of helper vars and the updated map of destructors, so they can be used
     -- for the translation of the next fact.
-    translate prem@(Fact _ _ ts) vs hvs destrs = (factPlusDestructorsDoc, newVars, newHelperVars, newDestructors)
+    translate prem@(Fact _ _ _ ts) vs hvs destrs = (factPlusDestructorsDoc, newVars, newHelperVars, newDestructors)
       where
         -- First create only the part of the translation that is 'get'
         -- or 'in', introducing new helper vars for all patterns.
@@ -299,7 +299,7 @@ translateNonPatterns facts factType filterFunction vars =
   foldl' (\acc@(_, currVars) f -> acc `combine2` translate f currVars) ([], vars) nonPatternFacts
   where
     nonPatternFacts = filter filterFunction facts
-    translate prem@(Fact _ _ ts) vs = (factDoc, atoms)
+    translate prem@(Fact _ _ _ ts) vs = (factDoc, atoms)
       where
         factDoc = if factType `elem` [OUT, INSERT, EVENT] && checkForNewIDs
                     then idConstructor $-$ translateFact prem factType vs
@@ -311,7 +311,7 @@ translateNonPatterns facts factType filterFunction vars =
 
 
 translateFact :: Document d => LNFact -> FactType -> S.Set String -> d
-translateFact (Fact tag _ ts) factType vars = case factType of
+translateFact (Fact tag _ _ ts) factType vars = case factType of
     GET    -> text "get" <-> text (showFactName tag) <> translateTerms vars True <> text " in"
     IN     -> text "in(publicChannel," <-> translateTerm vars True (head ts)
               <> text (if head (printTerm True vars True (head ts)) == '=' then ")" else ": bitstring)")
@@ -330,7 +330,7 @@ translatePatternFact
   -> S.Set String
   -> M.Map String String
   -> (d, M.Map String String)
-translatePatternFact (Fact tag _ ts) factType vars helperVars =
+translatePatternFact (Fact tag _ _ ts) factType vars helperVars =
   (factDoc, newHelperVars)
   where
     (doclist, newHelperVars) =

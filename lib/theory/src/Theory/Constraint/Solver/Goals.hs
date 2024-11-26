@@ -12,12 +12,13 @@
 --
 -- A goal represents a possible application of a rule that may result in
 -- multiple cases or even non-termination (if applied repeatedly). These goals
--- are computed as the list of 'openGoals'. See
+-- are computed as the list of 'annotateGoals'. See
 -- "Theory.Constraint.Solver.ProofMethod" for the public interface to solving
 -- goals and the implementation of heuristics.
-module Theory.Constraint.Solver.Goals (
-    
-  openGoals
+module Theory.Constraint.Solver.Goals
+  ( isSolved
+  , annotateGoals
+  , annotateGoalsSimple
   , solveGoal
   , plainOpenGoals
   ) where
@@ -40,7 +41,6 @@ import           Control.Monad.State                     (gets)
 
 import           Extension.Data.Label                    as L
 
-import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.Solver.Contradictions (substCreatesNonNormalTerms)
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.System
@@ -49,65 +49,123 @@ import           Theory.Model
 import           Term.Builtin.Convenience
 
 
-import           Utils.Misc                              (twoPartitions)
+import Utils.Misc (twoPartitions, peakTail, splitBetween)
+import Data.Maybe (isNothing, catMaybes, maybeToList, isJust, fromJust)
+import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
+import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Data.List.NonEmpty as NE
+import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
+import Data.Tuple (swap)
 
 ------------------------------------------------------------------------------
 -- Extracting Goals
 ------------------------------------------------------------------------------
 
--- Usefullness and AnnotatedGoal moved to AnnotatedGoals.hs to allow exportation
-
-
 -- Instances
 ------------
 
--- | The list of goals that must be solved before a solution can be extracted.
--- Each goal is annotated with its age and an indicator for its usefulness.
-openGoals :: System -> [AnnotatedGoal]
-openGoals sys = do
-    (goal, status) <- M.toList $ get sGoals sys
-    let solved = get gsSolved status
-    -- check whether the goal is still open
-    guard $ case goal of
-        ActionG i (kFactView -> Just (UpK, m)) ->
-          if get sDiffSystem sys
-             -- In a diff proof, all action goals need to be solved.
-             then not (solved)
-             else
-               not $    solved
-                    -- message variables are not solved, except if the node already exists in the system -> facilitates finding contradictions
-                    || (isMsgVar m && Nothing == M.lookup i (get sNodes sys))
-                    || sortOfLNTerm m == LSortPub
-                    || sortOfLNTerm m == LSortNat
-                    -- handled by 'insertAction'
-                    || isPair m || isInverse m || isProduct m --- || isXor m
-                    || isUnion m || isNullaryPublicFunction m
-        ActionG _ _                               -> not solved
-        PremiseG _ _                              -> not solved
-        -- Technically the 'False' disj would be a solvable goal. However, we
-        -- have a separate proof method for this, i.e., contradictions.
-        DisjG (Disj [])                           -> False
-        DisjG _                                   -> not solved
+isRedundant :: System -> Goal -> Bool
+isRedundant se (SplitG idx) = not (splitExists (get sEqStore se) idx)
+isRedundant se (SubtermG st) = st `notElem` L.get (posSubterms . sSubtermStore) se
+isRedundant _ (DisjG (Disj [])) = True
+isRedundant se (ActionG i (Fact KUFact _ _ [m])) =
+  not (get sDiffSystem se) && (
+      (isMsgVar m && isNothing (M.lookup i (get sNodes se)))
+    || sortOfLNTerm m == LSortPub
+    || sortOfLNTerm m == LSortNat
+    || isPair m
+    || isInverse m
+    || isProduct m
+    || isUnion m
+    || isNullaryPublicFunction m)
+isRedundant se (ChainG c p) = case kFactView (nodeConcFact c se) of
+  -- do not solve Union conclusions if they contain only known msg vars
+  Just (DnK, viewTerm2 -> FUnion args) -> allMsgVarsKnownEarlier c args
+  -- open chains for msg vars are only solved if N5'' is applicable
+  Just (DnK,  m)  | isMsgVar m -> not (chainToEquality m)
+                  | otherwise  -> False
+  _ -> False
+  where
+    allMsgVarsKnownEarlier (i, _) args = all isMsgVar args
+      && all (`elem` earlierMsgVars) args
+      where
+        earlierMsgVars = do
+          (j, _, t) <- allKUActions se
+          guard (isMsgVar t && alwaysBefore se j i)
+          return t
 
-        ChainG c p     ->
-          case kFactView (nodeConcFact c sys) of
-              Just (DnK, viewTerm2 -> FUnion args) ->
-              -- do not solve Union conclusions if they contain only known msg vars
-                  not solved && not (allMsgVarsKnownEarlier c args)
-              -- open chains for msg vars are only solved if N5'' is applicable
-              Just (DnK,  m) | isMsgVar m          -> (not solved) &&
-                                                      (chainToEquality m c p)
-                             | otherwise           -> not solved
-              fa -> error $ "openChainGoals: impossible fact: " ++ show fa
+    -- check whether we have a chain that fits N5'' (an open chain between an
+    -- equality rule and a simple msg var conclusion that exists as a K up
+    -- previously) which needs to be resolved even if it is an open chain
+    chainToEquality :: LNTerm -> Bool
+    chainToEquality t_start = isMsgVar t_start && is_equality && ku_before
+      where
+        -- and whether we do have an equality rule instance at the end
+        is_equality = isIEqualityRule $ nodeRule (fst p) se
+        -- get all KU-facts with the same msg var
+        ku_start    = filter (\x -> fst x == t_start) $
+                        map (\(i, _, m) -> (m, i)) $ allKUActions se
+        -- and check whether any of them happens before the KD-conclusion
+        ku_before   = any (\(_, x) -> alwaysBefore se x (fst c)) ku_start
+isRedundant _ _ = False
 
-        -- FIXME: Split goals may be duplicated, we always have to check
-        -- explicitly if they still exist.
-        SplitG idx -> splitExists (get sEqStore sys) idx
-        SubtermG st -> st `elem` L.get (posSubterms . sSubtermStore) sys
+mustBeSolved :: System -> [(Goal, GoalStatus)]
+mustBeSolved se = filter (uncurry p) $ M.toList $ get sGoals se
+  where
+    p :: Goal -> GoalStatus -> Bool
+    p g gs = goalP g && not (get gsSolved gs)
 
-    let
-        useful = case goal of
-          _ | get gsLoopBreaker status              -> LoopBreaker
+    goalP :: Goal -> Bool
+    goalP (Cut _) = False
+    goalP (Weaken _) = False
+    goalP g = not $ isRedundant se g
+
+-- NOTE: This function establishes an invariant for annotateGoalsSimple. Make
+-- sure to read the comments on annotateGoalsSimple before you edit this
+-- function.
+mayBeSolved :: ProofContext -> Bool -> NonEmpty System -> [(Goal, GoalStatus)]
+mayBeSolved ctxt doCyclic syss@(se:|_) = filter (uncurry p) (M.toList (get sGoals se))
+    ++ (guard doCyclic >> catMaybes [cyclicMinimization, cutGoal])
+  where
+    p :: Goal -> GoalStatus -> Bool
+    p g gs = not (isRedundant se g) && not (get gsSolved gs)
+
+    hasOutgoingEdge :: LoopInstance NodeId -> Bool
+    hasOutgoingEdge li = any ((end li ==) . fst . eSrc) (L.get sEdges se)
+
+    cyclicMinimization = do
+      let loops = L.get sLoops se
+      guard (any (\l -> isLongLoop l || hasOutgoingEdge l) loops)
+      return (Weaken WeakenCyclic, GoalStatus False Contextual True)
+
+    cutGoal = do
+      PartialCyclicProof _ upTo _ <- getCycleRenamingOnPath ctxt syss
+      guard (not $ S.null upTo)
+      return (Cut upTo, GoalStatus False Contextual False)
+
+isSolved :: System -> Bool
+isSolved sys = not (isInitialSystem sys) && null (mustBeSolved sys)
+
+annotateGoals :: ProofContext -> NonEmpty System -> [AnnotatedGoal]
+annotateGoals ctxt syss@(se NE.:| _) =
+  annotateGoals' (UseCyclicInduction == L.get pcUseInduction ctxt) ctxt syss
+
+-- NOTE: Making the single System a singleton list only works because
+-- mayBeSolved only uses a full path of systems for cyclic proofs, which gets
+-- disabled here. Make sure to maintain this invariant whenever you edit the
+-- respective functions.
+annotateGoalsSimple :: ProofContext -> System -> [AnnotatedGoal]
+annotateGoalsSimple ctxt = annotateGoals' False ctxt . NE.singleton
+
+-- | The list of goals that can be solved. Each goal is annotated with its age
+--   and an indicator for its usefulness.
+annotateGoals' :: Bool -> ProofContext -> NonEmpty System -> [AnnotatedGoal]
+annotateGoals' doCyclic ctxt syss@(sys:|_) = do
+    (goal, status) <- mayBeSolved ctxt doCyclic syss
+    let useful = case goal of
+          (Cut _) -> Useful
+          _ | get gsLoopBreaker status -> LoopBreaker
+          (Weaken _) -> Dangerous
           ActionG i (kFactView -> Just (UpK, m))
               -- if there are KU-guards then all knowledge goals are useful
             | hasKUGuards             -> Useful
@@ -146,8 +204,8 @@ openGoals sys = do
         -- We cannot deduce a message from a last node.
         guard (not $ isLast sys j)
         let derivedMsgs = concatMap toplevelTerms $
-                [ t | Fact OutFact _ [t] <- get rConcs ru] <|>
-                [ t | Just (DnK, t)    <- kFactView <$> get rConcs ru]
+                [ t | Fact OutFact _ _ [t] <- get rConcs ru] <|>
+                [ t | Just (DnK, t)        <- kFactView <$> get rConcs ru]
         -- m is deducible from j without an immediate contradiction
         -- if it is a derived message of 'ru' and the dependency does
         -- not make the graph cyclic.
@@ -159,36 +217,9 @@ openGoals sys = do
     toplevelTerms t@(viewTerm2 -> FInv t1) = t : toplevelTerms t1
     toplevelTerms t = [t]
 
-    allMsgVarsKnownEarlier (i,_) args = (all isMsgVar args) &&
-        (all (`elem` earlierMsgVars) args)
-      where earlierMsgVars = do (j, _, t) <- allKUActions sys
-                                guard $ isMsgVar t && alwaysBefore sys j i
-                                return t
-
-    -- check whether we have a chain that fits N5'' (an open chain between an
-    -- equality rule and a simple msg var conclusion that exists as a K up
-    -- previously) which needs to be resolved even if it is an open chain
-    chainToEquality :: LNTerm -> NodeConc -> NodePrem -> Bool
-    chainToEquality t_start conc p = is_msg_var && is_equality && ku_before
-        where
-            -- check whether it is a msg var
-            is_msg_var  = isMsgVar t_start
-            -- and whether we do have an equality rule instance at the end
-            is_equality = isIEqualityRule $ nodeRule (fst p) sys
-            -- get all KU-facts with the same msg var
-            ku_start    = filter (\x -> (fst x) == t_start) $
-                              map (\(i, _, m) -> (m, i)) $ allKUActions sys
-            -- and check whether any of them happens before the KD-conclusion
-            ku_before   = any (\(_, x) -> alwaysBefore sys x (fst conc)) ku_start
-
-
 -- | The list of all open goals left together with their status.
 plainOpenGoals:: System -> [(Goal, GoalStatus)]
-plainOpenGoals sys = openGoalsLeft
-  where
-    openGoalsLeft = filter isOpen (M.toList $ L.get sGoals sys)
-    isOpen(_, status) = case status of
-      GoalStatus s _ _ -> not s
+plainOpenGoals = filter (not . get gsSolved . snd) . M.toList . L.get sGoals
 
 ------------------------------------------------------------------------------
 -- Solving 'Goal's
@@ -210,6 +241,8 @@ solveGoal goal = do
       SplitG i      -> solveSplit i
       DisjG disj    -> solveDisjunction disj
       SubtermG st   -> solveSubterm st
+      Weaken el     -> weaken el >> return ""
+      Cut el        -> cut el
 
 -- The following functions are internal to 'solveGoal'. Use them with great
 -- care.
@@ -218,11 +251,11 @@ solveGoal goal = do
 solveAction :: [RuleAC]          -- ^ All rules labelled with an action
             -> (NodeId, LNFact)  -- ^ The action we are looking for.
             -> Reduction String  -- ^ A sensible case name.
-solveAction rules (i, fa@(Fact _ ann _)) = do
+solveAction rules (i, fa@(Fact _ ann _ _)) = do
     mayRu <- M.lookup i <$> getM sNodes
     showRuleCaseName <$> case mayRu of
         Nothing -> case fa of
-            (Fact KUFact _ [m@(viewTerm2 -> FXor ts)]) -> do
+            (Fact KUFact _ _ [m@(viewTerm2 -> FXor ts)]) -> do
                    partitions <- disjunctionOfList $ twoPartitions ts
                    case partitions of
                        (_, []) -> do
@@ -278,7 +311,7 @@ solvePremise rules p faPrem
           premLearn = outFact mLearn
           -- !! Make sure that you construct the correct rule!
           ruLearn = Rule (IntrInfo IRecvRule) [premLearn] [concLearn] [] []
-          cLearn = (iLearn, ConcIdx 0)
+          cLearn = iLearn
           pLearn = (iLearn, PremIdx 0)
       modM sNodes  (M.insert iLearn ruLearn)
       insertChain cLearn p
@@ -345,7 +378,7 @@ solveChain rules (c, p) = do
     extendAndMark i ru v faPrem faConc = do
         insertEdges [(c, faConc, faPrem, (i, v))]
         markGoalAsSolved "directly" (PremiseG (i, v) faPrem)
-        insertChain (i, ConcIdx 0) p
+        insertChain i p
         return (showRuleCaseName ru)
 
     -- contradicts normal form condition:
@@ -429,3 +462,151 @@ solveSubterm st = do
         ACNewVarD ((smallPlus, big), newVar) -> insertFormula $ closeGuarded Ex [newVar] [EqE smallPlus big] gtrue
         
       return $ "SubtermSplit" ++ show i
+
+fromTail :: LoopInstance NodeId -> NE.NonEmpty NodeId -> LoopInstance NodeId
+fromTail li es@(h :| _) = li { start = h, loopEdges = es }
+
+fromPrefix :: LoopInstance NodeId -> NE.NonEmpty NodeId -> LoopInstance NodeId
+fromPrefix li es = li { end = NE.last es, loopEdges = es }
+
+splitLoopsAtNode :: NodeId -> [LoopInstance NodeId] -> [LoopInstance NodeId]
+splitLoopsAtNode _ [] = []
+splitLoopsAtNode n (li@LoopInstance { loopEdges = es }:t)
+  | null r = li : splitLoopsAtNode n t
+  | otherwise = catMaybes [liL, liR] ++ t
+  where
+    (l, r) = NE.break (== n) es
+    liL = fromPrefix li <$> NE.nonEmpty l
+    liR = do
+      esL' <- peakTail r
+      es' <- NE.nonEmpty esL'
+      return $ fromTail li es'
+
+splitLoopsAtEdge :: Edge -> [LoopInstance NodeId] -> [LoopInstance NodeId]
+splitLoopsAtEdge _ [] = []
+splitLoopsAtEdge e@(Edge (src, _) (tgt, _)) (li@(LoopInstance { loopEdges = es }):t)
+  | not (null r) = fromPrefix li l : fromTail li (NE.fromList r) : t
+  | otherwise = li : splitLoopsAtEdge e t
+  where
+    (l, r) = splitBetween (src, tgt) es
+
+data WeakenMode = Preserve | Prune deriving Eq
+
+weaken :: WeakenEl -> Reduction ()
+weaken el = do
+  sid <- L.getM sId
+  L.setM sWeakenedFrom (Just sid)
+  go el
+  where
+    activateGoals :: (Goal -> Bool) -> Reduction ()
+    activateGoals p = L.modM sGoals modGoals
+      where
+        modGoals :: M.Map Goal GoalStatus -> M.Map Goal GoalStatus
+        modGoals goals = foldr (M.update (Just . set gsSolved False)) goals (filter p (M.keys goals))
+
+    weakenEdge :: WeakenMode -> Edge -> Reduction ()
+    weakenEdge mode e@(Edge conc prem) = do
+      L.modM sEdges (S.delete e)
+      L.modM sLoops (splitLoopsAtEdge e)
+      when (mode == Preserve) $ do
+        L.modM sLessAtoms (S.insert (lessAtomFromEdge KeepWeakened e))
+        activateGoals premiseAndChainGoals
+      where
+        premiseAndChainGoals :: Goal -> Bool
+        premiseAndChainGoals (PremiseG prem' _) = prem' == prem
+        premiseAndChainGoals (ChainG conc' prem') = conc' == conc && prem' == prem
+        premiseAndChainGoals _ = False
+
+    weakenNode :: WeakenMode -> NodeId -> Reduction ()
+    weakenNode mode i = do
+        L.modM sNodes $ M.delete i
+        L.modM sGoals $ M.filterWithKey keepGoal
+        L.modM sLoops (splitLoopsAtNode i)
+        (toKeep, toDeleteOutgoing) <- S.partition ((/= i) . fst . eSrc) <$> L.getM sEdges
+        let (_, toDeleteIncoming) = S.partition ((/= i) . fst . eTgt) toKeep
+        mapM_ (weakenEdge mode) toDeleteOutgoing
+        -- KU goals are similar to premise goals and thus we re-active them
+        mapM_ (weakenEdge mode) toDeleteIncoming
+        when (mode == Preserve) (activateGoals kuGoals)
+        when (mode == Prune) (L.modM sLessAtoms (S.filter keepLessAtom))
+      where
+        keepGoal :: Goal -> a -> Bool
+        keepGoal (PremiseG (i', _) _) _ = i /= i'
+        keepGoal (ChainG _ (i', _)) _ = i' /= i
+        keepGoal (ActionG i' _) _ = mode == Preserve || i' /= i
+        keepGoal _ _ = True
+
+        kuGoals :: Goal -> Bool
+        kuGoals (ActionG i' f) = i' == i && isKUFact f
+        kuGoals _ = False
+
+        keepLessAtom :: LessAtom -> Bool
+        keepLessAtom (LessAtom nid1 nid2 _) = nid1 /= i && nid2 /= i
+
+    go :: WeakenEl -> Reduction ()
+    go WeakenCyclic = do
+      loops <- L.getM sLoops
+      mFwd <- forwardReachability
+      mBackwd <- backwardReachability
+      when (not (null loops) && isJust mFwd && isJust mBackwd) $ do
+        let fwd = fromJust mFwd
+        let backwd = fromJust mBackwd
+        mapM_ (mapM_ (weakenNode Prune) . getLarger fwd . end) loops
+        mapM_ (keepLoopShort backwd) loops
+        nonLeafs <- gets (S.fromList . map fst . rawLessRel)
+        kLeafs <-
+            filter ((\r -> isConstrRule r || isISendRule r) . snd)
+          . filter (not . (`S.member` nonLeafs) . fst)
+          . M.toList <$> L.getM sNodes
+        mapM_ (keepKuChainShort backwd . fst) kLeafs
+      where
+        reachability :: (System -> [(NodeId, NodeId)]) -> Reduction (Maybe (TransClosedOrder NodeId))
+        reachability f = do
+          rel <- gets f
+          return (fromSet (S.fromList rel))
+
+        forwardReachability :: Reduction (Maybe (TransClosedOrder NodeId))
+        forwardReachability = reachability (\s -> kLessRel s ++ rawEdgeRel s)
+
+        backwardReachability :: Reduction (Maybe (TransClosedOrder NodeId))
+        backwardReachability = reachability (map swap . (\s -> kLessRel s ++ rawEdgeRel s))
+
+        pruneWhenFr :: NodeId -> Reduction ()
+        pruneWhenFr i = do
+          isFr <- maybe False isFreshRule . M.lookup i <$> L.getM sNodes
+          when isFr (weakenNode Prune i)
+
+        keepLoopShort :: TransClosedOrder NodeId -> LoopInstance NodeId -> Reduction ()
+        keepLoopShort backwd ls = do
+          let t = NE.tail $ loopEdges ls
+          mapM_ (weakenNode Preserve) t
+          mapM_ (mapM_ pruneWhenFr . getDirectlyLarger backwd) t
+
+        keepKuChainShort :: TransClosedOrder NodeId -> NodeId -> Reduction ()
+        keepKuChainShort backwd i = do
+          nodes <- L.getM sNodes
+          let isGoalOnly = not (M.member i nodes)
+          -- Only weaken if a KU node is reachable from this one or if this is a
+          -- pure action goal
+          when (isGoalOnly || any (maybe False isConstrRule . (`M.lookup` nodes)) (getLarger backwd i)) $ do
+            weakenNode Prune i
+            mapM_ (keepKuChainShort backwd) (getDirectlyLarger backwd i)
+    go (WeakenFormula f) = L.modM sFormulas (S.delete f)
+    go (WeakenLessAtom nid1 nid2) = L.modM sLessAtoms (S.filter keepLatom)
+      where
+        keepLatom :: LessAtom -> Bool
+        keepLatom (LessAtom sml lrg _) = sml /= nid1 || lrg /= nid2
+    go (WeakenGoal g) = L.modM sGoals (M.delete g)
+    go (WeakenEdge e) = weakenEdge Preserve e
+    go (WeakenNode i) = weakenNode Preserve i
+
+cut :: UpTo -> Reduction String
+cut phis =
+  let phisL = S.toList phis
+  in do
+    (caseName, caseFormulas) <- disjunctionOfList (("cut", phisL):zipWith neg [(0 :: Int)..] phisL)
+    L.modM sFormulas (\s -> foldr S.insert s caseFormulas)
+    return caseName
+  where
+    neg :: Int -> LNGuarded -> (String, [LNGuarded])
+    neg i phi = ("negate_" ++ show i, [gnot phi])

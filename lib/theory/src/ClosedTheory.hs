@@ -5,6 +5,7 @@ module ClosedTheory (
 import Control.Basics
 import Control.Category
 import qualified Data.Set as S
+import qualified Data.Map as M
 import qualified Extension.Data.Label as L
 -- import qualified Data.Label.Total
 
@@ -27,7 +28,6 @@ import           Data.Monoid                         (Sum(..))
 
 -- import qualified Data.Label.Total
 
-import           Theory.Tools.InjectiveFactInstances
 
 import           Theory.Text.Pretty
 import OpenTheory
@@ -97,7 +97,6 @@ getProofContext :: Lemma a -> ClosedTheory -> ProofContext
 getProofContext l thy = ProofContext
     ( L.get thySignature                       thy)
     ( L.get (crcRules . thyCache)              thy)
-    ( L.get (crcInjectiveFactInsts . thyCache) thy)
     kind
     ( L.get (cases . thyCache)                 thy)
     inductionHint
@@ -116,8 +115,9 @@ getProofContext l thy = ProofContext
     cases   = case kind of RawSource     -> crcRawSources
                            RefinedSource -> crcRefinedSources
     inductionHint
+      | NoCyclicProofs `elem` L.get lAttributes l                        = AvoidInduction
       | any (`elem` [SourceLemma, InvariantLemma]) (L.get lAttributes l) = UseInduction
-      | otherwise                                                        = AvoidInduction
+      | otherwise                                                        = UseCyclicInduction
 
     -- Heuristic specified for the lemma > globally specified heuristic > default heuristic
     specifiedHeuristic = case lattr of
@@ -142,7 +142,6 @@ getProofContextDiff s l thy = case s of
   LHS -> ProofContext
             ( L.get diffThySignature                           thy)
             ( L.get (crcRules . diffThyCacheLeft)              thy)
-            ( L.get (crcInjectiveFactInsts . diffThyCacheLeft) thy)
             kind
             ( L.get (cases . diffThyCacheLeft)                 thy)
             inductionHint
@@ -159,7 +158,6 @@ getProofContextDiff s l thy = case s of
   RHS -> ProofContext
             ( L.get diffThySignature                    thy)
             ( L.get (crcRules . diffThyCacheRight)           thy)
-            ( L.get (crcInjectiveFactInsts . diffThyCacheRight) thy)
             kind
             ( L.get (cases . diffThyCacheRight)              thy)
             inductionHint
@@ -218,7 +216,6 @@ getDiffProofContext l thy = DiffProofContext (proofContext LHS) (proofContext RH
         LHS -> ProofContext
             ( L.get diffThySignature                    thy)
             ( L.get (crcRules . diffThyDiffCacheLeft)           thy)
-            ( L.get (crcInjectiveFactInsts . diffThyDiffCacheLeft) thy)
             RefinedSource
             ( L.get (crcRefinedSources . diffThyDiffCacheLeft)              thy)
             AvoidInduction
@@ -235,7 +232,6 @@ getDiffProofContext l thy = DiffProofContext (proofContext LHS) (proofContext RH
         RHS -> ProofContext
             ( L.get diffThySignature                    thy)
             ( L.get (crcRules . diffThyDiffCacheRight)           thy)
-            ( L.get (crcInjectiveFactInsts . diffThyDiffCacheRight) thy)
             RefinedSource
             ( L.get (crcRefinedSources . diffThyDiffCacheRight)              thy)
             AvoidInduction
@@ -266,11 +262,11 @@ getDiffProofContext l thy = DiffProofContext (proofContext LHS) (proofContext RH
         lattr = L.get diffThyTactic thy
 
 -- | The facts with injective instances in this theory
-getInjectiveFactInsts :: ClosedTheory -> S.Set (FactTag, [[MonotonicBehaviour]])
+getInjectiveFactInsts :: ClosedTheory -> M.Map FactTag [[MonotonicBehaviour]]
 getInjectiveFactInsts = L.get (crcInjectiveFactInsts . thyCache)
 
 -- | The facts with injective instances in this theory
-getDiffInjectiveFactInsts :: Side -> Bool -> ClosedDiffTheory -> S.Set (FactTag, [[MonotonicBehaviour]])
+getDiffInjectiveFactInsts :: Side -> Bool -> ClosedDiffTheory -> M.Map FactTag [[MonotonicBehaviour]]
 getDiffInjectiveFactInsts s isdiff = case (s, isdiff) of
            (LHS, False) -> L.get (crcInjectiveFactInsts . diffThyCacheLeft)
            (RHS, False) -> L.get (crcInjectiveFactInsts . diffThyCacheRight)
@@ -410,7 +406,7 @@ prettyClosedTheory thy = if containsManualRuleVariants mergedRules
             ,_thyOptions =(L.get thyOptions thy)
             ,_thyIsSapic = (L.get thyIsSapic thy)}
     ppInjectiveFactInsts crc =
-        case S.toList $ L.get crcInjectiveFactInsts crc of
+        case M.toList $ L.get crcInjectiveFactInsts crc of
             []   -> emptyDoc
             tags -> multiComment $ sep
                       [ text "looping facts with injective instances:"
@@ -453,7 +449,7 @@ prettyClosedDiffTheory thy = if containsManualRuleVariantsDiff mergedRules
             ,_diffThyOptions =(L.get diffThyOptions thy)
             ,_diffThyIsSapic = (L.get diffThyIsSapic thy)}
     ppInjectiveFactInsts crc =
-        case S.toList $ L.get crcInjectiveFactInsts crc of
+        case M.toList $ L.get crcInjectiveFactInsts crc of
             []   -> emptyDoc
             tags -> multiComment $ sep
                       [ text "looping facts with injective instances:"
@@ -480,14 +476,13 @@ prettyClosedSummary thy =
         --
         -- TODO: The whole consruction seems a bit hacky. Think of a more
         -- principled constrution with better correctness guarantees.
-        let (status, Sum siz) = foldProof proofStepSummary $ L.get lProof lem
-            quantifier = (toSystemTraceQuantifier $ L.get lTraceQuantifier lem)
+        let status = proofStatus $ L.get lProof lem
+            Sum siz = proofSize $ L.get lProof lem
+            quantifier = toSystemTraceQuantifier $ L.get lTraceQuantifier lem
             analysisType = parens $ prettyTraceQuantifier $ L.get lTraceQuantifier lem
         return $ text (L.get lName lem) <-> analysisType <> colon <->
                  text (showProofStatus quantifier status) <->
                  parens (integer siz <-> text "steps")
-
-    proofStepSummary = proofStepStatus &&& const (Sum (1::Integer))
 
 prettyClosedDiffSummary :: Document d => ClosedDiffTheory -> d
 prettyClosedDiffSummary thy =
@@ -510,8 +505,9 @@ prettyClosedDiffSummary thy =
         --
         -- TODO: The whole consruction seems a bit hacky. Think of a more
         -- principled constrution with better correctness guarantees.
-        let (status, Sum siz) = foldProof proofStepSummary $ L.get lProof lem
-            quantifier = (toSystemTraceQuantifier $ L.get lTraceQuantifier lem)
+        let status = proofStatus $ L.get lProof lem
+            Sum siz = proofSize $ L.get lProof lem
+            quantifier = toSystemTraceQuantifier $ L.get lTraceQuantifier lem
             analysisType = parens $ prettyTraceQuantifier $ L.get lTraceQuantifier lem
         return $ text (show s) <-> text ": " <-> text (L.get lName lem) <-> analysisType <> colon <->
                  text (showProofStatus quantifier status) <->
@@ -539,7 +535,6 @@ prettyClosedDiffSummary thy =
                  text (showDiffProofStatus status) <->
                  parens (integer siz <-> text "steps")
 
-    proofStepSummary = proofStepStatus &&& const (Sum (1::Integer))
     diffProofStepSummary = diffProofStepStatus &&& const (Sum (1::Integer))
 
 

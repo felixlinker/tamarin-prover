@@ -14,40 +14,25 @@
 -- state. We use this information to reason about protocols that exploit
 -- exclusivity of linear facts.
 module Theory.Tools.InjectiveFactInstances
-  ( -- * Computing injective fact instances.
-    MonotonicBehaviour (..),
-    simpleInjectiveFactInstances,
-  )
-where
+  -- * Computing injective fact instances.
+  ( simpleInjectiveFactInstances
+  ) where
 
-import Control.Applicative (empty)
-import Control.DeepSeq
-import Control.Monad.Fresh
-import Data.Binary
-import Data.Label as L
-import Data.List
-import Data.Map qualified as M
-import Data.Maybe
-import Data.Set qualified as S
-import GHC.Generics (Generic)
-import Safe (headMay)
-import Theory.Model
+import           Control.Monad.Fresh
+import           Control.Applicative (empty)
+
+
+import           Data.Label          as L
+import qualified Data.Set            as S
+import qualified Data.Map            as M
+import           Data.List
+import           Data.Maybe
+
+import           Theory.Model
+
+import           Safe                (headMay)
 
 -- import           Debug.Trace
-
--- unspecified = there is no rule using this fact
--- unstable = increasing and decreasing or not at all related inputs and outputs
-data MonotonicBehaviour = Constant | Increasing | Decreasing | StrictlyIncreasing | StrictlyDecreasing | Unstable | Unspecified
-  deriving (Eq, Ord, Generic, NFData, Binary)
-
-instance Show MonotonicBehaviour where
-  show Constant = "="
-  show Increasing = "≤"
-  show Decreasing = "≥"
-  show StrictlyIncreasing = "<"
-  show StrictlyDecreasing = ">"
-  show Unstable = "."
-  show Unspecified = "?"
 
 -- | Compute a simple under-approximation to the set of facts with injective
 -- instances. A fact-tag is has injective instances, if there is no state of
@@ -84,8 +69,8 @@ instance Show MonotonicBehaviour where
 --
 -- We exclude facts that are not copied in a rule, as they are already handled
 -- properly by the naive backwards reasoning.
-simpleInjectiveFactInstances :: FunSig -> [ProtoRuleE] -> S.Set (FactTag, [[MonotonicBehaviour]])
-simpleInjectiveFactInstances reducible rules = S.fromList $ do
+simpleInjectiveFactInstances :: FunSig -> [ProtoRuleE] -> M.Map FactTag [[MonotonicBehaviour]]
+simpleInjectiveFactInstances reducible rules = M.fromList $ do
   tag <- M.keys candidates
   let resultTag = combineAll (map (getMaybeEqStrict tag) rules) tag
   case resultTag of

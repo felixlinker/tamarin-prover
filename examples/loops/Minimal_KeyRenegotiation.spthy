@@ -1,4 +1,4 @@
-theory KeyRenegotiation_Minimal begin
+theory Minimal_KeyRenegotiation begin
 
 /*
    Protocol:    A minimal version of a key renegotiation protocol.

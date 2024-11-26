@@ -88,8 +88,11 @@ library
 
         Debug.Trace.Ignore
         Debug.Trace.EnvTracer
+        Debug.Trace.Printing
 
         Utils.Misc
+        Utils.PartialOrd
+        Utils.Two
 
     other-modules:
         Control.Monad.Fresh.Class

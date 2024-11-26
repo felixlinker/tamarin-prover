@@ -14,7 +14,9 @@ module Theory.Text.Parser.Proof (
 where
 
 import           Prelude                    hiding (id, (.))
+import           Data.Functor               (($>))
 import qualified Data.Map                   as M
+import qualified Data.Set                   as S
 -- import           Data.Monoid                hiding (Last)
 import           Control.Applicative        hiding (empty, many, optional)
 import           Control.Category
@@ -24,16 +26,7 @@ import           Theory.Text.Parser.Token
 import Theory.Text.Parser.Fact
 import Theory.Text.Parser.Term
 import Theory.Text.Parser.Formula
-
--- | Parse a node premise.
-nodePrem :: Parser NodePrem
-nodePrem = parens ((,) <$> nodevar
-                       <*> (comma *> fmap (PremIdx . fromIntegral) natural))
-
--- | Parse a node conclusion.
-nodeConc :: Parser NodeConc
-nodeConc = parens ((,) <$> nodevar
-                       <*> (comma *> fmap (ConcIdx . fromIntegral) natural))
+import Theory.Constraint.System.Results (Contradiction)
 
 -- | Parse a goal.
 goal :: Parser Goal
@@ -71,17 +64,26 @@ goal = asum
         symbol_ "splitEqs"
         parens $ (SplitG . SplitId . fromIntegral) <$> natural
 
-
 -- | Parse a proof method.
 proofMethod :: Parser ProofMethod
 proofMethod = asum
-  [ symbol "sorry"         *> pure (Sorry Nothing)
-  , symbol "simplify"      *> pure Simplify
-  , symbol "solve"         *> (SolveGoal <$> parens goal)
-  , symbol "contradiction" *> pure (Finished (Contradictory Nothing))
-  , symbol "induction"     *> pure Induction
-  , symbol "UNFINISHABLE"  *> pure (Finished Unfinishable)
+  [ symbol "sorry"              *> pure (Sorry Nothing)
+  , symbol "simplify"           *> pure Simplify
+  , symbol "solve"              *> (SolveGoal <$> parens goal)
+  , symbol "induction"          *> pure Induction
+  , symbol "weaken less atom"   *> (SolveGoal . Weaken . uncurry WeakenLessAtom <$> parens latom)
+  , symbol "weaken node"        *> (SolveGoal . Weaken . WeakenNode <$> parens nodevar)
+  , symbol "weaken goal"        *> (SolveGoal . Weaken . WeakenGoal <$> parens goal)
+  , symbol "weaken edge"        *> (SolveGoal . Weaken . WeakenEdge <$> parens edge)
+  , symbol "minimize for cyclic proofs" $> SolveGoal (Weaken WeakenCyclic)
+  , symbol "cut"                *> (SolveGoal . Cut . S.fromList <$> parens (commaSep guardedFormula))
   ]
+
+result :: Parser (Result Contradiction)
+result = asum
+  [ symbol "by contradiction" $> Contradictory Nothing
+  , symbol "UNFINISHABLE" $> Unfinishable
+  , symbol "SOLVED" $> Solved]
 
 -- | Start parsing a proof skeleton.
 -- | If the first step of the proof is a SOLVED, mark it as an inavalid proof step.
@@ -98,18 +100,19 @@ proofSkeleton :: Parser ProofSkeleton
 proofSkeleton =
     solvedProof <|> finalProof <|> interProof
   where
-    solvedProof =
-        symbol "SOLVED" *> pure (LNode (ProofStep (Finished Solved) ()) M.empty)
+    solvedProof = do
+      r <- result
+      return $ LNode (ProofStep (Right r) ()) M.empty
 
     finalProof = do
         method <- symbol "by" *> proofMethod
-        return (LNode (ProofStep method ()) M.empty)
+        return (LNode (ProofStep (Left method) ()) M.empty)
 
     interProof = do
         method <- proofMethod
         cases  <- (sepBy oneCase (symbol "next") <* symbol "qed") <|>
-                  ((return . (,) "") <$> proofSkeleton          )
-        return (LNode (ProofStep method ()) (M.fromList cases))
+                  (return . (,) "" <$> proofSkeleton)
+        return (LNode (ProofStep (Left method) ()) (M.fromList cases))
 
     oneCase = (,) <$> (symbol "case" *> identifier) <*> proofSkeleton
 

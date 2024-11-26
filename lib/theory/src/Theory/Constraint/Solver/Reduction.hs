@@ -103,6 +103,7 @@ import           Logic.Connectives
 import           Theory.Constraint.Solver.Contradictions
 import           Theory.Constraint.System
 import           Theory.Model
+import Data.Maybe (mapMaybe)
 
 ------------------------------------------------------------------------------
 -- The constraint reduction monad
@@ -113,14 +114,15 @@ import           Theory.Model
 -- context.
 type Reduction = StateT System (FreshT (DisjT (Reader ProofContext)))
 
-
 -- Executing reductions
 -----------------------
 
 -- | Run a constraint reduction. Returns a list of constraint systems whose
--- combined solutions are equal to the solutions of the given system. This
--- property is obviously not enforced, but it must be respected by all
--- functions of type 'Reduction'.
+-- combined solutions are equal to or larger than the solutions of the given
+-- system. This property is obviously not enforced, but it must be respected by
+-- all functions of type 'Reduction'. When a reduction enlarges the state of
+-- solutions, it must set the value @sWeakenedFrom@ respectively. Currently,
+-- this only applies to weakening.
 runReduction :: Reduction a -> ProofContext -> System -> FreshState
              -> Disj ((a, System), FreshState)
 runReduction m ctxt se fs =
@@ -214,7 +216,7 @@ insertFreshNode rules parent = do
 --
 -- PRE: Node must not yet be labelled with a rule.
 labelNodeId :: NodeId -> [RuleAC] -> Maybe RuleACInst -> Reduction RuleACInst
-labelNodeId = \i rules parent -> do
+labelNodeId i rules parent = do
     (ru1, mrconstrs) <- importRule =<< disjunctionOfList rules
     let ru = case parent of
                 Just pa | (getRuleName pa == getRuleName ru1) && (getRemainingRuleApplications pa > 1)
@@ -222,6 +224,8 @@ labelNodeId = \i rules parent -> do
                 _   -> ru1
     solveRuleConstraints mrconstrs
     modM sNodes (M.insert i ru)
+    let newLoops = map (uncurry (simpleLoop i)) (injectiveFacts ru)
+    modM sLoops (++ newLoops)
     exploitPrems i ru
     return ru
   where
@@ -239,7 +243,7 @@ labelNodeId = \i rules parent -> do
 
     exploitPrem i ru (v, fa) = case fa of
         -- CR-rule *DG2_2* specialized for *In* facts.
-        Fact InFact ann [m] -> do
+        Fact InFact ann _ [m] -> do
             j <- freshLVar "vf" LSortNode
             ruKnows <- mkISendRuleAC ann m
             modM sNodes (M.insert j ruKnows)
@@ -247,7 +251,7 @@ labelNodeId = \i rules parent -> do
             exploitPrems j ruKnows
 
         -- CR-rule *DG2_2* specialized for *Fr* facts.
-        Fact FreshFact _ [m] -> do
+        Fact FreshFact _ _ [m] -> do
             j <- freshLVar "vf" LSortNode
             modM sNodes (M.insert j (mkFreshRuleAC m))
             unless (isFreshVar m) $ do
@@ -269,15 +273,19 @@ labelNodeId = \i rules parent -> do
         breakers = ruleInfo (get praciLoopBreakers) (const []) $ get rInfo ru
 
 -- | Insert a chain constrain.
-insertChain :: NodeConc -> NodePrem -> Reduction ()
-insertChain c p = insertGoal (ChainG c p) False
+insertChain :: NodeId -> NodePrem -> Reduction ()
+insertChain cId p = insertGoal (ChainG (cId, ConcIdx 0) p) False
 
 -- | Insert an edge constraint. CR-rule *DG1_2* is enforced automatically,
 -- i.e., the fact equalities are enforced.
 insertEdges :: [(NodeConc, LNFact, LNFact, NodePrem)] -> Reduction ()
 insertEdges edges = do
     void (solveFactEqs SplitNow [ Equal fa1 fa2 | (_, fa1, fa2, _) <- edges ])
-    modM sEdges (\es -> foldr S.insert es [ Edge c p | (c,_,_,p) <- edges])
+    let eEdges = [ Edge c p | (c,_,_,p) <- edges]
+    modM sEdges (S.union (S.fromList eEdges))
+    s <- gets id
+    let newLoops = mapMaybe (singletonLoopInstance s) eEdges
+    modM sLoops (++ newLoops)
 
 -- | Insert an 'Action' atom. Ensures that (almost all) trivial *KU* actions
 -- are solved immediately using rule *S_{at,u,triv}*. We currently avoid
@@ -287,7 +295,7 @@ insertEdges edges = do
 -- FIXME: Ensure that intermediate products are also solved before stating
 -- that no rule is applicable.
 insertAction :: NodeId -> LNFact -> Reduction ChangeIndicator
-insertAction i fa@(Fact _ ann _) = do
+insertAction i fa@(Fact _ ann _ _) = do
     present <- (goal `M.member`) <$> getM sGoals
     isdiff <- getM sDiffSystem
     nodePresent <- (i `M.member`) <$> getM sNodes
@@ -511,17 +519,20 @@ combineGoalStatus (GoalStatus solved1 age1 loops1)
                   (GoalStatus solved2 age2 loops2) =
     GoalStatus (solved1 || solved2) (min age1 age2) (loops1 || loops2)
 
+insertGoalStatusF :: (Goal -> GoalStatus -> M.Map Goal GoalStatus -> M.Map Goal GoalStatus) -> Goal -> GoalStatus -> Reduction ()
+insertGoalStatusF insertF goal status = do
+    age <- getM sNextGoalNr
+    modM sGoals $ insertF goal (set gsNr (Age age) status)
+    sNextGoalNr =: succ age
+
 -- | Insert a goal and its status with a new age. Merge status if goal exists.
 insertGoalStatus :: Goal -> GoalStatus -> Reduction ()
-insertGoalStatus goal status = do
-    age <- getM sNextGoalNr
-    modM sGoals $ M'.insertWith combineGoalStatus goal (set gsNr age status)
-    sNextGoalNr =: succ age
+insertGoalStatus = insertGoalStatusF (M'.insertWith combineGoalStatus)
 
 -- | Insert a 'Goal' and store its age.
 insertGoal :: Goal -> Bool -> Reduction ()
-insertGoal goal looping = insertGoalStatus goal (GoalStatus False 0 looping)
- 
+insertGoal goal looping = insertGoalStatus goal (GoalStatus False (Age 0) looping)
+
 -- | Mark the given goal as solved.
 markGoalAsSolved :: String -> Goal -> Reduction ()
 markGoalAsSolved how goal =
@@ -536,6 +547,9 @@ markGoalAsSolved how goal =
                          modM sSolvedFormulas (S.insert $ GDisj disj) >>
                          updateStatus
       SubtermG _      -> updateStatus
+      Weaken _        -> delete
+      Cut _           -> delete
+
   where
     delete :: Reduction ()
     delete = modM sGoals $ M.delete goal
@@ -579,6 +593,7 @@ substSystem = do
     substLemmas
     c2 <- substGoals
     substNextGoalNr
+    substLoops
     return (c1 <> c2)
 
 -- no invariants to maintain here
@@ -592,6 +607,14 @@ substLastAtom       = substPart sLastAtom
 substFormulas       = substPart sFormulas
 substSolvedFormulas = substPart sSolvedFormulas
 substLemmas         = substPart sLemmas
+substLoops          = do
+  substPart sLoops
+  modM sLoops joinLoops
+  where
+    joinLoops :: [LoopInstance NodeId] -> [LoopInstance NodeId]
+    joinLoops [] = []
+    joinLoops [l] = [l]
+    joinLoops (l:lt) = maybe (l:joinLoops lt) joinLoops (extendLoopsWith l lt)
 substNextGoalNr     = return ()
 
 -- | Apply the current substitution of the equation store to a part of the
@@ -661,10 +684,11 @@ conjoinSystem sys = do
     kind <- getM sSourceKind
     unless (kind == get sSourceKind sys) $
         error "conjoinSystem: source-kind mismatch"
-    joinSets sSolvedFormulas
-    joinSets sLemmas
-    joinSets sEdges
-    F.mapM_ insertLast                 $ get sLastAtom    sys
+    joinFields sSolvedFormulas
+    joinFields sLemmas
+    joinFields sEdges
+    joinFields sLoops
+    F.mapM_ insertLast $ get sLastAtom sys
     F.mapM_ insertLess $ get sLessAtoms sys
     -- split-goals are not valid anymore
     mapM_   (uncurry insertGoalStatus) $ filter (not . isSplitGoal . fst) $ M.toList $ get sGoals sys
@@ -684,8 +708,8 @@ conjoinSystem sys = do
     -- assumed to be 'Changed' by default.
     void substSystem
   where
-    joinSets :: Ord a => (System :-> S.Set a) -> Reduction ()
-    joinSets proj = modM proj (`S.union` get proj sys)
+    joinFields :: Monoid a => (System :-> a) -> Reduction ()
+    joinFields proj = modM proj (<> get proj sys)
 
 -- Unification via the equation store
 -------------------------------------

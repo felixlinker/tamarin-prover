@@ -41,6 +41,10 @@ module Theory.Text.Parser.Token (
   , lvar
   , msgvar
   , nodevar
+  , nodePrem
+  , nodeConc
+  , edge
+  , latom
   , sapicvar
   , sapicpatternvar
   , sapicnodevar
@@ -116,14 +120,11 @@ module Theory.Text.Parser.Token (
   , parseFile
   , parseFileWState
   , parseString
-  ,opLessTerm) where
+  , opLessTerm ) where
 
 import           Prelude             hiding (id, (.))
 
--- import           Data.Label
--- import           Data.Binary
 import           Data.List (foldl')
--- import           Control.DeepSeq
 import qualified Data.Set                   as S
 
 -- import           GHC.Generics                        (Generic)
@@ -384,6 +385,29 @@ nodevar = asum
   [ sortedLVar [LSortNode]
   , (\(n, i) -> LVar n LSortNode i) <$> indexedIdentifier ]
   <?> "timepoint variable"
+
+-- | Parse a node premise.
+nodePrem :: Parser NodePrem
+nodePrem = parens ((,) <$> nodevar
+                       <*> (comma *> fmap (PremIdx . fromIntegral) natural))
+
+-- | Parse a node conclusion.
+nodeConc :: Parser NodeConc
+nodeConc = parens ((,) <$> nodevar
+                       <*> (comma *> fmap (ConcIdx . fromIntegral) natural))
+
+edge :: Parser Edge
+edge = do
+  c <- nodeConc
+  _ <- symbol ">-->"
+  Edge c <$> nodePrem
+
+latom :: Parser (NodeId, NodeId)
+latom = do
+  n1 <- nodevar
+  _ <- opLess
+  n2 <- nodevar
+  return (n1, n2)
 
 -- | Parse a non-empty single-quoted string
 -- | that does not contain a single-quote or newline.

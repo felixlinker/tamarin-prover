@@ -31,7 +31,7 @@ noCompressSapicKeyWords :: [String]
 noCompressSapicKeyWords = ["IsIn", "IsNotSet", "Insert", "Delete",  "Lock", "Unlock", "Progress" ]
 
 isSapicNoCompress :: Fact LNTerm -> Bool
-isSapicNoCompress (Fact (ProtoFact _ name _) _ _) =
+isSapicNoCompress (Fact (ProtoFact _ name _) _ _ _) =
   any (`List.isPrefixOf` name) noCompressSapicKeyWords
 isSapicNoCompress _ = False
 
@@ -39,7 +39,7 @@ isStateProcessFact  :: Fact LNTerm -> Bool
 isStateProcessFact f = isStateFact f || isLetFact f
 
 sameName :: Fact LNTerm ->  Fact LNTerm -> Bool
-sameName  (Fact (ProtoFact _ name _) _ _)  (Fact (ProtoFact _ name2 _) _ _) = name==name2
+sameName  (Fact (ProtoFact _ name _) _ _ _)  (Fact (ProtoFact _ name2 _) _ _ _) = name==name2
 sameName _ _ = False
 
 -- get all rules with premice the given fact

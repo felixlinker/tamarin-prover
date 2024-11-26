@@ -48,6 +48,7 @@ lemmaAttribute diff workDir = asum
   , symbol "output"  *> opEqual *> (LemmaModule <$> list constructorp)
   , symbol "left"          *> pure LHSLemma
   , symbol "right"         *> pure RHSLemma
+  , symbol "no_cyclic"     *> pure NoCyclicProofs
 --   , symbol "both"          *> pure BothLemma
   ]
 

@@ -13,6 +13,13 @@ module Utils.Misc (
   , twoPartitions
   , duplicate
   , multiply
+  , peak
+  , peakLast
+  , safeTail
+  , peakTail
+  , splitBetween
+  , equalLength
+  , (!?)
 
   -- * Control
   , whileTrue
@@ -25,6 +32,7 @@ module Utils.Misc (
 
   -- * Map operations
   , invertMap
+  , addAt
 
   -- * unsafeEq
   , unsafeEq
@@ -39,6 +47,8 @@ module Utils.Misc (
 ) where
 
 import Data.List
+import Data.List.NonEmpty (NonEmpty((:|)),(<|))
+import qualified Data.List.NonEmpty as NE
 import System.Environment
 import System.IO.Unsafe
 import Data.Maybe
@@ -56,6 +66,7 @@ import qualified Data.ByteString.Base64             as B64  (encode)
 import qualified Blaze.ByteString.Builder.Char.Utf8 as Utf8 (fromString)
 
 import GHC.Exts (reallyUnsafePtrEquality#, Int (I#))
+import Data.Bifunctor (Bifunctor(first))
 
 -- | @fst3 (x, y, z)@ returns the first element @x@ of the triple
 fst3 :: (a, b, c) -> a
@@ -168,3 +179,38 @@ editDistance s t =
                              , d!!(i-1)!!(j-1) + (if s!!(i-1)==t!!(j-1) 
                                                   then 0 else 1) 
                              ]
+
+peak :: [a] -> Maybe a
+peak = fmap fst . uncons
+
+peakLast :: [a] -> Maybe a
+peakLast l = uncons l >>= go
+  where
+    go :: (a, [a]) -> Maybe a
+    go (a, []) = Just a
+    go (_, t) = uncons t >>= go
+
+safeTail :: [a] -> [a]
+safeTail [] = []
+safeTail l = tail l
+
+peakTail :: [a] -> Maybe [a]
+peakTail = fmap snd . uncons
+
+splitBetween :: Eq a => (a, a) -> NE.NonEmpty a -> (NE.NonEmpty a, [a])
+splitBetween _ (h :| []) = (NE.singleton h, [])
+splitBetween t@(a1, a2) (a1' :| (a2':tl))
+  | a1 == a1' && a2 == a2' = (NE.singleton a1', a2':tl)
+  | otherwise = first (a1' <|) (splitBetween t (a2' :| tl))
+
+equalLength :: [a] -> [a] -> Bool
+equalLength [] [] = True
+equalLength _ [] = False
+equalLength [] _ = False
+equalLength (_:t1) (_:t2) = equalLength t1 t2
+
+(!?) :: [a] -> Int -> Maybe a
+l !? i = peak $ drop i l
+
+addAt :: Ord k => k -> a -> M.Map k [a] -> M.Map k [a]
+addAt k a = M.alter (Just . maybe [a] (a:)) k

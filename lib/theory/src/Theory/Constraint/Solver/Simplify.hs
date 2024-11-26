@@ -282,9 +282,9 @@ solveUniqueActions = do
     -- proof-context, e.g., in the 'ClassifiedRules'.
     let uniqueActions = [ x | [x] <- group (sort ruleActions) ]
         ruleActions   = [ (tag, length ts)
-                        | ru <- rules, Fact tag _ ts <- get rActs ru ]
+                        | ru <- rules, Fact tag _ _ ts <- get rActs ru ]
 
-        isUnique (Fact tag _ ts) =
+        isUnique (Fact tag _ _ ts) =
            (tag, length ts) `elem` uniqueActions
            -- multiset union leads to case-splits because there
            -- are multiple unifiers
@@ -549,7 +549,6 @@ simpSubterms = do
 simpInjectiveFactEqMon :: Reduction ChangeIndicator
 simpInjectiveFactEqMon = do
   -- get some values out of the reduction
-  inj <- S.toList <$> askM pcInjectiveFactInsts
   nodes <- getM sNodes
   sys <- gets id
   reducible <- reducibleFunSyms . mhMaudeSig <$> getMaudeHandle
@@ -586,7 +585,7 @@ simpInjectiveFactEqMon = do
               , snd $ simpSingle (StrictlyIncreasing, (i, s), (j, t)))
 
   -- generate and execute changes
-  let (newFormulas, newLesses) = (concat *** concat) $ unzip $ map simpSingle (getPairs inj nodes)
+  let (newFormulas, newLesses) = (concat *** concat) $ unzip $ map simpSingle (getPairs nodes)
   mapM_ insertFormula newFormulas
   mapM_ (\(x, y) -> insertLess (LessAtom x y InjectiveFacts)) -- $ trace (show ("newLesses", newLesses))
                               newLesses
@@ -599,9 +598,21 @@ simpInjectiveFactEqMon = do
       then Unchanged else Changed
 
     where
-      getPairs :: [(FactTag, [[MonotonicBehaviour]])] -> M.Map NodeId RuleACInst -> [(MonotonicBehaviour, (NodeId, LNTerm), (NodeId, LNTerm))]
-      getPairs [] _ = []
-      getPairs ((tag, behaviours):rest) nodes = paired ++ getPairs rest nodes
+      -- Returns a list of pairs (i, s), (j, t) together with the behaviour b
+      -- between s and t. i and j are the time points where the fact instances
+      -- occured that contain s and t respectively.
+      -- Example: For an injective fact S with behaviour/shape [[=, <]],
+      -- S(~id, <a, b>) @ i and S(~id, <c, d>) @ j, we have
+      -- paired = [(=, (i, a), (j, c)), (<, (i, b), (j, d))]
+      getPairs :: M.Map NodeId RuleACInst -> [(MonotonicBehaviour, (NodeId, LNTerm), (NodeId, LNTerm))]
+      getPairs nodes = [(b, (i, s), (j,t)) |
+          (i, l1) <- M.toList behaviourTerms,
+          (j, l2) <- M.toList behaviourTerms,
+          (first1, ss) <- l1,
+          (first2, tt) <- l2,
+          first1 == first2,
+          ((b, s),(_,t)) <- zip ss tt  -- the b and _ are automatically the same
+        ]
         where
           -- Flatten a (n-1)-tuple by only expanding the right-hand side of the tuple
           -- This function errors when n is bigger than the _length_ of the tuple
@@ -612,8 +623,7 @@ simpInjectiveFactEqMon = do
           -- Note that this code is identical to existing code in `InjectiveFactInstances.hs`.
           shapeTerm :: Int -> LNTerm -> [LNTerm]
           shapeTerm x (viewTerm2 -> FPair t1 t2) | x>1 = t1 : shapeTerm (x-1) t2
-          shapeTerm x t | x>1 = error ("shapeTerm: the term (" ++ show t ++ ") does not have enough pairs."
-            ++ "\nOccured in fact: (" ++ show tag ++") with behavior " ++ show behaviours)
+          shapeTerm x t | x>1 = error ("shapeTerm: the term (" ++ show t ++ ") does not have enough pairs.")
           shapeTerm x t | x==1 = [t]
           shapeTerm _ _ = error "shapeTerm: cannot take an integer with size less than 1"
 
@@ -627,29 +637,13 @@ simpInjectiveFactEqMon = do
           -- E.g., For behaviour/shape = [[=, <]]
           -- trimmedPairTerms S(~id, <<a, b>, c>) = (~id, [(=, <a, b>), (<, c)])
           trimmedPairTerms :: LNFact -> (LNTerm, [(MonotonicBehaviour, LNTerm)])
-          trimmedPairTerms (factTerms -> firstTerm:terms) = (firstTerm, concat $ zipWith (\behaviour term -> zip behaviour (shapeTerm (length behaviour) term)) behaviours terms )
+          trimmedPairTerms (Fact _ _ (Just behaviours) (firstTerm:terms)) = (firstTerm, concat $ zipWith (\behaviour term -> zip behaviour (shapeTerm (length behaviour) term)) behaviours terms)  -- zip automatically orients itself on the shorter list
           trimmedPairTerms _ = error "a fact with no terms cannot be injective"
 
           -- For each rule instance, filter its rhs for the current injective fact 'tag'
           -- and compute the pairs via 'trimmedPairTerms'
           behaviourTerms :: M.Map NodeId [(LNTerm, [(MonotonicBehaviour, LNTerm)])]
-          behaviourTerms = M.map (map trimmedPairTerms . filter (\x -> factTag x == tag) . get rPrems) nodes  --all node premises with the matching tag
-
-          -- Returns a list of pairs (i, s), (j, t) together with the behaviour b
-          -- between s and t. i and j are the time points where the fact instances
-          -- occured that contain s and t respectively.
-          -- Example: For an injective fact S with behaviour/shape [[=, <]],
-          -- S(~id, <a, b>) @ i and S(~id, <c, d>) @ j, we have
-          -- paired = [(=, (i, a), (j, c)), (<, (i, b), (j, d))]
-          paired :: [(MonotonicBehaviour, (NodeId, LNTerm), (NodeId, LNTerm))]
-          paired = [(b, (i, s), (j,t)) |
-            (i, l1) <- M.toList behaviourTerms,
-            (j, l2) <- M.toList behaviourTerms,
-            (first1, ss) <- l1,
-            (first2, tt) <- l2,
-            first1 == first2,
-            ((b, s),(_,t)) <- zip ss tt  -- the b and _ are automatically the same
-            ]
+          behaviourTerms = M.map (map trimmedPairTerms . filter isInjective . get rPrems) nodes  --all node premises with the matching tag
 
 -- | Compute all less relations implied by injective fact instances.
 --
@@ -671,8 +665,7 @@ nonInjectiveFactInstances ctxt se = do
         kTag               = factTag kFaPrem
         kTerm              = firstTerm kFaPrem
         conflictingFact fa = factTag fa == kTag && firstTerm fa == kTerm
-        injFacts           = get pcInjectiveFactInsts ctxt
-    guard (kTag `S.member` S.map fst injFacts)
+    guard (isInjective kFaPrem)
 --    j <- S.toList $ D.reachableSet [i] less
     (j, _) <- M.toList $ get sNodes se
     -- check that j<k

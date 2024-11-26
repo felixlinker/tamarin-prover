@@ -96,30 +96,37 @@ resolveNodeConcFact conc graph =
   Sys.resolveNodeConcFact conc se
 
 -- | Get all nodes from a 'System' corresponding to rule instances.
-systemNodes :: Sys.System -> [Node]
+systemNodes :: Sys.System -> [GraphNode]
 systemNodes se = map systemNode (M.toList $ get Sys.sNodes se)
   where
-    systemNode (nid, ru) = Node nid (SystemNode ru)
+    systemNode (nid, ru) = GraphNode nid (SystemNode ru)
 
 -- | Get all nodes from a 'System' corresponding to unsolved inputs by the adversary.
-systemUnsolvedActionNodes :: Sys.System -> [Node]
+systemUnsolvedActionNodes :: Sys.System -> [GraphNode]
 systemUnsolvedActionNodes se = map unsolvedActionNode (collectBy $ Sys.unsolvedActionAtoms se)
   where
-    unsolvedActionNode (nid, facts) = Node nid (UnsolvedActionNode facts)
+    unsolvedActionNode (nid, facts) = GraphNode nid (UnsolvedActionNode facts)
 
 -- | Get all nodes from a 'System' corresponding to an induction node.
-systemLastActionNode :: Sys.System -> [Node]
-systemLastActionNode se = maybe [] (\nid -> [Node nid LastActionAtom]) (get Sys.sLastAtom se)
+systemLastActionNode :: Sys.System -> [GraphNode]
+systemLastActionNode se = maybe [] (\nid -> [GraphNode nid LastActionAtom]) (get Sys.sLastAtom se)
 
 -- | Get all nodes from a 'System' that are "missing", i.e. they are mentioned by an edge but don't exist elsewhere.
 -- a.d. This assumes that there is no edge where both the source and target are missing. But that situation should never happen.
-systemMissingNodes :: Sys.System -> [Node]
-systemMissingNodes se = mapMaybe missingNode (S.toList $ get Sys.sEdges se)
+systemMissingNodes :: Sys.System -> [GraphNode]
+systemMissingNodes se = filter isMissing graphNodes
   where
-    missingNode (Sys.Edge (nid, idx) _) | nid `notElem` nodelist = Just $ Node nid (MissingNode (Left idx))
-    missingNode (Sys.Edge _ (nid, idx)) | nid `notElem` nodelist = Just $ Node nid (MissingNode (Right idx))
-    missingNode _ = Nothing
-    nodelist = map fst $ M.toList $ get Sys.sNodes se
+    -- Call snub (set-nub) on less atoms because a missing node could be
+    -- included in multiple lists.
+    graphNodes = snub (concatMap lessAtomToList (S.toList $ get Sys.sLessAtoms se))
+      ++ concatMap edgeToList (S.toList $ get Sys.sEdges se)
+    edgeToList (Sys.Edge (nid, idx) (nid', idx')) = [ GraphNode nid (MissingEdgeNode (Left idx)), GraphNode nid' (MissingEdgeNode (Right idx')) ]
+    lessAtomToList (Sys.LessAtom nid nid' _) = [ GraphNode nid MissingLessAtomNode, GraphNode nid' MissingLessAtomNode]
+    isMissing (GraphNode n _) = not $ M.member n nodes
+    nodes = get Sys.sNodes se
+
+    snub :: Ord a => [a] -> [a]
+    snub = S.toList . S.fromList
 
 -- | Get all edges from a 'System' corresponding to edges between rule instances.
 systemEdges :: Sys.System -> [Edge]
@@ -165,7 +172,7 @@ systemToGraph se options =
     Graph se options repr abbrevs
 
 -- | Get all sink nodes of a graph, i.e. those without outgoing edges.
-getGraphSinks :: Graph -> [Node]
+getGraphSinks :: Graph -> [GraphNode]
 getGraphSinks graph = 
   let repr = get gRepr graph
       edgeList = toEdgeList repr in

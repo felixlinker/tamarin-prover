@@ -199,7 +199,7 @@ minimizeIntruderRules diff rules =
                    else r:checked
     
     -- We assume that the KD-Fact is the first fact, which is the case in destructionRules above
-    isDoublePremiseRule (Rule _ ((Fact KDFact _ [t]):prems) concs _ _) = 
+    isDoublePremiseRule (Rule _ ((Fact KDFact _ _ [t]):prems) concs _ _) =
         frees concs == []
          && not (any containsPrivate (t:(concat $ map getFactTerms prems)))
          && isMsgVar t && any (==(kuFact t)) prems
@@ -422,10 +422,10 @@ bpVariantsIntruder hnd ru = do
     -- fact that all other variants are of the form
     -- "pmult(..), pmult(..) -> em(..)"
     case ruvariant of
-      Rule i [Fact KDFact an args@[viewTerm -> Lit (Var _)], yfact] concs actions nvs ->
-        return $ Rule i [Fact KUFact an args, yfact] concs actions nvs
-      Rule i [yfact, Fact KDFact an args@[viewTerm -> Lit (Var _)]] concs actions nvs ->
-        return $ Rule i [yfact, Fact KUFact an args] concs actions nvs
+      Rule i [Fact KDFact an inj args@[viewTerm -> Lit (Var _)], yfact] concs actions nvs ->
+        return $ Rule i [Fact KUFact an inj args, yfact] concs actions nvs
+      Rule i [yfact, Fact KDFact an inj args@[viewTerm -> Lit (Var _)]] concs actions nvs ->
+        return $ Rule i [yfact, Fact KUFact an inj args] concs actions nvs
       _ -> return ruvariant
 
   where

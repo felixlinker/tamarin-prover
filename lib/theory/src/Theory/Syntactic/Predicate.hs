@@ -44,6 +44,7 @@ smallerFact t1 t2 =
   Fact
     { factTag = ProtoFact Linear "Smaller" 2,
       factAnnotations = S.empty,
+      injectiveBehavior = Nothing,
       factTerms = [t1, t2]
     }
 
@@ -69,7 +70,7 @@ builtinPredicates = [
 lookupPredicate :: Fact t -> [Predicate] -> Maybe Predicate
 lookupPredicate fact = find (sameName fact . L.get pFact) . (++ builtinPredicates)
     where
-        sameName (Fact tag _ _) (Fact tag' _ _) = tag == tag'
+        sameName (Fact tag _ _ _) (Fact tag' _ _ _) = tag == tag'
 
 expandFormula :: [Predicate] -> ProtoFormula SyntacticSugar (String, LSort) Name LVar -> Either FactTag (ProtoFormula Unit2 (String, LSort) Name LVar)
 expandFormula plist = traverseFormulaAtom f
@@ -85,7 +86,7 @@ expandFormula plist = traverseFormulaAtom f
             | otherwise = return $ Ato $ toAtom x
         apply' :: (Integer -> Subst Name (BVar LVar)) -> LNFormula -> LNFormula
         apply' subst = mapAtoms (\i a -> fmap (applyVTerm $ subst i) a)
-        compSubst (Fact _ _ ts1) (Fact _ _ ts2) i = substFromList $ zip ts1' ts2'
+        compSubst (Fact _ _ _ ts1) (Fact _ _ _ ts2) i = substFromList $ zip ts1' ts2'
         -- ts1 varTerms that are free in the predicate definition
         -- ts2 terms used in reference, need to add the number of quantifiers we added
         -- to correctly dereference.

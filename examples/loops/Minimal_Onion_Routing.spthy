@@ -1,0 +1,97 @@
+theory Minimal_Onion_Routing begin
+
+/*
+  Protocol:    A minimal onion routing example (inspired by Tor)
+  Modeler:     Christoph Sprenger
+  Date:        November 2023
+
+  Status:      not yet working
+
+  This models a minimal onion routing protocol, similar to Tor.
+*/
+
+builtins: asymmetric-encryption, signing
+
+// PKI
+//////
+
+rule Generate_Keypair:
+    [ Fr(~ltk) ]
+  -->
+    [ !Ltk($A, ~ltk), !Pk($A, pk(~ltk)), Out(pk(~ltk)) ]
+
+// We assume an active adversary.
+rule Reveal_Ltk:
+    [ !Ltk(A, ltk) ]
+  --[ RevealLtk(A) ]->
+    [ Out(ltk) ]
+
+
+// Generate an onioned message
+//////////////////////////////
+
+// start an onion encryption with a signed message
+rule Onion_Start:
+  let pl  = <'1', $A, $B, ~msg>
+      sig = sign{pl}ltkA
+      ciph = aenc{pl, sig}pkB
+  in
+    [ Fr(~id), Fr(~msg), !Ltk($A, ltkA), !Pk($B, pkB)  ]
+  -->
+    [ Onion(~id, ciph) ]
+
+// add an encryption layer 
+rule Onion_Add:
+    [ Onion(id, x), !Pk(A, pkA) ]
+  -->
+    [ Onion(id, aenc{'2', x}pkA) ]
+
+// send the message at some point
+rule Send:
+    [ Onion(id, msg) ]
+  -->
+    [ Out(msg) ]
+
+
+// Route an onioned message
+///////////////////////////
+
+// peel off one encryption layer and forward
+rule Forward:
+    [ In(aenc{'2', x}pk(ltkA)), !Ltk(A, ltkA) ]
+  -->
+    [ Out(x) ]
+
+// receiver gets innermost message
+rule Receive:
+  let pl  = <'1', A, B, msg>
+      ciph = aenc{pl, sig}pk(ltkB)
+  in
+   [ In(ciph), !Ltk(B, ltkB), !Pk(A, pkA) ]
+  --[ 
+      Secret(B, msg), 
+      Eq(verify(sig, pl, pkA), true) 
+    ]->
+    [ ]
+
+    
+// Axioms
+///////////////////////////
+
+restriction equality: "All #i x y. Eq(x, y)@i ==> x = y"
+
+
+// Properties
+///////////////////////////
+
+lemma secrecy:
+  "All #i #j B x. Secret(B, x)@i & KU(x)@j ==> Ex #k. RevealLtk(B)@k"
+
+
+lemma executability: 
+  exists-trace
+  "Ex #i B x. Secret(B, x)@i & (All A #k. RevealLtk(A)@k ==> F)"
+
+
+end
+

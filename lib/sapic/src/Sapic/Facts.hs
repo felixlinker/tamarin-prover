@@ -268,29 +268,29 @@ pureStateLockFactTag =  ProtoFact Linear "L_CellLocked" 2
 
 
 isOutFact :: Fact t -> Bool
-isOutFact (Fact OutFact _ _) = True
+isOutFact (Fact OutFact _ _ _) = True
 isOutFact _                 = False
 
 isFrFact :: Fact t -> Bool
-isFrFact (Fact FreshFact _ _) = True
+isFrFact (Fact FreshFact _ _ _) = True
 isFrFact _                 = False
 
 
 isLetFact :: Fact LNTerm -> Bool
-isLetFact (Fact (ProtoFact _ name _) _ _) =
+isLetFact (Fact (ProtoFact _ name _) _ _ _) =
   "Let" `List.isPrefixOf` name
 isLetFact _ = False
 
 
 isStateFact :: Fact LNTerm -> Bool
-isStateFact (Fact (ProtoFact _ name _) _ _) =
+isStateFact (Fact (ProtoFact _ name _) _ _ _) =
   "State" `List.isPrefixOf` name
   ||
   "Semistate" `List.isPrefixOf` name
 isStateFact _ = False
 
 isLockFact :: Fact LNTerm -> Bool
-isLockFact (Fact (ProtoFact _ name _) _ _) =
+isLockFact (Fact (ProtoFact _ name _) _ _ _) =
   "L_CellLocked" `List.isPrefixOf` name
 isLockFact _ = False
 
@@ -306,7 +306,7 @@ isPattern t = case viewTerm t of
     _     -> True
 
 hasPattern :: LNFact -> Bool
-hasPattern (Fact _ _ ts) = any isPattern ts
+hasPattern (Fact _ _ _ ts) = any isPattern ts
 
 prettyEitherPositionOrSpecial:: Either ProcessPosition SpecialPosition -> String
 prettyEitherPositionOrSpecial (Left pos) = prettyPosition pos

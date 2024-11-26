@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE TupleSections #-}
 -- |
 -- Copyright   : (c) 2010-2012 Benedikt Schmidt & Simon Meier
 -- License     : GPL v3 (see LICENSE)
@@ -73,7 +74,6 @@ module Theory.Constraint.System (
 
   , pcSignature
   , pcRules
-  , pcInjectiveFactInsts
   , pcSources
   , pcSourceKind
   , pcUseInduction
@@ -120,9 +120,13 @@ module Theory.Constraint.System (
 
   -- * Constraint systems
   , System
+  , Node(..)
+  , RNode
+  , AFNode
   , DiffProofType(..)
   , DiffSystem
   , sFreshState
+  , equiv
 
   -- ** Construction
   , emptySystem
@@ -194,6 +198,7 @@ module Theory.Constraint.System (
 
   , getLessAtoms
   , rawLessRel
+  , kLessRel
   , rawEdgeRel
 
   , alwaysBefore
@@ -226,7 +231,10 @@ module Theory.Constraint.System (
   , sSourceKind
 
   -- ** Goals
+  , GoalAge(..)
   , GoalStatus(..)
+  , Usefulness(..)
+  , AnnotatedGoal
   , gsSolved
   , gsLoopBreaker
   , gsNr
@@ -236,6 +244,17 @@ module Theory.Constraint.System (
 
   , isDiffSystem
   , sDiffSystem
+
+  , LoopInstance(..)
+  , isLongLoop
+  , simpleLoop
+  , singletonLoopInstance
+  , extendLoopsWith
+  , sId
+  , sWeakenedFrom
+  , sLoops
+  , hasLoopExit
+  , getLoopExits
 
   -- * Formula simplification
   , impliedFormulas
@@ -262,9 +281,9 @@ import           Data.Binary
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
 import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy)
+import           Data.List.NonEmpty (NonEmpty((:|)),(<|))
 import qualified Data.Map                             as M
-import           Data.Maybe                           (fromMaybe,mapMaybe, isNothing)
--- import           Data.Monoid                          (Monoid(..))
+import           Data.Maybe                           (fromMaybe, mapMaybe, isJust, isNothing)
 import qualified Data.Monoid                             as Mono
 import qualified Data.Set                             as S
 import           Data.Either                          (partitionEithers, lefts)
@@ -280,21 +299,23 @@ import           Data.Label                           ((:->), mkLabels)
 import qualified Extension.Data.Label                 as L
 
 import           GHC.IO                               (unsafePerformIO)
+import           Theory.Constraint.Renaming
 
 import           Logic.Connectives
-import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.System.Constraints 
 --import           Theory.Constraint.Solver.Heuristics
 import           Theory.Model
 import           Theory.Text.Pretty
 import           Theory.Tools.SubtermStore
 import           Theory.Tools.EquationStore
-import           Theory.Tools.InjectiveFactInstances
 
 import           System.Directory                     (doesFileExist)
 import           System.FilePath
 import           Text.Show.Functions()
-import           Utils.Misc 
+import Theory.Constraint.System.ID
+import Utils.Misc (peak, safeTail)
+import Data.Semigroup (Semigroup(sconcat))
+import qualified Data.List.NonEmpty as NE
 
 ----------------------------------------------------------------------
 -- ClassifiedRules
@@ -366,12 +387,25 @@ instance Ord SourceKind where
     compare RefinedSource RawSource     = GT
     compare RefinedSource RefinedSource = EQ
 
+data GoalAge = Contextual | Age Integer
+  deriving( Eq, Generic, NFData, Binary )
+
+instance Show GoalAge where
+  show Contextual = "from context"
+  show (Age a) = "nr. " ++ show a
+
+instance Ord GoalAge where
+  compare Contextual Contextual = EQ
+  compare Contextual (Age _) = GT
+  compare (Age _) Contextual = LT
+  compare (Age a1) (Age a2) = compare a1 a2
+
 -- | The status of a 'Goal'. Use its 'Semigroup' instance to combine the
 -- status info of goals that collapse.
 data GoalStatus = GoalStatus
     { _gsSolved :: Bool
        -- True if the goal has been solved already.
-    , _gsNr :: Integer
+    , _gsNr :: GoalAge
        -- The number of the goal: we use it to track the creation order of
        -- goals.
     , _gsLoopBreaker :: Bool
@@ -379,6 +413,93 @@ data GoalStatus = GoalStatus
        -- non-termination.
     }
     deriving( Eq, Ord, Show, Generic, NFData, Binary )
+
+-- TODO: More heuristics here
+data Usefulness =
+    Useful
+  -- ^ A goal that is likely to result in progress.
+  | LoopBreaker
+  -- ^ A goal that is delayed to avoid immediate termination.
+  | ProbablyConstructible
+  -- ^ A goal that is likely to be constructible by the adversary.
+  | CurrentlyDeducible
+  -- ^ A message that is deducible for the current solution.
+  | Dangerous
+  deriving (Show, Eq, Ord)
+
+-- | Goals annotated with their number and usefulness.
+type AnnotatedGoal = (Goal, (GoalAge, Usefulness))
+
+-- | Type a stores nodes. Most of the time, this will be a NodeId, but for
+--   finding renamings, we annotate it with the corresponding rule, too.
+data LoopInstance a = LoopInstance
+  { loopFact :: FactTag
+  , loopId :: LVar
+  -- |  Stores all edges sorted from start to end.
+  , loopEdges :: NE.NonEmpty a
+  , start :: a
+  , end :: a }
+  deriving (Eq, Ord, Show, Generic, NFData, Binary)
+
+instance Functor LoopInstance where
+  fmap f (LoopInstance ft lid es s e) = LoopInstance ft lid (fmap f es) (f s) (f e)
+
+instance Foldable LoopInstance where
+  foldr f b li = foldr f b (loopEdges li)
+
+instance Traversable LoopInstance where
+  traverse f (LoopInstance lf li es s e) =
+    LoopInstance lf li <$> traverse f es <*> f s <*> f e
+
+instance Apply LNSubst (LoopInstance NodeId) where
+  apply subst (LoopInstance f (apply subst -> lid) (apply subst -> es) (apply subst -> s) (apply subst -> e)) = LoopInstance f lid es s e
+
+instance HasFrees (LoopInstance NodeId) where
+  foldFrees f (LoopInstance _ lid es s e) = foldFrees f lid <> foldFrees f es <> foldFrees f s <> foldFrees f e
+  foldFreesOcc _ _ = mempty
+  mapFrees f (LoopInstance tag lid es s e) =
+    LoopInstance tag <$> mapFrees f lid
+      <*> mapFrees f es
+      <*> mapFrees f s
+      <*> mapFrees f e
+
+isLongLoop :: LoopInstance a -> Bool
+isLongLoop = not . null . NE.tail . loopEdges
+
+simpleLoop :: NodeId -> FactTag -> LVar -> LoopInstance NodeId
+simpleLoop nid tag var = LoopInstance tag var (NE.singleton nid) nid nid
+
+extendLoopsWith :: LoopInstance NodeId -> [LoopInstance NodeId] -> Maybe [LoopInstance NodeId]
+extendLoopsWith l ls = go l ls False
+  where
+    go :: LoopInstance NodeId -> [LoopInstance NodeId] -> Bool -> Maybe [LoopInstance NodeId]
+    go li [] modified = if modified then Just [li] else Nothing
+    go li@(LoopInstance { loopId = lid, start = s, end = e, loopEdges = es })
+      (li'@(LoopInstance { loopId = lid', start = s', end = e', loopEdges = es'}):t)
+      modified
+      | lid /= lid' = continue
+      | s == e' = go (li { start = s', loopEdges = NE.appendList es' (NE.tail es) }) t True
+      | e == s' = go (li { end = e', loopEdges = NE.appendList es (NE.tail es') }) t True
+      | e `elem` es' = go (mergeOrdered li li') t True
+      | e' `elem` es = go (mergeOrdered li' li) t True
+      | otherwise = continue
+      where
+        continue = (li':) <$> go li t modified
+
+    -- We assume that the end of the first loop is contained in the second
+    -- loop. This implies that fact tag and loop ID are equal.
+    mergeOrdered :: LoopInstance NodeId -> LoopInstance NodeId -> LoopInstance NodeId
+    mergeOrdered
+      (LoopInstance { loopFact = f, loopId = li, start = s, end = e, loopEdges = es })
+      lower@(LoopInstance { end = e', loopEdges = es'})
+      | s `elem` es' = lower
+      | otherwise = LoopInstance {
+        loopFact = f,
+        loopId = li,
+        start = s,
+        end = e',
+        loopEdges = NE.appendList es (safeTail (NE.dropWhile (/= e) es'))
+      }
 
 -- | A constraint system.
 data System = System
@@ -395,6 +516,9 @@ data System = System
     , _sNextGoalNr     :: Integer
     , _sSourceKind     :: SourceKind
     , _sDiffSystem     :: Bool
+    , _sLoops          :: [LoopInstance NodeId]
+    , _sWeakenedFrom   :: Maybe SystemID
+    , _sId             :: SystemID
     , _sFreshState     :: FreshState }
     -- NOTE: Don't forget to update 'substSystem' in
     -- "Constraint.Solver.Reduction" when adding further fields to the
@@ -402,6 +526,31 @@ data System = System
     deriving( Eq, Ord, Generic, NFData, Binary )
 
 $(mkLabels [''System, ''GoalStatus])
+
+singletonLoopInstance :: System -> Edge -> Maybe (LoopInstance NodeId)
+singletonLoopInstance sys (Edge (src, idx) (tgt, _)) = do
+  fact <- L.get (rConc idx) <$> M.lookup src (L.get sNodes sys)
+  guard (isInjective fact)
+  v <- peak (factTerms fact) >>= getVar
+  return $ LoopInstance (factTag fact) v (src :| [tgt]) src tgt
+
+equiv :: System -> System -> Bool
+equiv s1 s2 = and
+  [ onBoth sEdges (==)
+  , onBoth sLessAtoms (==)
+  , onBoth sLastAtom (==)
+  , onBoth sSubtermStore (==)
+  , onBoth sEqStore (==)
+  , onBoth sFormulas (==)
+  , onBoth sSolvedFormulas (==)
+  , onBoth sLemmas (==)
+  , onBoth sGoals (==)
+  , onBoth sNextGoalNr (==)
+  , onBoth sSourceKind (==)
+  , onBoth sDiffSystem (==) ]
+  where
+    onBoth :: (System :-> a) -> (a -> a -> b) -> b
+    onBoth l f = f (L.get l s1) (L.get l s2)
 
 deriving instance Show System
 
@@ -742,7 +891,7 @@ data Source = Source
      }
      deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
-data InductionHint = UseInduction | AvoidInduction
+data InductionHint = UseCyclicInduction | UseInduction | AvoidInduction
        deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
 -- | A proof context contains the globally fresh facts, classified rewrite
@@ -750,7 +899,6 @@ data InductionHint = UseInduction | AvoidInduction
 data ProofContext = ProofContext
        { _pcSignature          :: SignatureWithMaude
        , _pcRules              :: ClassifiedRules
-       , _pcInjectiveFactInsts :: S.Set (FactTag, [[MonotonicBehaviour]])
        , _pcSourceKind         :: SourceKind
        , _pcSources            :: [Source]
        , _pcUseInduction       :: InductionHint
@@ -823,12 +971,10 @@ emptySystem :: SourceKind -> Bool -> System
 emptySystem d isdiff = System
     M.empty S.empty S.empty Nothing emptySubtermStore emptyEqStore
     S.empty S.empty S.empty
-    M.empty 0 d isdiff nothingUsed
+    M.empty 0 d isdiff [] Nothing rootID nothingUsed
 
--- TODO: I do not like the second conjunct; this should be done cleaner
 isInitialSystem :: System -> Bool
-isInitialSystem sys = null (L.get sSolvedFormulas sys) && not (S.member bot (L.get sFormulas sys))
-  where bot = GDisj (Disj [])
+isInitialSystem = (rootID ==) . L.get sId
 
 -- | The empty diff constraint system.
 emptyDiffSystem :: DiffSystem
@@ -1218,16 +1364,16 @@ data Trivalent = TTrue | TFalse | TUnknown deriving (Show, Eq)
 -- | Computes the mirror dependency graph and evaluates whether the restrictions hold.
 -- Returns Just True and a list of mirrors if all hold, Just False and a list of attacks (if found) if at least one does not hold and Nothing otherwise.
 getMirrorDGandEvaluateRestrictions :: DiffProofContext -> DiffSystem -> Bool -> (Trivalent, [System])
-getMirrorDGandEvaluateRestrictions dctxt dsys isSolved = 
+getMirrorDGandEvaluateRestrictions dctxt dsys solved =
     case (L.get dsSide dsys, L.get dsSystem dsys) of
           (Nothing,   _       ) -> (TFalse, [])
           (Just _ , Nothing   ) -> (TFalse, [])
-          (Just side, Just sys) -> evaluateRestrictions dctxt dsys (getMirrorDG dctxt side sys) isSolved
+          (Just side, Just sys) -> evaluateRestrictions dctxt dsys (getMirrorDG dctxt side sys) solved
 
 -- | Evaluates whether the restrictions hold. Assumes that the mirrors have been correctly computed.
 -- Returns Just True and a list of mirrors if all hold, Just False and a list of attacks (if found) if at least one does not hold and Nothing otherwise.
 evaluateRestrictions :: DiffProofContext -> DiffSystem -> [System] -> Bool -> (Trivalent, [System])
-evaluateRestrictions dctxt dsys mirrors isSolved =
+evaluateRestrictions dctxt dsys mirrors solved =
     case (L.get dsSide dsys, L.get dsSystem dsys) of
         (Nothing,   _       ) -> (TFalse, [])
         (Just _ , Nothing   ) -> (TFalse, [])
@@ -1243,7 +1389,7 @@ evaluateRestrictions dctxt dsys mirrors isSolved =
             where
                 oppositeCtxt = eitherProofContext dctxt (opposite side)
                 restrictions = filterRestrictions oppositeCtxt sys $ restrictions' (opposite side) $ L.get dpcRestrictions dctxt
-                evals = map (\x -> doRestrictionsHold oppositeCtxt x restrictions isSolved) mirrors
+                evals = map (\x -> doRestrictionsHold oppositeCtxt x restrictions solved) mirrors
 
                 restrictions' _  []               = []
                 restrictions' s' ((s'', form):xs) = if s' == s'' then form ++ (restrictions' s' xs) else (restrictions' s' xs)
@@ -1253,25 +1399,25 @@ evaluateRestrictions dctxt dsys mirrors isSolved =
 -- Returns Just True if all hold, Just False if at least one does not hold and Nothing otherwise.
 doRestrictionsHold :: ProofContext -> System -> [LNGuarded] -> Bool -> (Trivalent, [System])
 doRestrictionsHold _    sys []       _        = (TTrue, [sys])
-doRestrictionsHold ctxt sys formulas isSolved = -- Just (True, [sys]) -- FIXME Jannik: This is a temporary simulation of diff-safe restrictions!
+doRestrictionsHold ctxt sys formulas solved = -- Just (True, [sys]) -- FIXME Jannik: This is a temporary simulation of diff-safe restrictions!
   if (all (\(x, _) -> x == gtrue) simplifiedForms)
     then {-trace ("doRestrictionsHold: True " ++ (render. vsep $ map (prettyGuarded) formulas) ++ " - " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) simplifiedForms) ++ " - " ++ (render $ prettySystem sys))-} (TTrue, map snd simplifiedForms)
     else if (any (\(x, _) -> x == gfalse) simplifiedForms)
           then {-trace ("doRestrictionsHold: False " ++ (render. vsep $ map (prettyGuarded) formulas) ++ " - " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) simplifiedForms))-} (TFalse, map snd $ filter (\(x, _) -> x == gfalse) simplifiedForms)
           else {-trace ("doRestrictionsHold: Unkown " ++ (render. vsep $ map (prettyGuarded) formulas) ++ " - " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) simplifiedForms))-} (TUnknown, [sys])
   where
-    simplifiedForms = simplify (map (\x -> (x, sys)) formulas) isSolved
+    simplifiedForms = simplify (map (\x -> (x, sys)) formulas) solved
 
     simplify :: [(LNGuarded, System)] -> Bool -> [(LNGuarded, System)]
-    simplify forms solved =
+    simplify forms solved' =
         if ({-trace ("step: " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) forms) ++ " " ++ (render. vsep $ map (\(x, _) -> prettyGuarded x) res))-} res) == forms
             then res
-            else simplify res solved
+            else simplify res solved'
       where
-        res = step forms solved
+        res = step forms solved'
 
     step :: [(LNGuarded, System)] -> Bool -> [(LNGuarded, System)]
-    step forms solved = map simpGuard $ concat {-- $ trace (show (map (impliedOrInitial solved) forms))-} $ map (impliedOrInitial solved) forms
+    step forms solved' = map simpGuard $ concat {-- $ trace (show (map (impliedOrInitial solved') forms))-} $ map (impliedOrInitial solved') forms
 
     valuation s' = safePartialAtomValuation ctxt s'
 
@@ -1279,7 +1425,7 @@ doRestrictionsHold ctxt sys formulas isSolved = -- Just (True, [sys]) -- FIXME J
     simpGuard (f, sys') = (simplifyGuardedOrReturn (valuation sys') f, sys')
 
     impliedOrInitial :: Bool -> (LNGuarded, System) -> [(LNGuarded, System)]
-    impliedOrInitial solved (f, sys') = if isAllGuarded f && (solved || not (null imps)) then imps else [(f, sys')]
+    impliedOrInitial solved' (f, sys') = if isAllGuarded f && (solved' || not (null imps)) then imps else [(f, sys')]
       where
         imps = map (fmap (normDG ctxt)) $ impliedFormulasAndSystems (L.get pcMaudeHandle ctxt) sys' f
 
@@ -1513,12 +1659,9 @@ unsolvedPremises sys =
 unsolvedTrivialGoals :: System -> [(Either NodePrem LVar, LNFact)]
 unsolvedTrivialGoals sys = foldl f [] $ M.toList (L.get sGoals sys)
   where
-    f l (PremiseG premidx fa, status) = if ((isTrivialFact fa /= Nothing) && (not $ L.get gsSolved status)) then (Left premidx, fa):l else l
-    f l (ActionG var fa, status)      = if ((isTrivialFact fa /= Nothing) && (isKUFact fa) && (not $ L.get gsSolved status)) then (Right var, fa):l else l
-    f l (ChainG _ _, _)               = l
-    f l (SplitG _, _)                 = l
-    f l (DisjG _, _)                  = l
-    f l (SubtermG _, _)               = l
+    f l (PremiseG premidx fa, status) = if isJust (isTrivialFact fa) && not (L.get gsSolved status) then (Left premidx, fa):l else l
+    f l (ActionG var fa, status)      = if isJust (isTrivialFact fa) && isKUFact fa && not (L.get gsSolved status) then (Right var, fa):l else l
+    f l _                             = l
 
 -- | Tests whether there are common Variables in the Facts
 noCommonVarsInGoals :: [(Either NodePrem LVar, LNFact)] -> Bool
@@ -1557,6 +1700,8 @@ allOpenGoalsAreSimpleFacts ctxt sys = M.foldlWithKey goalIsSimpleFact True (L.ge
     goalIsSimpleFact ret (SplitG _)               (GoalStatus solved _ _) = ret && solved
     goalIsSimpleFact ret (DisjG _)                (GoalStatus solved _ _) = ret && solved
     goalIsSimpleFact ret (SubtermG _)             (GoalStatus solved _ _) = ret && solved
+    goalIsSimpleFact ret (Cut _)                  _                       = ret
+    goalIsSimpleFact ret (Weaken _)               _                       = ret
 
 -- | Returns true if the current system is a diff system
 isDiffSystem :: System -> Bool
@@ -1620,10 +1765,15 @@ rawEdgeRel sys = map (nodeConcNode *** nodePremNode) $
 -- (possibly using the 'Less' relation) from @from@ to @to@ in @se@ without
 -- appealing to transitivity.
 rawLessRel :: System -> [(NodeId,NodeId)]
-rawLessRel se = (getLessRel $ S.toList (L.get sLessAtoms se)) ++ rawEdgeRel se
+rawLessRel se = getLessRel (S.toList (L.get sLessAtoms se)) ++ rawEdgeRel se
+
+kLessRel :: System -> [(NodeId, NodeId)]
+kLessRel se =
+  let kuLess = filter ((Adversary ==) . L.get laReason) $ S.toList $ L.get sLessAtoms se
+  in map lessAtomToEdge kuLess
 
 getLessAtoms :: System -> S.Set (NodeId, NodeId)
-getLessAtoms = S.fromList . getLessRel . S.toList . L.get sLessAtoms
+getLessAtoms = S.map lessAtomToEdge . L.get sLessAtoms
 
 -- | Returns a predicate that is 'True' iff the first argument happens before
 -- the second argument in all models of the sequent.
@@ -1782,8 +1932,8 @@ prettyGoals solved sys = vsep $ do
         -- We cannot deduce a message from a last node.
         guard (not $ isLast sys j)
         let derivedMsgs = concatMap toplevelTerms $
-                [ t | Fact OutFact _ [t] <- L.get rConcs ru] <|>
-                [ t | Just (DnK, t)    <- kFactView <$> L.get rConcs ru]
+                [ t | Fact OutFact _ _ [t] <- L.get rConcs ru] <|>
+                [ t | Just (DnK, t)        <- kFactView <$> L.get rConcs ru]
         -- m is deducible from j without an immediate contradiction
         -- if it is a derived message of 'ru' and the dependency does
         -- not make the graph cyclic.
@@ -1813,13 +1963,13 @@ instance Apply LNSubst SourceKind where
     apply = const id
 
 instance Apply LNSubst System where
-    apply subst (System a b c d e f g h i j k l m n) =
+    apply subst (System a b c d e f g h i j k l m n o p q) =
         System (apply subst a)
         -- we do not apply substitutions to node variables, so we do not apply them to the edges either
         b
         (apply subst c) (apply subst d)
         (apply subst e) (apply subst f) (apply subst g) (apply subst h) (apply subst i)
-        j k (apply subst l) (apply subst m) (foldl max n $ map avoid $ M.elems $ sMap subst)
+        j k (apply subst l) (apply subst m) (apply subst n) o p (foldl max q $ map avoid $ M.elems $ sMap subst)
 
 instance HasFrees SourceKind where
     foldFrees = const mempty
@@ -1832,7 +1982,7 @@ instance HasFrees GoalStatus where
     mapFrees  = const pure
 
 instance HasFrees System where
-    foldFrees fun (System a b c d e f g h i j k l m _) =
+    foldFrees fun (System a b c d e f g h i j k l m n _ _ _) =
         foldFrees fun a `mappend`
         foldFrees fun b `mappend`
         foldFrees fun c `mappend`
@@ -1845,9 +1995,10 @@ instance HasFrees System where
         foldFrees fun j `mappend`
         foldFrees fun k `mappend`
         foldFrees fun l `mappend`
-        foldFrees fun m
+        foldFrees fun m `mappend`
+        foldFrees fun n
 
-    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n) =
+    foldFreesOcc fun ctx (System a _b _c _d _e _f _g _h _i _j _k _l _m _n _o _p _q) =
         foldFreesOcc fun ("a":ctx') a {- `mappend`
         foldFreesCtx fun ("b":ctx') b `mappend`
         foldFreesCtx fun ("c":ctx') c `mappend`
@@ -1861,7 +2012,7 @@ instance HasFrees System where
         foldFreesCtx fun ("k":ctx') k -}
       where ctx' = "system":ctx
 
-    mapFrees fun (System a b c d e f g h i j k l m n) =
+    mapFrees fun (System a b c d e f g h i j k l m n o p q) =
         System <$> mapFrees fun a
                <*> mapFrees fun b
                <*> mapFrees fun c
@@ -1875,7 +2026,10 @@ instance HasFrees System where
                <*> mapFrees fun k
                <*> mapFrees fun l
                <*> mapFrees fun m
-               <*> pure n
+               <*> mapFrees fun n
+               <*> pure o
+               <*> pure p
+               <*> pure q
 
 instance HasFrees Source where
     foldFrees f th =
@@ -1908,17 +2062,17 @@ compareNodesUpToNewVars n1 n2 = compareListsUpToNewVars (M.toAscList n1) (M.toAs
 compareSystemsUpToNewVars :: System -> System -> Ordering
 -- when we have trace systems, we can ignore new variable instantiations
 compareSystemsUpToNewVars
-   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _)
-   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _)
+   (System a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False _ _ _ _)
+   (System a2 b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False _ _ _ _)
        = if compareNodes == EQ then
-            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False nothingUsed)
-                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False nothingUsed)
+            compare (System M.empty b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 False [] Nothing rootID nothingUsed)
+                (System M.empty b2 c2 d2 e2 f2 g2 h2 i2 j2 k2 l2 False [] Nothing rootID nothingUsed)
          else
             compareNodes
         where
             compareNodes = compareNodesUpToNewVars a1 a2
 -- in case of diff systems, we remain prudent
-compareSystemsUpToNewVars s1 s2 = compare s1 s2
+compareSystemsUpToNewVars s1 s2 = compare s1 s2  -- TODO: Ignore stuff related to cyclic proofs
 
 
 -- | 'True' iff the dotted system will be a non-empty graph.
@@ -1936,3 +2090,41 @@ nonEmptyGraphDiff diffSys = not $
           (Just sys) -> M.null (L.get sNodes sys) && null (unsolvedActionAtoms sys) &&
                         null (unsolvedChains sys) &&
                         S.null (L.get sEdges sys) && S.null (L.get sLessAtoms sys)
+
+data Node a = Node
+  { nnid  :: NodeId
+  , nannot :: a }
+
+instance Show a => Show (Node a) where
+  show (Node nid a) = show nid ++ ":" ++ show a
+
+instance Eq a => Eq (Node a) where
+  (Node n1 a1) == (Node n2 a2) = n1 == n2 && a1 == a2
+
+instance Ord a => Ord (Node a) where
+  compare (Node n1 a1) (Node n2 a2) = case compare n1 n2 of
+    LT  -> LT
+    GT  -> GT
+    EQ  -> compare a1 a2
+
+instance Renamable a => Renamable (Node a) where
+  (Node nid1 a1) ~> (Node nid2 a2) = mapVarM nid1 nid2 (a1 ~> a2)
+
+type RNode = Node RuleACInst
+type AFNode = Node [LNFact]
+
+instance Renamable (LoopInstance RNode) where
+  (LoopInstance ft li es _ _) ~> (LoopInstance ft' li' es' _ _)
+    | ft /= ft' = NoRenaming
+    | otherwise = sconcat ((li ~> li') <| NE.zipWith (~>) es es')
+
+hasLoopExit :: System -> LoopInstance NodeId -> Bool
+hasLoopExit s (LoopInstance { loopFact = lf, loopId = lid, end = nid }) =
+  let r = M.lookup nid (L.get sNodes s)
+  in maybe False (not . any isLoopFact . L.get rConcs) r
+  where
+    isLoopFact :: LNFact -> Bool
+    isLoopFact (Fact { factTag = ft, factTerms = fts }) = ft == lf && Just lid == (peak fts >>= getVar)
+
+getLoopExits :: System -> [NodeId]
+getLoopExits s = map end $ filter (hasLoopExit s) (L.get sLoops s)

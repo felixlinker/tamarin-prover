@@ -2,7 +2,6 @@
 {-# LANGUAGE ViewPatterns    #-}
 {-# LANGUAGE DeriveGeneric   #-}
 {-# LANGUAGE DeriveAnyClass  #-}
---{-# LANGUAGE QuasiQuotes     #-}
 -- |
 -- Copyright   : (c) 2010-2012 Simon Meier & Benedikt Schmidt
 -- License     : GPL v3 (see LICENSE)
@@ -15,12 +14,14 @@ module Theory.Constraint.Solver.ProofMethod (
   -- * Proof methods
     CaseName
   , ProofMethod(..)
+  , ProofMethodResult
+  , ProofStepMethod
   , Result(..)
   , DiffProofMethod(..)
+  , isFinished
   , checkAndExecProofMethod
   , execProofMethod
   , execDiffProofMethod
-  , isFinished
 
   -- ** Heuristics
   , rankProofMethods
@@ -61,7 +62,6 @@ import           System.Process
 import           Theory.Constraint.Solver.Sources
 import           Theory.Constraint.Solver.Contradictions
 import           Theory.Constraint.Solver.Goals
-import           Theory.Constraint.Solver.AnnotatedGoals
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.Solver.Simplify
 import           Theory.Constraint.System
@@ -70,6 +70,11 @@ import           Theory.Text.Pretty
 
 import qualified Extension.Data.Label as L
 import Control.Monad.Disj (disjunctionOfList)
+import Utils.Misc (peak)
+import Theory.Constraint.System.ID (subCaseIDs)
+import Theory.Constraint.System.Results
+import Data.List.NonEmpty (NonEmpty((:|)), (<|))
+import qualified Data.List.NonEmpty as NE
 import Data.Bool (bool)
 
 
@@ -160,6 +165,10 @@ isDoubleExpGoal goal = case msgPremise goal of
     Just (viewTerm2 -> FExp  _ (viewTerm2 -> FMult _)) -> True
     _                                                  -> False
 
+isCyclicMinimization :: Goal -> Bool
+isCyclicMinimization (Weaken WeakenCyclic) = True
+isCyclicMinimization _ = False
+
 -- | @sortDecisionTree xs ps@ returns a reordering of @xs@
 -- such that the sublist satisfying @ps!!0@ occurs first,
 -- then the sublist satisfying @ps!!1@, and so on.
@@ -187,17 +196,6 @@ unmarkPremiseG annGoal                        = annGoal
 -- | Every case in a proof is uniquely named.
 type CaseName = String
 
-data Result =
-    Solved
-  -- ^ A dependency graph was found.
-  | Contradictory (Maybe Contradiction)
-  -- ^ A contradiction could be derived, possibly with a reason. The single
-  --    formula constraint in the system.
-  | Unfinishable
-  -- ^ The proof cannot be finished (due to reducible operators in subterms or
-  --   because a solution was found after weakening).
-  deriving( Eq, Ord, Show, Generic, NFData, Binary )
-
 -- | Sound transformations of sequents.
 data ProofMethod =
     Sorry (Maybe String)                 -- ^ Proof was not completed
@@ -206,8 +204,11 @@ data ProofMethod =
   | Induction                            -- ^ Use inductive strengthening on
                                          -- the single formula constraint in
                                          -- the system.
-  | Finished Result
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
+
+type ProofMethodResult = M.Map CaseName (System, Maybe (Result Contradiction))
+
+type ProofStepMethod = Either ProofMethod (Result Contradiction)
 
 -- | Sound transformations of diff sequents.
 data DiffProofMethod =
@@ -223,13 +224,11 @@ data DiffProofMethod =
   
 instance HasFrees ProofMethod where
     foldFrees f (SolveGoal g)     = foldFrees f g
-    foldFrees f (Finished (Contradictory c)) = foldFrees f c
     foldFrees _ _                 = mempty
 
     foldFreesOcc  _ _ = const mempty
 
     mapFrees f (SolveGoal g)     = SolveGoal <$> mapFrees f g
-    mapFrees f (Finished (Contradictory c)) = Finished . Contradictory <$> mapFrees f c
     mapFrees _ method            = pure method
 
 instance HasFrees DiffProofMethod where
@@ -246,15 +245,16 @@ instance HasFrees DiffProofMethod where
 
 -- @checkAndExecMethod rules method se@ checks first if the @method@ is
 -- applicable to the sequent @se@ and, if so, applies it.
-checkAndExecProofMethod :: ProofContext -> ProofMethod -> System -> Maybe (M.Map CaseName System)
-checkAndExecProofMethod ctxt method sys = do
+checkAndExecProofMethod :: ProofContext -> ProofMethod -> NonEmpty System -> Maybe ProofMethodResult
+checkAndExecProofMethod ctxt method syss@(sys:|_) = do
     case method of
-      Finished r -> isFinished ctxt sys >>= guard . equalReason r
       Induction -> canApplyInduction
+      SolveGoal (Cut _) -> Just ()
+      SolveGoal (Weaken _) -> Just ()
       SolveGoal goal -> guard (goal `M.member` L.get sGoals sys)
       Simplify -> Just ()
       Sorry _ -> Just ()
-    execProofMethod ctxt method sys
+    execProofMethod ctxt method syss
   where
     canApplyInduction :: Maybe ()
     canApplyInduction = do
@@ -264,11 +264,6 @@ checkAndExecProofMethod ctxt method sys = do
       (_, t) <- uncons $ S.toList $ L.get sFormulas sys
       guard (null t)
 
-    equalReason :: Result -> Result -> Bool
-    equalReason (Contradictory _) (Contradictory _) = True
-    equalReason r1 r2 = r1 == r2
-    -- ^ all other reasons don't have an argument
-
 -- @execMethod rules method se@ applies the @method@ to the sequent under the
 -- assumption that it is sound to apply the method and that the @rules@ describe
 -- all rewriting rules in scope.
@@ -276,30 +271,34 @@ checkAndExecProofMethod ctxt method sys = do
 -- NOTE that the returned systems have their free substitution fully applied
 -- and all variable indices reset.
 execProofMethod :: ProofContext
-                -> ProofMethod -> System -> Maybe (M.Map CaseName System)
-execProofMethod ctxt method sys =
+                -> ProofMethod -> NonEmpty System -> Maybe ProofMethodResult
+execProofMethod ctxt method syss@(sys:|_) =
     case method of
       Sorry _               -> return M.empty
-      Finished _            -> return M.empty
       Simplify              ->
         let cases = process (return "") -- @process@ simplifies
         in case M.toList cases of
           -- Check whether simplified system is equal to previous one; if so,
           -- fail in applying this method.
-          [(_, sys')] -> guard (sys' /= sys) >> return cases
+          [(_, (sys', _))] -> guard (not (equiv sys' sys)) >> return cases
           -- If simplifying resulted in multiple cases, the resulting ones
           -- cannot be equal to the original one so there's nothing to check.
           _ -> return cases
       Induction             -> process . induction <$> getInductionCases sys
       SolveGoal goal        -> return $ process $ solve goal
   where
-    process :: Reduction CaseName -> M.Map CaseName System
+    checkFinished :: System -> (System, Maybe (Result Contradiction))
+    checkFinished s = (s, isFinished ctxt (s <| syss))
+
+    process :: Reduction CaseName -> ProofMethodResult
     process m =
       let cases =   removeRedundantCases ctxt [] snd
                   . map (uncurry cleanup)
                   . getDisj $ runReduction (m <* simplifySystem) ctxt sys (L.get sFreshState sys)
       in  M.fromListWith (error "case names not unique")
-            $ uniqueListBy (comparing fst) id distinguish cases
+            $ map (fmap checkFinished)
+            $ uniqueListBy (comparing fst) id distinguish
+            $ zipWith (\r f -> L.modify sId f <$> r) cases (subCaseIDs $ length cases)
 
     cleanup :: (a, System) -> FreshState -> (a, System)
     cleanup s st =
@@ -319,7 +318,7 @@ execProofMethod ctxt method sys =
     -- a single, last-free, closed formula.
     getInductionCases :: System -> Maybe (LNGuarded, LNGuarded)
     getInductionCases s = do
-      (h, _) <- uncons $ S.toList $ L.get sFormulas s
+      h <- peak $ S.toList $ L.get sFormulas s
       either (const Nothing) Just (ginduct h)
 
     induction :: (LNGuarded, LNGuarded) -> Reduction String
@@ -341,9 +340,10 @@ execProofMethod ctxt method sys =
 --
 -- NOTE that the returned systems have their free substitution fully applied
 -- and all variable indices reset.
+-- TODO: Implement corresponding checkAndExec method
 execDiffProofMethod :: DiffProofContext
-                -> DiffProofMethod -> DiffSystem -> Maybe (M.Map CaseName DiffSystem)
-execDiffProofMethod ctxt method sys =
+                -> DiffProofMethod -> NonEmpty DiffSystem -> Maybe (M.Map CaseName DiffSystem)
+execDiffProofMethod ctxt method sysPath@(sys:|_) =
   case method of
     DiffSorry _ -> return M.empty
     DiffBackwardSearch -> do
@@ -354,26 +354,25 @@ execDiffProofMethod ctxt method sys =
     DiffBackwardSearchStep meth -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (meth /= Induction)
-      guard (meth /= Finished (Contradictory (Just ForbiddenKD)))
       _ <- L.get dsCurrentRule sys
       s <- L.get dsSide sys
-      applyStep meth s =<< sequent
+      applyStep meth s =<< sequents
     DiffMirrored -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
       msys' >>= guard . trivial
       mallSubtermsFinished >>= guard
       mirrorSyss <- mmirrorSyss
-      solved <- isSolved <$> mside <*> msys'
+      solved <- isSolved <$> msys'
       guard (fst (evaluateRestrictions ctxt sys mirrorSyss solved) == TTrue)
       return M.empty
     DiffAttack -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
       s <- L.get dsSide sys
-      solved <- isSolved <$> mside <*> msys'
+      solved <- isSolved <$> msys'
       sys' <- L.get dsSystem sys
-      notContradictory <- not . contradictorySystem (eitherProofContext ctxt s) <$> sequent
+      notContradictory <- not . contradictorySystem (eitherProofContext ctxt s) <$> sequents
       -- In the second case, the system is trivial, has no mirror and restrictions do not get in the way.
       -- If we solve arbitrarily the last remaining trivial goals,
       -- then there will be an attack.
@@ -389,13 +388,13 @@ execDiffProofMethod ctxt method sys =
     DiffUnfinishable -> do
       guard (L.get dsProofType sys == Just RuleEquivalence)
       guard (isJust $ L.get dsCurrentRule sys)
-      solved <- isSolved <$> mside <*> msys'
+      solved <- isSolved <$> msys'
       allSubtermsFinished <- mallSubtermsFinished
       guard solved
       guard (not allSubtermsFinished)
       return M.empty
   where
-    sequent              = L.get dsSystem sys
+    sequents             = mapM (L.get dsSystem) sysPath
     mside                = L.get dsSide sys
     msys'                = L.get dsSystem sys
     mmirrorSyss          = getMirrorDG ctxt <$> mside <*> msys'
@@ -422,7 +421,7 @@ execDiffProofMethod ctxt method sys =
       $ L.set dsProofType (Just RuleEquivalence) sys
 
     formula :: String -> LNFormula
-    formula rulename = Qua Ex ("i", LSortNode) (Ato (Action (LIT (Var (Bound 0))) (Fact (ProtoFact Linear ("Diff" ++ rulename) 0) S.empty [])))
+    formula rulename = Qua Ex ("i", LSortNode) (Ato (Action (LIT (Var (Bound 0))) (Fact (ProtoFact Linear ("Diff" ++ rulename) 0) S.empty Nothing [])))
 
     ruleEquivalenceCase :: M.Map CaseName DiffSystem -> RuleAC -> M.Map CaseName DiffSystem
     ruleEquivalenceCase m rule = M.insert ("Rule_" ++ (getRuleName rule) ++ "") (ruleEquivalenceSystem (getRuleNameDiff rule)) m
@@ -446,13 +445,10 @@ execDiffProofMethod ctxt method sys =
     startBackwardSearch :: String -> M.Map CaseName DiffSystem
     startBackwardSearch rulename = M.insert ("LHS") (backwardSearchSystem LHS sys rulename) $ M.insert ("RHS") (backwardSearchSystem RHS sys rulename) $ M.empty
 
-    isSolved :: Side -> System -> Bool
-    isSolved s sys' = isJust $ isFinished (eitherProofContext ctxt s) sys' >>= guard . (== Solved)
-
-    applyStep :: ProofMethod -> Side -> System -> Maybe (M.Map CaseName DiffSystem)
-    applyStep m s dsSys = do
-      cases <- execProofMethod (eitherProofContext ctxt s) m dsSys
-      return $ M.map (\x -> L.set dsSystem (Just x) sys) cases
+    applyStep :: ProofMethod -> Side -> NonEmpty System -> Maybe (M.Map CaseName DiffSystem)
+    applyStep m s syss = do
+      cases <- execProofMethod (eitherProofContext ctxt s) m syss
+      return $ M.map (\x -> L.set dsSystem (Just $ fst x) sys) cases
 
 -- | returns True if there are no reducible operators on top of a right side of a subterm in the subterm store
 finishedSubterms :: ProofContext -> System -> Bool
@@ -498,36 +494,36 @@ rankGoals ctxt ranking tacticsList sys = case ranking of
       chooseError [] _ = error $ "No tactic has been written in the theory file"
       chooseError _  t = error $ "The tactic specified ( "++(show $ _name t)++" ) is not written in the theory file, please chose among the following: "++(show definedHeuristic)
 
-isFinished :: ProofContext -> System -> Maybe Result
-isFinished ctxt sys
+isFinished :: ProofContext -> NonEmpty System -> Maybe (Result Contradiction)
+isFinished ctxt syss@(sys:|_)
   | isInitialSystem sys = Nothing
   | not $ null cs = Just $ Contradictory (Just $ head cs)
-  | null ogs && stFinished = Just Solved
-  | null ogs && not stFinished = Just Unfinishable
+  | isSolved sys && (stFinished && not weakened) = Just Solved
+  | isSolved sys && (not stFinished || weakened) = Just Unfinishable
   | otherwise = Nothing
   where
-    cs = contradictions ctxt sys
-    ogs = openGoals sys
+    cs = contradictions ctxt syss
     stFinished = finishedSubterms ctxt sys
+    weakened = isJust (L.get sWeakenedFrom sys)
 
 -- | Use a 'GoalRanking' to generate the ranked, list of possible
 -- 'ProofMethod's and their corresponding results in this 'ProofContext' and
 -- for this 'System'.
-rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> System
-                 -> [(ProofMethod, (M.Map CaseName System, String))]
-rankProofMethods ranking tactics ctxt sys =
-  let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (openGoals sys)
+rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> NonEmpty System
+                 -> [(ProofMethod, (ProofMethodResult, String))]
+rankProofMethods ranking tactics ctxt syss@(sys:|_) =
+  let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals ctxt syss)
       insertInduction (simplify NE.:| gs) = case L.get pcUseInduction ctxt of
         AvoidInduction -> simplify : (Induction, "") : gs
         UseInduction   -> (Induction, "") : simplify : gs
+        UseCyclicInduction  -> simplify : gs
       proofMethods = bool NE.toList insertInduction (isInitialSystem sys) ((Simplify, "") NE.:| goals)
-      stoppingMethod =    (Finished <$> isFinished ctxt sys)
-                      <|> (Sorry (Just "Oracle ranked no proof methods") <$ instr)
+      stoppingMethod = Sorry (Just "Oracle ranked no goals") <$ instr
   in execMethods $ maybe proofMethods ((:[]) . (,"")) stoppingMethod
   where
     execMethods = mapMaybe execMethod
     execMethod (m, expl) = do
-      cases <- execProofMethod ctxt m sys
+      cases <- execProofMethod ctxt m syss
       return (m, (cases, expl))
 
     sourceRule goal = case goalRule sys goal of
@@ -536,20 +532,23 @@ rankProofMethods ranking tactics ctxt sys =
 
     solveGoalMethod (goal, (nr, usefulness)) =
       ( SolveGoal goal
-      , "nr. " ++ show nr ++ sourceRule goal ++ case usefulness of
-                               Useful                -> ""
-                               LoopBreaker           -> " (loop breaker)"
-                               ProbablyConstructible -> " (probably constructible)"
-                               CurrentlyDeducible    -> " (currently deducible)"
+      ,   show nr
+       ++ sourceRule goal
+       ++ case usefulness of
+            Useful                -> ""
+            LoopBreaker           -> " (loop breaker)"
+            ProbablyConstructible -> " (probably constructible)"
+            CurrentlyDeducible    -> " (currently deducible)"
+            Dangerous             -> " (solving might yield UNFINISHABLE)"
       )
 
 -- | Use a 'GoalRanking' to generate the ranked, list of possible
 -- 'ProofMethod's and their corresponding results in this 'DiffProofContext' and
 -- for this 'DiffSystem'. If the resulting list is empty, then the constraint
 -- system is solved.
-rankDiffProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> DiffProofContext -> DiffSystem
+rankDiffProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> DiffProofContext -> NonEmpty DiffSystem
                  -> [(DiffProofMethod, (M.Map CaseName DiffSystem, String))]
-rankDiffProofMethods ranking tactics ctxt sys = do
+rankDiffProofMethods ranking tactics ctxt syss = do
     (m, expl) <-
             [ (DiffRuleEquivalence, "Prove equivalence using rule equivalence")
             , (DiffMirrored, "Backward search completed")
@@ -558,11 +557,10 @@ rankDiffProofMethods ranking tactics ctxt sys = do
             , (DiffBackwardSearch, "Do backward search from rule")]
         ++  maybe []
               (map (\x -> (DiffBackwardSearchStep (fst x), "Do backward search step")) . filter (isDiffApplicable . fst))
-              ((rankProofMethods ranking tactics . eitherProofContext ctxt <$> L.get dsSide sys) <*> sys')
-    maybe [] (return . (m,) . (,expl)) (execDiffProofMethod ctxt m sys)
+              ((rankProofMethods ranking tactics . eitherProofContext ctxt <$> L.get dsSide (NE.head syss)) <*> syss')
+    maybe [] (return . (m,) . (,expl)) (execDiffProofMethod ctxt m syss)
   where
-    sys' = L.get dsSystem sys
-    isDiffApplicable (Finished (Contradictory _)) = True
+    syss' = mapM (L.get dsSystem) syss
     isDiffApplicable Simplify = True
     isDiffApplicable (SolveGoal _) = True
     isDiffApplicable _ = False
@@ -710,49 +708,49 @@ internalTacticRanking tactic quitOnEmpty ctxt _sys ags0 = trace logMsg res
 -- | Utilities for SAPiC translations specifically 
 
 isAuthOutFact :: Fact t -> Bool
-isAuthOutFact (Fact (ProtoFact _ "AuthOut" _) _ _) = True
+isAuthOutFact (Fact (ProtoFact _ "AuthOut" _) _ _ _) = True
 isAuthOutFact  _                                 = False
 
 isStateFact :: Goal -> Bool
-isStateFact (PremiseG _ (Fact (ProtoFact _ n _) _ _)) = isPrefixOf "state_" n
+isStateFact (PremiseG _ (Fact (ProtoFact _ n _) _ _ _)) = isPrefixOf "state_" n
 isStateFact  _                                 = False
 
 isUnlockAction :: Goal -> Bool
-isUnlockAction (ActionG _ (Fact (ProtoFact _ "Unlock" _) _ _)) = True
+isUnlockAction (ActionG _ (Fact (ProtoFact _ "Unlock" _) _ _ _)) = True
 isUnlockAction  _                                 = False
 
 isEventAction :: Goal -> Bool
-isEventAction (ActionG _ (Fact (ProtoFact _ "Event" _) _ _ )) = True
+isEventAction (ActionG _ (Fact (ProtoFact _ "Event" _) _ _ _)) = True
 isEventAction  _                                 = False
 
 isMID_Receiver :: Goal -> Bool
-isMID_Receiver (PremiseG _ (Fact (ProtoFact _ "MID_Receiver" _) _ _)) = True
+isMID_Receiver (PremiseG _ (Fact (ProtoFact _ "MID_Receiver" _) _ _ _)) = True
 isMID_Receiver  _                                 = False
 
 isMID_Sender :: Goal -> Bool
-isMID_Sender (PremiseG _ (Fact (ProtoFact _ "MID_Sender" _) _ _)) = True
+isMID_Sender (PremiseG _ (Fact (ProtoFact _ "MID_Sender" _) _ _ _)) = True
 isMID_Sender  _                                 = False
 
 isFirstInsertAction :: Goal -> Bool
-isFirstInsertAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ (t:_)) ) = 
+isFirstInsertAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ _ (t:_)) ) =
     case t of
     (viewTerm2 -> FPair (viewTerm2 -> Lit2( Con (Name PubName a)))  _) -> isPrefixOf "F_" (show a)
     _ -> False
 isFirstInsertAction _ = False
 
 isLastInsertAction :: Goal -> Bool
-isLastInsertAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ (t:_)) ) = 
+isLastInsertAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ _ (t:_)) ) =
         case t of
             (viewTerm2 -> FPair (viewTerm2 -> Lit2( Con (Name PubName a)))  _) ->  isPrefixOf "L_" (show a)
             _ -> False
 isLastInsertAction _ = False
 
 isNotInsertAction :: Goal -> Bool
-isNotInsertAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ _)) = False
+isNotInsertAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ _ _)) = False
 isNotInsertAction  _                                 = True
 
 isNotReceiveAction :: Goal -> Bool
-isNotReceiveAction (ActionG _ (Fact (ProtoFact _ "Receive" _) _ _)) = False
+isNotReceiveAction (ActionG _ (Fact (ProtoFact _ "Receive" _) _ _ _)) = False
 isNotReceiveAction  _                                 = True
 
 isStandardActionGoalButNotInsertOrReceive :: Goal -> Bool
@@ -789,6 +787,7 @@ sapicRanking ctxt sys =
     tagUsefulness ProbablyConstructible = 1
     tagUsefulness LoopBreaker           = 0
     tagUsefulness CurrentlyDeducible    = 2
+    tagUsefulness Dangerous             = 3
 
     solveLast = 
         [ 
@@ -865,6 +864,7 @@ sapicPKCS11Ranking ctxt sys =
     tagUsefulness ProbablyConstructible = 1
     tagUsefulness LoopBreaker           = 0
     tagUsefulness CurrentlyDeducible    = 2
+    tagUsefulness Dangerous             = 3
 
     solveLast = 
         [ 
@@ -902,7 +902,7 @@ sapicPKCS11Ranking ctxt sys =
     -- sure that a split does not get too old.
     smallSplitGoalSize = 3
 
-    isInsertTemplateAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ (t:_)) ) = 
+    isInsertTemplateAction (ActionG _ (Fact (ProtoFact _ "Insert" _) _ _ (t:_)) ) =
         case t of
             (viewTerm2 -> FPair (viewTerm2 -> Lit2( Con (Name PubName a)))  _) -> isPrefixOf "template" (show a)
             _ -> False
@@ -954,6 +954,7 @@ injRanking ctxt allowLoopBreakers sys =
     tagUsefulness ProbablyConstructible = 1
     tagUsefulness LoopBreaker           = 1
     tagUsefulness CurrentlyDeducible    = 2
+    tagUsefulness Dangerous             = 3
 
     unmark | allowLoopBreakers = map unmarkPremiseG
            | otherwise         = id
@@ -997,8 +998,8 @@ injRanking ctxt allowLoopBreakers sys =
     isProtoFactGoal _                       = False
 
     -- Detect 'I_' (immediate) fact and term prefix for heuristics
-    isImmediateGoal (PremiseG _ (Fact (ProtoFact _ ('I':'_':_) _) _ _)) = True
-    isImmediateGoal (ActionG  _ (Fact (ProtoFact _ ('I':'_':_) _) _ _)) = True
+    isImmediateGoal (PremiseG _ (Fact (ProtoFact _ ('I':'_':_) _) _ _ _)) = True
+    isImmediateGoal (ActionG  _ (Fact (ProtoFact _ ('I':'_':_) _) _ _ _)) = True
     isImmediateGoal goal = isKnowsImmediateNameGoal goal
 
     isNonSolveLastGoal (PremiseG _ fa) = not $ isSolveLastFact fa
@@ -1065,6 +1066,7 @@ smartRanking ctxt allowPremiseGLoopBreakers sys =
     tagUsefulness ProbablyConstructible = 1
     tagUsefulness LoopBreaker           = 1
     tagUsefulness CurrentlyDeducible    = 2
+    tagUsefulness Dangerous             = 3
 
     unmark | allowPremiseGLoopBreakers = map unmarkPremiseG
            | otherwise                 = id
@@ -1082,6 +1084,7 @@ smartRanking ctxt allowPremiseGLoopBreakers sys =
         , isNotAuthOut . fst
         , isPrivateKnowsGoal . fst
         , isFreshKnowsGoal . fst
+        , isCyclicMinimization . fst
         , isSplitGoalSmall . fst
         , isMsgOneCaseGoal . fst
         , isSignatureGoal . fst
@@ -1150,7 +1153,7 @@ smartDiffRanking ctxt sys =
 
     -- | If all the fact terms are simple and different msg variables (i.e., not fresh or public), returns the list of all these variables. Otherwise returns Nothing. Currently identical to "isTrivialFact" from Model/Fact, but could eventually be relaxed there, but not here. 
     isTrivialMsgFact :: LNFact -> Maybe [LVar]
-    isTrivialMsgFact (Fact _ _ ts) = case ts of
+    isTrivialMsgFact (Fact _ _ _ ts) = case ts of
       []   -> Just []
       x:xs -> Prelude.foldl combine (getMsgVar x) (map getMsgVar xs)
       where
@@ -1169,17 +1172,11 @@ smartDiffRanking ctxt sys =
 -- | Pretty-print a proof method.
 prettyProofMethod :: HighlightDocument d => ProofMethod -> d
 prettyProofMethod method = case method of
-    Finished Solved -> keyword_ "SOLVED" <-> lineComment_ "trace found"
-    Induction  -> keyword_ "induction"
-    Finished Unfinishable -> keyword_ "UNFINISHABLE" <-> lineComment_ "reducible operator in subterm"
     Sorry reason ->
         fsep [keyword_ "sorry", maybe emptyDoc closedComment_ reason]
-    SolveGoal goal -> keyword_ "solve(" <-> prettyGoal goal <-> keyword_ ")"
+    Induction  -> keyword_ "induction"
+    SolveGoal goal -> prettyGoal goal
     Simplify -> keyword_ "simplify"
-    Finished (Contradictory reason) ->
-        sep [ keyword_ "contradiction"
-            , maybe emptyDoc (closedComment . prettyContradiction) reason
-            ]
 
 -- | Pretty-print a diff proof method.
 prettyDiffProofMethod :: HighlightDocument d => DiffProofMethod -> d

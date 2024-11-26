@@ -8,6 +8,7 @@
 {-# LANGUAGE TypeOperators              #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE DeriveAnyClass             #-}
 -- |
 -- Copyright   : (c) 2010-2012 Benedikt Schmidt & Simon Meier
 -- License     : GPL v3 (see LICENSE)
@@ -34,6 +35,7 @@ module Theory.Model.Rule (
   , lookupConc
   , enumPrems
   , enumConcs
+  , injectiveFacts
 
   -- ** Extended positions
   , ExtendedPosition
@@ -128,6 +130,7 @@ module Theory.Model.Rule (
   -- ** Unification
   , unifyRuleACInstEqs
   , unifiableRuleACInsts
+  , getRuleRenaming
   , equalRuleUpToRenaming
   , equalRuleUpToAnnotations
   , equalRuleUpToDiffAnnotation
@@ -191,6 +194,8 @@ import           Theory.Model.Fact
 import qualified Theory.Model.Formula as F
 import           Theory.Text.Pretty
 import           Theory.Sapic
+import Data.Maybe (isJust, mapMaybe)
+import Utils.Misc (peak)
 import Data.Char (chr, isDigit)
 import Data.List.Split (splitOn)
 
@@ -219,11 +224,11 @@ $(mkLabels [''Rule])
 
 -- | An index of a premise. The first premise has index '0'.
 newtype PremIdx = PremIdx { getPremIdx :: Int }
-  deriving( Eq, Ord, Show, Enum, Data, Typeable, Binary, NFData )
+  deriving( Eq, Ord, Show, Enum, Data, Typeable, Generic, Binary, NFData )
 
 -- | An index of a conclusion. The first conclusion has index '0'.
 newtype ConcIdx = ConcIdx { getConcIdx :: Int }
-  deriving( Eq, Ord, Show, Enum, Data, Typeable, Binary, NFData )
+  deriving( Eq, Ord, Show, Enum, Data, Typeable,Generic, Binary, NFData )
 
 -- | @lookupPrem i ru@ returns the @i@-th premise of rule @ru@, if possible.
 lookupPrem :: PremIdx -> Rule i -> Maybe LNFact
@@ -248,6 +253,21 @@ enumPrems = zip [(PremIdx 0)..] . L.get rPrems
 -- | Enumerate all conclusions of a rule.
 enumConcs :: Rule i -> [(ConcIdx, LNFact)]
 enumConcs = zip [(ConcIdx 0)..] . L.get rConcs
+
+injectiveFacts :: Rule i -> [(FactTag, LVar)]
+injectiveFacts r =
+  let l1 = mapMaybe getTagAndVar (L.get rConcs r)
+      l2 = mapMaybe getTagAndVar (L.get rPrems r)
+  -- NOTE: Code below might not be optimal, but the cases in which we have a
+  -- fact with one or more loops should be extremely rare, thus, I prioritized
+  -- simplicity. Also: Union removes duplicates from l2.
+  in union (nub l1) l2
+  where
+    getTagAndVar :: LNFact -> Maybe (FactTag, LVar)
+    getTagAndVar f = do
+      guard (isInjective f)
+      v <- peak (factTerms f) >>= getVar
+      return (factTag f, v)
 
 -- Instances
 ------------
@@ -538,8 +558,8 @@ destrRuleToConstrRule f l (Rule (IntrInfo (DestrRule name _ _ _)) ps cs _ _)
 
         conclusions [] = []
         -- KD and KU facts only have one term
-        conclusions ((Fact KDFact ann (m:ms)):cs') = (Fact KUFact ann ((addTerms m):ms)):(conclusions cs')
-        conclusions                    (c:cs') =                               c:(conclusions cs')
+        conclusions ((Fact KDFact ann i (m:ms)):cs') = (Fact KUFact ann i ((addTerms m):ms)):(conclusions cs')
+        conclusions                          (c:cs') =                                     c:(conclusions cs')
 
         addTerms (FAPP f' t) | f'==f = fApp f (t ++ newvars)
         addTerms  t                  = fApp f (t:newvars)
@@ -851,7 +871,7 @@ equalUpToTerms ruAC@(Rule _ ps cs as _) ruE@(Rule _ ps' cs' as' _) =
     && foldl sameFacts True (zip as as')
   where
     sameFacts b (f1, f2) = b && sameFact f1 f2
-    sameFact (Fact tag _ _) (Fact tag' _ _) = tag == tag'
+    sameFact (Fact tag _ _ _) (Fact tag' _ _ _) = tag == tag'
 
 -- Construction
 ---------------
@@ -884,13 +904,13 @@ unionRuleInstance n = (Rule (IntrInfo (ConstrRule $ BC.pack "_union")) (map xifa
 xorRuleInstance :: Int -> RuleAC
 xorRuleInstance n = (Rule (IntrInfo (ConstrRule $ BC.pack "_xor")) (map xifact [1..n]) [prod] [prod] [])
   where
-    prod = Fact KUFact S.empty [(FAPP (AC Xor) (map xi [1..n]))]
+    prod = Fact KUFact S.empty Nothing [(FAPP (AC Xor) (map xi [1..n]))]
 
     xi :: Int -> LNTerm
     xi k = (LIT $ Var $ LVar "x" LSortMsg (toInteger k))
 
     xifact :: Int -> LNFact
-    xifact k = Fact KUFact S.empty [(xi k)]
+    xifact k = Fact KUFact S.empty Nothing [(xi k)]
 
 type RuleACConstrs = Disj LNSubstVFresh
 
@@ -978,7 +998,7 @@ someRuleACInstAvoidingFixing r s subst =
 addDiffLabel :: Rule a -> String -> Rule a
 addDiffLabel (Rule info prems concs acts nvs) name =
   Rule info prems concs
-    (acts ++ [Fact {factTag = ProtoFact Linear name 0,
+    (acts ++ [Fact {factTag = ProtoFact Linear name 0, injectiveBehavior = Nothing,
                     factAnnotations = S.empty, factTerms = []}]) nvs
 
 -- | Remove the diff label from a rule
@@ -987,7 +1007,7 @@ removeDiffLabel (Rule info prems concs acts nvs) name =
     Rule info prems concs (filter isNotDiffAnnotation acts) nvs
   where
     isNotDiffAnnotation fa =
-      fa /= Fact {factTag = ProtoFact Linear name 0,
+      fa /= Fact {factTag = ProtoFact Linear name 0, injectiveBehavior = Nothing,
                   factAnnotations = S.empty, factTerms = []}
 
 -- | Add an action label to a rule
@@ -1030,20 +1050,23 @@ unifiableRuleACInsts :: RuleACInst -> RuleACInst -> WithMaude Bool
 unifiableRuleACInsts ru1 ru2 =
     (not . null) <$> unifyRuleACInstEqs [Equal ru1 ru2]
 
--- | Are these two rule instances equal up to renaming of variables?
-equalRuleUpToRenaming :: (Show a, Eq a, HasFrees a) => Rule a -> Rule a -> WithMaude Bool
-equalRuleUpToRenaming r1@(Rule rn1 pr1 co1 ac1 nvs1) r2@(Rule rn2 pr2 co2 ac2 nvs2) = reader $ \hnd ->
-  case eqs of
-       Nothing   -> False
-       Just eqs' -> (rn1 == rn2) && (any isRenamingPerRule $ unifs eqs' hnd)
+getRuleRenaming :: (Show a, Eq a, HasFrees a) => Rule a -> Rule a -> WithMaude (Maybe LNSubstVFresh)
+getRuleRenaming r1@(Rule rn1 pr1 co1 ac1 nvs1) r2@(Rule rn2 pr2 co2 ac2 nvs2) = reader $ \hnd -> do
+  guard (rn1 == rn2)
+  eqs' <- eqs
+  find isRenamingPerRule $ unifs eqs' hnd
     where
        isRenamingPerRule subst = isRenaming (restrictVFresh (vars r1) subst) && isRenaming (restrictVFresh (vars r2) subst)
        vars ru = map fst $ varOccurences ru
        unifs eq hnd = unifyLNTerm eq `runReader` hnd
        eqs = foldl matchFacts (Just $ zipWith Equal nvs1 nvs2) $ zip (pr1++co1++ac1) (pr2++co2++ac2)
        matchFacts Nothing  _                                    = Nothing
-       matchFacts (Just l) (Fact f1 _ t1, Fact f2 _ t2) | f1 == f2  = Just ((zipWith Equal t1 t2)++l)
-                                                    | otherwise = Nothing
+       matchFacts (Just l) (Fact f1 _ _ t1, Fact f2 _ _ t2) | f1 == f2  = Just ((zipWith Equal t1 t2)++l)
+                                                            | otherwise = Nothing
+
+-- | Are these two rule instances equal up to renaming of variables?
+equalRuleUpToRenaming :: (Show a, Eq a, HasFrees a) => Rule a -> Rule a -> WithMaude Bool
+equalRuleUpToRenaming r1 r2 = isJust <$> getRuleRenaming r1 r2
 
 -- | Are these two rule instances equal up to added annotations in @ac2@?
 equalRuleUpToAnnotations :: (Eq a) => Rule a -> Rule a -> Bool

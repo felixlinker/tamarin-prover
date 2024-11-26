@@ -13,22 +13,13 @@
 -- systems. The interface for performing constraint solving provided by
 -- "Theory.Constraint.Solver".
 module Theory.Constraint.Solver.Contradictions (
-
-  -- * Contradictory constraint systems
-    Contradiction(..)
-  , substCreatesNonNormalTerms
+    substCreatesNonNormalTerms
   , contradictions
   , contradictorySystem
-
-  -- ** Pretty-printing
-  , prettyContradiction
-
   ) where
 
 import           Prelude                        hiding (id, (.))
 
-import           GHC.Generics                   (Generic)
-import           Data.Binary
 import qualified Data.DAG.Simple                as D (cyclic, reachableSet)
 import qualified Data.Foldable                  as F
 import           Data.Functor                   (($>))
@@ -41,18 +32,19 @@ import           Safe                           (headMay)
 
 import           Control.Basics
 import           Control.Category
-import           Control.DeepSeq
 import           Control.Monad.Reader
 
 import qualified Extension.Data.Label           as L
 import           Extension.Prelude
 
 import           Theory.Constraint.System
+import           Theory.Constraint.System.Results
+import           Theory.Constraint.System.Inclusion (canCloseCycle)
 import           Theory.Model
 import           Theory.Tools.IntruderRules
-import           Theory.Text.Pretty
 
 import           Term.Rewriting.Norm            (maybeNotNfSubterms, nf')
+import Data.List.NonEmpty (NonEmpty((:|)))
 
 -- import           Debug.Trace
 
@@ -60,38 +52,18 @@ import           Term.Rewriting.Norm            (maybeNotNfSubterms, nf')
 -- Contradictions
 ------------------------------------------------------------------------------
 
--- | Reasons why a constraint 'System' can be contradictory.
-data Contradiction =
-    Cyclic                         -- ^ The paths are cyclic.
-  | SubtermCyclic                  -- ^ The subterm predicates form a cycle
-  | NonNormalTerms                 -- ^ Has terms that are not in normal form.
-  -- | NonLastNode                    -- ^ Has a non-silent node after the last node.
-  | ForbiddenExp                   -- ^ Forbidden Exp-down rule instance
-  | ForbiddenBP                    -- ^ Forbidden bilinear pairing rule instance
-  | ForbiddenKD                    -- ^ has forbidden KD-fact
-  | ImpossibleChain                -- ^ has impossible chain
-  | ForbiddenChain                 -- ^ has forbidden chain
-  | NonInjectiveFactInstance (NodeId, NodeId, NodeId)
-    -- ^ Contradicts that certain facts have unique instances.
-  | IncompatibleEqs                -- ^ Incompatible equalities.
-  | FormulasFalse                  -- ^ False in formulas
-  | SuperfluousLearn LNTerm NodeId -- ^ A term is derived both before and after a learn
-  | NodeAfterLast (NodeId, NodeId) -- ^ There is a node after the last node.
-  deriving( Eq, Ord, Show, Generic, NFData, Binary )
-
-
 -- | 'True' if the constraint system is contradictory.
-contradictorySystem :: ProofContext -> System -> Bool
+contradictorySystem :: ProofContext -> NonEmpty System -> Bool
 contradictorySystem ctxt = not . null . contradictions ctxt
 
 -- | All CR-rules reducing a constraint system to *⟂* represented as a list of
 -- trivial contradictions. Note that some constraint systems are also removed
 -- because they have no unifier. This is part of unification. Note also that
 -- *S_{¬,\@}* is handled as part of *S_∀*.
-contradictions :: ProofContext -> System -> [Contradiction]
-contradictions ctxt sys = F.asum
+contradictions :: ProofContext -> NonEmpty System -> [Contradiction]
+contradictions ctxt syss@(sys:|_) = F.asum
     -- CR-rule **
-    [ guard (D.cyclic $ rawLessRel sys)             $> Cyclic
+    [ guard (D.cyclic $ rawLessRel sys)             $> CyclicTimePoints
     -- CR-rule *S_Subterm-Chain-Fail*
     , guard (L.get isContradictory subtermStore)    $> SubtermCyclic
     -- CR-rule *N1*
@@ -110,16 +82,19 @@ contradictions ctxt sys = F.asum
     , guard (eqsIsFalse $ L.get sEqStore sys)       $> IncompatibleEqs
     -- CR-rules *S_⟂*, *S_{¬,last,1}*, *S_{¬,≐}*, *S_{¬,≈}*
     , guard (S.member gfalse $ L.get sFormulas sys) $> FormulasFalse
+    -- TODO: This can slow down proving drastically
+    , maybe [] ((:[]) . Cyclic) $ guard (UseCyclicInduction == L.get pcUseInduction ctxt) >> canCloseCycle ctxt syss
     ]
     ++
     -- This rule is not yet documented. It removes constraint systems that
     -- require a unique fact to be present in the system state more than once.
     -- Unique facts are declared as part of the specification of the rule
     -- system.
-    (NonInjectiveFactInstance <$> nonInjectiveFactInstances ctxt sys)
+    (NonInjectiveFactInstance <$> nonInjectiveFactInstances sys)
     ++
     -- TODO: Document corresponding constraint reduction rule.
     (NodeAfterLast <$> nodesAfterLast sys)
+    -- TODO: Move cyclic contradictions here (prioritize all simple ones)
   where
     sig  = L.get pcSignature ctxt
     msig = mhMaudeSig . L.get pcMaudeHandle $ ctxt
@@ -183,15 +158,15 @@ substCreatesNonNormalTerms hnd sys fsubst =
 -- In the first case, (k,w) and (j,v) would have to be merged, and in the second
 -- case (i,u) and (j,v) would have to be merged, but the merging contradicts the
 -- temporal orderings.
-nonInjectiveFactInstances :: ProofContext -> System -> [(NodeId, NodeId, NodeId)]
-nonInjectiveFactInstances ctxt se = do
+nonInjectiveFactInstances :: System -> [(NodeId, NodeId, NodeId)]
+nonInjectiveFactInstances se = do
     Edge c@(i, _) (k, _) <- S.toList $ L.get sEdges se
     let kFaPrem            = nodeConcFact c se
         kTag               = factTag kFaPrem
         kTerm              = firstTerm kFaPrem
         conflictingFact fa = factTag fa == kTag && firstTerm fa == kTerm
 
-    guard (kTag `S.member` S.map fst (L.get pcInjectiveFactInsts ctxt))
+    guard (isInjective kFaPrem)
     j <- S.toList $ D.reachableSet [i] less
 
     let isCounterExample = (j /= i) && (j /= k) &&
@@ -428,45 +403,3 @@ isForbiddenDEMapOrder sys (i, ruDEMap) = fromMaybe False $ do
     isStandRule ru = ruleInfo (isStandName . L.get praciName) (const False) $ L.get rInfo ru
     isStandName (StandRule _) = True
     isStandName _             = False
-
-
--- Pretty printing
-------------------
-
--- | Pretty-print a 'Contradiction'.
-prettyContradiction :: Document d => Contradiction -> d
-prettyContradiction contra = case contra of
-    Cyclic                       -> text "cyclic"
-    SubtermCyclic                -> text "contradictory subterm store"
-    IncompatibleEqs              -> text "incompatible equalities"
-    NonNormalTerms               -> text "non-normal terms"
-    ForbiddenExp                 -> text "non-normal exponentiation rule instance"
-    ForbiddenBP                  -> text "non-normal bilinear pairing rule instance"
-    ForbiddenKD                  -> text "forbidden KD-fact"
-    ForbiddenChain               -> text "forbidden chain"
-    ImpossibleChain              -> text "impossible chain"
-    NonInjectiveFactInstance cex -> text $ "non-injective facts " ++ show cex
-    FormulasFalse                -> text "from formulas"
-    SuperfluousLearn m v         ->
-        doubleQuotes (prettyLNTerm m) <->
-        text ("derived before and after") <->
-        doubleQuotes (prettyNodeId v)
-    NodeAfterLast (i,j)       ->
-        text $ "node " ++ show j ++ " after last node " ++ show i
-
-
--- Instances
-------------
-
-instance HasFrees Contradiction where
-  foldFrees f (SuperfluousLearn t v)       = foldFrees f t `mappend` foldFrees f v
-  foldFrees f (NonInjectiveFactInstance x) = foldFrees f x
-  foldFrees f (NodeAfterLast x)            = foldFrees f x
-  foldFrees _ _                            = mempty
-
-  foldFreesOcc  _ _ = const mempty
-
-  mapFrees f (SuperfluousLearn t v)       = SuperfluousLearn <$> mapFrees f t <*> mapFrees f v
-  mapFrees f (NonInjectiveFactInstance x) = NonInjectiveFactInstance <$> mapFrees f x
-  mapFrees f (NodeAfterLast x)            = NodeAfterLast <$> mapFrees f x
-  mapFrees _ c                            = pure c

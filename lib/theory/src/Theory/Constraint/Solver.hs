@@ -35,7 +35,6 @@ module Theory.Constraint.Solver (
   -- | All rules that reduce a constraint system to the empty set of
   -- constraint systems. The 'Contradiction' datatype stores the information
   -- about the contradiction for later display to the user.
-  , Contradiction
   , contradictions
 
 --   , Source

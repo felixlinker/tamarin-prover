@@ -44,8 +44,7 @@ import qualified Data.ByteString.Lazy.Char8 as BC (unpack)
 import           Control.Monad.Reader
 import           Text.PrettyPrint.Class     -- for Doc and the pretty printing functions 
 import           Theory.Constraint.System hiding (Edge, resolveNodeConcFact, resolveNodePremFact)
-import qualified Theory.Constraint.System.Graph.Graph as G
-import           Theory.Constraint.System.Graph.Graph hiding (defaultOptions)
+import           Theory.Constraint.System.Graph.Graph
 import           Theory.Model
 
 -------------------------------------------------------------------------------------------------
@@ -269,7 +268,7 @@ nodeToJSONGraphNodeMetadata pretty (n, ru) =
                           }
 
 -- | Generate JSONGraphNode from a node of an abstract graph.
-graphNodeToJSONGraphNode :: Node -> RJSON JSONGraphNode
+graphNodeToJSONGraphNode :: GraphNode -> RJSON JSONGraphNode
 graphNodeToJSONGraphNode node = do
   pretty <- getPretty
   let nid = get nNodeId node
@@ -308,7 +307,7 @@ graphNodeToJSONGraphNode node = do
       This might occur in the case distinctions shown in the GUI.
       Since a fact is missing, the id is encoded as jgnFactId, could also be done directly in jgnId.
     -}
-    MissingNode (Left conc) -> 
+    MissingEdgeNode (Left conc) ->
       -- a.d. TODO JSON ignores conc and always sets conclusion id to c0. Is that intended behavior?
       return $ JSONGraphNode 
         { jgnId = show nid
@@ -330,7 +329,7 @@ graphNodeToJSONGraphNode node = do
                   ]
               }
         }
-    MissingNode (Right prem) -> 
+    MissingEdgeNode (Right prem) ->
       return $ JSONGraphNode 
         { jgnId = show nid
         , jgnType = "missingNodePrem"
@@ -351,6 +350,13 @@ graphNodeToJSONGraphNode node = do
               , jgnConcs = []
               }
         }
+    MissingLessAtomNode ->
+      return $ JSONGraphNode
+                { jgnId = show nid
+                , jgnType = "missingLessAtom"
+                , jgnLabel = show nid
+                , jgnMetadata = Nothing
+                }
 
 
 -- | Determine the type of an edge.
