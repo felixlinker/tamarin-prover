@@ -93,131 +93,131 @@ rule (modulo E) Init_2:
      )
      ]
     variants (modulo AC)
-     1. $A    = $A.52
-        ~ex   = ~ex.54
-        ~x    = ~ex.54
-        Y     = pmult(inv(~ex.54), z.62)
-        z     = em(z.62, hp($A.52))
-        z.1   = z.62
+     1. $A    = $A.3
+        ~ex   = ~ex.3
+        ~x    = ~s1.1
+        Y     = Y.3
+        z     = em(Y.3, hp($A.3))^~s1.1
+        z.1   = pmult(~ex.3, Y.3)
     
-     2. $A    = $A.55
-        ~ex   = ~ex.57
-        ~x    = ~x.74
-        Y     = Y.60
-        z     = em(Y.60, hp($A.55))^~x.74
-        z.1   = pmult(~ex.57, Y.60)
+     2. $A    = $A.3
+        ~ex   = ~ex.3
+        ~x    = ~s1.1
+        Y     = pmult(x.20, x.21)
+        z     = em(x.21, hp($A.3))^(~s1.1*x.20)
+        z.1   = pmult((~ex.3*x.20), x.21)
     
-     3. $A    = $A.55
-        ~ex   = ~ex.57
-        ~x    = ~x.74
-        Y     = pmult(inv(~ex.57), z.65)
-        z     = em(z.65, hp($A.55))^(~x.74*inv(~ex.57))
-        z.1   = z.65
+     3. $A    = $A.3
+        ~ex   = ~ex.3
+        ~x    = ~x.21
+        Y     = pmult(inv(~x.21), x.23)
+        z     = em(x.23, hp($A.3))
+        z.1   = pmult((~ex.3*inv(~x.21)), x.23)
     
-     4. $A    = $A.619
-        ~ex   = ~ex.621
-        ~x    = ~x.638
-        Y     = pmult(x.1235, x.1236)
-        z     = em(x.1236, hp($A.619))^(~x.638*x.1235)
-        z.1   = pmult((~ex.621*x.1235), x.1236)
+     4. $A    = $A.3
+        ~ex   = ~ex.3
+        ~x    = ~x.22
+        Y     = pmult(inv((~x.22*x.24)), x.25)
+        z     = em(x.25, hp($A.3))^inv(x.24)
+        z.1   = pmult((~ex.3*inv((~x.22*x.24))), x.25)
     
-     5. $A    = $A.620
-        ~ex   = ~ex.622
-        ~x    = ~x.639
-        Y     = pmult(inv(~x.639), x.1238)
-        z     = em(x.1238, hp($A.620))
-        z.1   = pmult((~ex.622*inv(~x.639)), x.1238)
+     5. $A    = $A.3
+        ~ex   = ~ex.3
+        ~x    = ~x.22
+        Y     = pmult((x.24*inv(~x.22)), x.25)
+        z     = em(x.25, hp($A.3))^x.24
+        z.1   = pmult((~ex.3*x.24*inv(~x.22)), x.25)
     
-     6. $A    = $A.621
-        ~ex   = ~ex.623
-        ~x    = ~x.640
-        Y     = pmult(inv((~ex.623*~x.640)), x.1240)
-        z     = em(x.1240, hp($A.621))^inv(~ex.623)
-        z.1   = pmult(inv(~x.640), x.1240)
+     6. $A    = $A.3
+        ~ex   = ~ex.3
+        ~x    = ~x.23
+        Y     = pmult((x.25*inv((~x.23*x.26))), x.27)
+        z     = em(x.27, hp($A.3))^(x.25*inv(x.26))
+        z.1   = pmult((~ex.3*x.25*inv((~x.23*x.26))), x.27)
     
-     7. $A    = $A.621
-        ~ex   = ~ex.623
-        ~x    = ~ex.623
-        Y     = pmult(inv((~ex.623*x.1239)), x.1240)
-        z     = em(x.1240, hp($A.621))^inv(x.1239)
-        z.1   = pmult(inv(x.1239), x.1240)
+     7. $A    = $A.3
+        ~ex   = ~x.21
+        ~x    = ~x.21
+        Y     = pmult(inv(~x.21), x.23)
+        z     = em(x.23, hp($A.3))
+        z.1   = x.23
     
-     8. $A    = $A.621
-        ~ex   = ~ex.623
-        ~x    = ~x.640
-        Y     = pmult(inv((~x.640*x.1239)), x.1240)
-        z     = em(x.1240, hp($A.621))^inv(x.1239)
-        z.1   = pmult((~ex.623*inv((~x.640*x.1239))), x.1240)
+     8. $A    = $A.3
+        ~ex   = ~x.22
+        ~x    = ~s1.1
+        Y     = pmult(inv(~x.22), x.25)
+        z     = em(x.25, hp($A.3))^(~s1.1*inv(~x.22))
+        z.1   = x.25
     
-     9. $A    = $A.621
-        ~ex   = ~ex.623
-        ~x    = ~ex.623
-        Y     = pmult((x.1239*inv(~ex.623)), x.1240)
-        z     = em(x.1240, hp($A.621))^x.1239
-        z.1   = pmult(x.1239, x.1240)
+     9. $A    = $A.3
+        ~ex   = ~x.22
+        ~x    = ~x.23
+        Y     = pmult(inv((~x.22*~x.23)), x.25)
+        z     = em(x.25, hp($A.3))^inv(~x.22)
+        z.1   = pmult(inv(~x.23), x.25)
     
-    10. $A    = $A.621
-        ~ex   = ~ex.623
-        ~x    = ~x.640
-        Y     = pmult((x.1239*inv(~x.640)), x.1240)
-        z     = em(x.1240, hp($A.621))^x.1239
-        z.1   = pmult((~ex.623*x.1239*inv(~x.640)), x.1240)
+    10. $A    = $A.3
+        ~ex   = ~x.22
+        ~x    = ~x.22
+        Y     = pmult(inv((~x.22*x.24)), x.25)
+        z     = em(x.25, hp($A.3))^inv(x.24)
+        z.1   = pmult(inv(x.24), x.25)
     
-    11. $A    = $A.622
-        ~ex   = ~ex.624
-        ~x    = ~x.641
-        Y     = pmult(inv((~ex.624*~x.641*x.1241)), x.1242)
-        z     = em(x.1242, hp($A.622))^inv((~ex.624*x.1241))
-        z.1   = pmult(inv((~x.641*x.1241)), x.1242)
+    11. $A    = $A.3
+        ~ex   = ~x.22
+        ~x    = ~x.22
+        Y     = pmult((x.24*inv(~x.22)), x.25)
+        z     = em(x.25, hp($A.3))^x.24
+        z.1   = pmult(x.24, x.25)
     
-    12. $A    = $A.622
-        ~ex   = ~ex.624
-        ~x    = ~x.641
-        Y     = pmult(inv((~ex.624*x.1241)), x.1242)
-        z     = em(x.1242, hp($A.622))^(~x.641*inv((~ex.624*x.1241)))
-        z.1   = pmult(inv(x.1241), x.1242)
+    12. $A    = $A.3
+        ~ex   = ~x.23
+        ~x    = ~x.24
+        Y     = pmult(inv((~x.23*~x.24*x.26)), x.27)
+        z     = em(x.27, hp($A.3))^inv((~x.23*x.26))
+        z.1   = pmult(inv((~x.24*x.26)), x.27)
     
-    13. $A    = $A.622
-        ~ex   = ~ex.624
-        ~x    = ~ex.624
-        Y     = pmult((x.1240*inv((~ex.624*x.1241))), x.1242)
-        z     = em(x.1242, hp($A.622))^(x.1240*inv(x.1241))
-        z.1   = pmult((x.1240*inv(x.1241)), x.1242)
+    13. $A    = $A.3
+        ~ex   = ~x.23
+        ~x    = ~s1.1
+        Y     = pmult(inv((~x.23*x.26)), x.27)
+        z     = em(x.27, hp($A.3))^(~s1.1*inv((~x.23*x.26)))
+        z.1   = pmult(inv(x.26), x.27)
     
-    14. $A    = $A.622
-        ~ex   = ~ex.624
-        ~x    = ~x.641
-        Y     = pmult((x.1240*inv((~x.641*x.1241))), x.1242)
-        z     = em(x.1242, hp($A.622))^(x.1240*inv(x.1241))
-        z.1   = pmult((~ex.624*x.1240*inv((~x.641*x.1241))), x.1242)
+    14. $A    = $A.3
+        ~ex   = ~x.23
+        ~x    = ~x.23
+        Y     = pmult((x.25*inv((~x.23*x.26))), x.27)
+        z     = em(x.27, hp($A.3))^(x.25*inv(x.26))
+        z.1   = pmult((x.25*inv(x.26)), x.27)
     
-    15. $A    = $A.622
-        ~ex   = ~ex.624
-        ~x    = ~x.641
-        Y     = pmult((x.1241*inv(~ex.624)), x.1242)
-        z     = em(x.1242, hp($A.622))^(~x.641*x.1241*inv(~ex.624))
-        z.1   = pmult(x.1241, x.1242)
+    15. $A    = $A.3
+        ~ex   = ~x.23
+        ~x    = ~s1.1
+        Y     = pmult((x.26*inv(~x.23)), x.27)
+        z     = em(x.27, hp($A.3))^(~s1.1*x.26*inv(~x.23))
+        z.1   = pmult(x.26, x.27)
     
-    16. $A    = $A.622
-        ~ex   = ~ex.624
-        ~x    = ~x.641
-        Y     = pmult((x.1241*inv((~ex.624*~x.641))), x.1242)
-        z     = em(x.1242, hp($A.622))^(x.1241*inv(~ex.624))
-        z.1   = pmult((x.1241*inv(~x.641)), x.1242)
+    16. $A    = $A.3
+        ~ex   = ~x.23
+        ~x    = ~x.24
+        Y     = pmult((x.26*inv((~x.23*~x.24))), x.27)
+        z     = em(x.27, hp($A.3))^(x.26*inv(~x.23))
+        z.1   = pmult((x.26*inv(~x.24)), x.27)
     
-    17. $A    = $A.623
-        ~ex   = ~ex.625
-        ~x    = ~x.642
-        Y     = pmult((x.1242*inv((~ex.625*~x.642*x.1243))), x.1244)
-        z     = em(x.1244, hp($A.623))^(x.1242*inv((~ex.625*x.1243)))
-        z.1   = pmult((x.1242*inv((~x.642*x.1243))), x.1244)
+    17. $A    = $A.3
+        ~ex   = ~x.24
+        ~x    = ~x.25
+        Y     = pmult((x.27*inv((~x.24*~x.25*x.28))), x.29)
+        z     = em(x.29, hp($A.3))^(x.27*inv((~x.24*x.28)))
+        z.1   = pmult((x.27*inv((~x.25*x.28))), x.29)
     
-    18. $A    = $A.623
-        ~ex   = ~ex.625
-        ~x    = ~x.642
-        Y     = pmult((x.1242*inv((~ex.625*x.1243))), x.1244)
-        z     = em(x.1244, hp($A.623))^(~x.642*x.1242*inv((~ex.625*x.1243)))
-        z.1   = pmult((x.1242*inv(x.1243)), x.1244)
+    18. $A    = $A.3
+        ~ex   = ~x.24
+        ~x    = ~s1.1
+        Y     = pmult((x.27*inv((~x.24*x.28))), x.29)
+        z     = em(x.29, hp($A.3))^(~s1.1*x.27*inv((~x.24*x.28)))
+        z.1   = pmult((x.27*inv(x.28)), x.29)
   */
 
 rule (modulo E) Resp_1:
@@ -249,7 +249,7 @@ rule (modulo E) Resp_1:
      ]
     --[
     Accept( ~ey, $B, $A,
-            kdf(<z, em('P', hp($A))^(~ey*~x), z.1, $A, $B, X, pmult(~ey, 'P')>)
+            kdf(<z, em('P', hp($A))^(~x.1*~x.2), z.1, $A, $B, X, pmult(~ey, 'P')>)
     ),
     Sid( ~ey, <'Resp', $B, $A, X, pmult(~ey, 'P')> ),
     Match( ~ey, <'Init', $A, $B, X, pmult(~ey, 'P')> )
@@ -257,136 +257,172 @@ rule (modulo E) Resp_1:
      [
      Out( pmult(~ey, 'P') ),
      !Sessk( ~ey,
-             kdf(<z, em('P', hp($A))^(~ey*~x), z.1, $A, $B, X, pmult(~ey, 'P')>)
+             kdf(<z, em('P', hp($A))^(~x.1*~x.2), z.1, $A, $B, X, pmult(~ey, 'P')>)
      ),
      !Ephk( ~ey )
      ]
     variants (modulo AC)
-     1. $B    = $B.44
-        ~ey   = ~ey.45
-        ~x    = ~ey.45
-        X     = pmult(inv(~ey.45), z.53)
-        z     = em(z.53, hp($B.44))
-        z.1   = z.53
+     1. $B    = $B.3
+        ~ey   = ~ey.3
+        ~x    = ~msk.1
+        X     = X.3
+        z     = em(X.3, hp($B.3))^~msk.1
+        ~x.1  = ~msk.1
+        z.1   = pmult(~ey.3, X.3)
+        ~x.2  = ~ey.3
     
-     2. $B    = $B.49
-        ~ey   = ~ey.50
-        ~x    = ~x.63
-        X     = X.52
-        z     = em(X.52, hp($B.49))^~x.63
-        z.1   = pmult(~ey.50, X.52)
+     2. $B    = $B.3
+        ~ey   = ~ey.3
+        ~x    = ~msk.1
+        X     = pmult(x.22, x.23)
+        z     = em(x.23, hp($B.3))^(~msk.1*x.22)
+        ~x.1  = ~msk.1
+        z.1   = pmult((~ey.3*x.22), x.23)
+        ~x.2  = ~ey.3
     
-     3. $B    = $B.49
-        ~ey   = ~ey.50
-        ~x    = ~x.63
-        X     = pmult(inv(~ey.50), z.58)
-        z     = em(z.58, hp($B.49))^(~x.63*inv(~ey.50))
-        z.1   = z.58
+     3. $B    = $B.3
+        ~ey   = ~ey.3
+        ~x    = ~x.22
+        X     = pmult(inv(~x.22), x.23)
+        z     = em(x.23, hp($B.3))
+        ~x.1  = ~ey.3
+        z.1   = pmult((~ey.3*inv(~x.22)), x.23)
+        ~x.2  = ~x.22
     
-     4. $B    = $B.612
-        ~ey   = ~ey.613
-        ~x    = ~x.626
-        X     = pmult(x.1220, x.1221)
-        z     = em(x.1221, hp($B.612))^(~x.626*x.1220)
-        z.1   = pmult((~ey.613*x.1220), x.1221)
+     4. $B    = $B.3
+        ~ey   = ~ey.3
+        ~x    = ~x.23
+        X     = pmult(inv((~x.23*x.24)), x.25)
+        z     = em(x.25, hp($B.3))^inv(x.24)
+        ~x.1  = ~ey.3
+        z.1   = pmult((~ey.3*inv((~x.23*x.24))), x.25)
+        ~x.2  = ~x.23
     
-     5. $B    = $B.612
-        ~ey   = ~ey.613
-        ~x    = ~x.626
-        X     = pmult(inv(~x.626), x.1221)
-        z     = em(x.1221, hp($B.612))
-        z.1   = pmult((~ey.613*inv(~x.626)), x.1221)
+     5. $B    = $B.3
+        ~ey   = ~ey.3
+        ~x    = ~x.23
+        X     = pmult((x.24*inv(~x.23)), x.25)
+        z     = em(x.25, hp($B.3))^x.24
+        ~x.1  = ~ey.3
+        z.1   = pmult((~ey.3*x.24*inv(~x.23)), x.25)
+        ~x.2  = ~x.23
     
-     6. $B    = $B.613
-        ~ey   = ~ey.614
-        ~x    = ~x.627
-        X     = pmult(inv((~ey.614*~x.627)), x.1223)
-        z     = em(x.1223, hp($B.613))^inv(~ey.614)
-        z.1   = pmult(inv(~x.627), x.1223)
+     6. $B    = $B.3
+        ~ey   = ~ey.3
+        ~x    = ~x.24
+        X     = pmult((x.25*inv((~x.24*x.26))), x.27)
+        z     = em(x.27, hp($B.3))^(x.25*inv(x.26))
+        ~x.1  = ~ey.3
+        z.1   = pmult((~ey.3*x.25*inv((~x.24*x.26))), x.27)
+        ~x.2  = ~x.24
     
-     7. $B    = $B.613
-        ~ey   = ~ey.614
-        ~x    = ~ey.614
-        X     = pmult(inv((~ey.614*x.1222)), x.1223)
-        z     = em(x.1223, hp($B.613))^inv(x.1222)
-        z.1   = pmult(inv(x.1222), x.1223)
+     7. $B    = $B.3
+        ~ey   = ~x.22
+        ~x    = ~x.22
+        X     = pmult(inv(~x.22), x.23)
+        z     = em(x.23, hp($B.3))
+        ~x.1  = ~x.22
+        z.1   = x.23
+        ~x.2  = ~x.22
     
-     8. $B    = $B.613
-        ~ey   = ~ey.614
-        ~x    = ~x.627
-        X     = pmult(inv((~x.627*x.1222)), x.1223)
-        z     = em(x.1223, hp($B.613))^inv(x.1222)
-        z.1   = pmult((~ey.614*inv((~x.627*x.1222))), x.1223)
+     8. $B    = $B.3
+        ~ey   = ~x.23
+        ~x    = ~msk.1
+        X     = pmult(inv(~x.23), x.25)
+        z     = em(x.25, hp($B.3))^(~msk.1*inv(~x.23))
+        ~x.1  = ~msk.1
+        z.1   = x.25
+        ~x.2  = ~x.23
     
-     9. $B    = $B.613
-        ~ey   = ~ey.614
-        ~x    = ~ey.614
-        X     = pmult((x.1222*inv(~ey.614)), x.1223)
-        z     = em(x.1223, hp($B.613))^x.1222
-        z.1   = pmult(x.1222, x.1223)
+     9. $B    = $B.3
+        ~ey   = ~x.23
+        ~x    = ~x.24
+        X     = pmult(inv((~x.23*~x.24)), x.25)
+        z     = em(x.25, hp($B.3))^inv(~x.23)
+        ~x.1  = ~x.23
+        z.1   = pmult(inv(~x.24), x.25)
+        ~x.2  = ~x.24
     
-    10. $B    = $B.613
-        ~ey   = ~ey.614
-        ~x    = ~x.627
-        X     = pmult((x.1222*inv(~x.627)), x.1223)
-        z     = em(x.1223, hp($B.613))^x.1222
-        z.1   = pmult((~ey.614*x.1222*inv(~x.627)), x.1223)
+    10. $B    = $B.3
+        ~ey   = ~x.23
+        ~x    = ~x.23
+        X     = pmult(inv((~x.23*x.24)), x.25)
+        z     = em(x.25, hp($B.3))^inv(x.24)
+        ~x.1  = ~x.23
+        z.1   = pmult(inv(x.24), x.25)
+        ~x.2  = ~x.23
     
-    11. $B    = $B.614
-        ~ey   = ~ey.615
-        ~x    = ~x.628
-        X     = pmult(inv((~ey.615*~x.628*x.1224)), x.1225)
-        z     = em(x.1225, hp($B.614))^inv((~ey.615*x.1224))
-        z.1   = pmult(inv((~x.628*x.1224)), x.1225)
+    11. $B    = $B.3
+        ~ey   = ~x.23
+        ~x    = ~x.23
+        X     = pmult((x.24*inv(~x.23)), x.25)
+        z     = em(x.25, hp($B.3))^x.24
+        ~x.1  = ~x.23
+        z.1   = pmult(x.24, x.25)
+        ~x.2  = ~x.23
     
-    12. $B    = $B.614
-        ~ey   = ~ey.615
-        ~x    = ~x.628
-        X     = pmult(inv((~ey.615*x.1224)), x.1225)
-        z     = em(x.1225, hp($B.614))^(~x.628*inv((~ey.615*x.1224)))
-        z.1   = pmult(inv(x.1224), x.1225)
+    12. $B    = $B.3
+        ~ey   = ~x.24
+        ~x    = ~x.25
+        X     = pmult(inv((~x.24*~x.25*x.26)), x.27)
+        z     = em(x.27, hp($B.3))^inv((~x.24*x.26))
+        ~x.1  = ~x.24
+        z.1   = pmult(inv((~x.25*x.26)), x.27)
+        ~x.2  = ~x.25
     
-    13. $B    = $B.614
-        ~ey   = ~ey.615
-        ~x    = ~ey.615
-        X     = pmult((x.1223*inv((~ey.615*x.1224))), x.1225)
-        z     = em(x.1225, hp($B.614))^(x.1223*inv(x.1224))
-        z.1   = pmult((x.1223*inv(x.1224)), x.1225)
+    13. $B    = $B.3
+        ~ey   = ~x.24
+        ~x    = ~msk.1
+        X     = pmult(inv((~x.24*x.26)), x.27)
+        z     = em(x.27, hp($B.3))^(~msk.1*inv((~x.24*x.26)))
+        ~x.1  = ~msk.1
+        z.1   = pmult(inv(x.26), x.27)
+        ~x.2  = ~x.24
     
-    14. $B    = $B.614
-        ~ey   = ~ey.615
-        ~x    = ~x.628
-        X     = pmult((x.1223*inv((~x.628*x.1224))), x.1225)
-        z     = em(x.1225, hp($B.614))^(x.1223*inv(x.1224))
-        z.1   = pmult((~ey.615*x.1223*inv((~x.628*x.1224))), x.1225)
+    14. $B    = $B.3
+        ~ey   = ~x.24
+        ~x    = ~x.24
+        X     = pmult((x.25*inv((~x.24*x.26))), x.27)
+        z     = em(x.27, hp($B.3))^(x.25*inv(x.26))
+        ~x.1  = ~x.24
+        z.1   = pmult((x.25*inv(x.26)), x.27)
+        ~x.2  = ~x.24
     
-    15. $B    = $B.614
-        ~ey   = ~ey.615
-        ~x    = ~x.628
-        X     = pmult((x.1224*inv(~ey.615)), x.1225)
-        z     = em(x.1225, hp($B.614))^(~x.628*x.1224*inv(~ey.615))
-        z.1   = pmult(x.1224, x.1225)
+    15. $B    = $B.3
+        ~ey   = ~x.24
+        ~x    = ~msk.1
+        X     = pmult((x.26*inv(~x.24)), x.27)
+        z     = em(x.27, hp($B.3))^(~msk.1*x.26*inv(~x.24))
+        ~x.1  = ~msk.1
+        z.1   = pmult(x.26, x.27)
+        ~x.2  = ~x.24
     
-    16. $B    = $B.614
-        ~ey   = ~ey.615
-        ~x    = ~x.628
-        X     = pmult((x.1224*inv((~ey.615*~x.628))), x.1225)
-        z     = em(x.1225, hp($B.614))^(x.1224*inv(~ey.615))
-        z.1   = pmult((x.1224*inv(~x.628)), x.1225)
+    16. $B    = $B.3
+        ~ey   = ~x.24
+        ~x    = ~x.25
+        X     = pmult((x.26*inv((~x.24*~x.25))), x.27)
+        z     = em(x.27, hp($B.3))^(x.26*inv(~x.24))
+        ~x.1  = ~x.24
+        z.1   = pmult((x.26*inv(~x.25)), x.27)
+        ~x.2  = ~x.25
     
-    17. $B    = $B.615
-        ~ey   = ~ey.616
-        ~x    = ~x.629
-        X     = pmult((x.1225*inv((~ey.616*~x.629*x.1226))), x.1227)
-        z     = em(x.1227, hp($B.615))^(x.1225*inv((~ey.616*x.1226)))
-        z.1   = pmult((x.1225*inv((~x.629*x.1226))), x.1227)
+    17. $B    = $B.3
+        ~ey   = ~x.25
+        ~x    = ~x.26
+        X     = pmult((x.27*inv((~x.25*~x.26*x.28))), x.29)
+        z     = em(x.29, hp($B.3))^(x.27*inv((~x.25*x.28)))
+        ~x.1  = ~x.25
+        z.1   = pmult((x.27*inv((~x.26*x.28))), x.29)
+        ~x.2  = ~x.26
     
-    18. $B    = $B.615
-        ~ey   = ~ey.616
-        ~x    = ~x.629
-        X     = pmult((x.1225*inv((~ey.616*x.1226))), x.1227)
-        z     = em(x.1227, hp($B.615))^(~x.629*x.1225*inv((~ey.616*x.1226)))
-        z.1   = pmult((x.1225*inv(x.1226)), x.1227)
+    18. $B    = $B.3
+        ~ey   = ~x.25
+        ~x    = ~msk.1
+        X     = pmult((x.27*inv((~x.25*x.28))), x.29)
+        z     = em(x.29, hp($B.3))^(~msk.1*x.27*inv((~x.25*x.28)))
+        ~x.1  = ~msk.1
+        z.1   = pmult((x.27*inv(x.28)), x.29)
+        ~x.2  = ~x.25
   */
 
 lemma key_agreement_reachable:
@@ -406,28 +442,30 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( Accept( t1, A, B, k ) @ #i )
   case Init_2
-  solve( Init( ~ex, $A, $B ) ▶₀ #i )
+  solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i )
     case Init_1
-    solve( !MPK( pmult(~x, 'P') ) ▶₁ #i )
+    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i )
       case KGC_Setup
-      solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i )
+      solve( !LTK( $A.1, pmult(~x, hp($A.1)) ) ▶₂ #i )
         case KGC_request
         solve( Match( ~ex, SID ) @ #i )
           case Init_2
-          solve( Accept( t2, $B, $A,
-                         kdf(<em('P', hp($B))^(~ex*~x), z, z.1, $A, $B, pmult(~ex, 'P'), Y>)
+          solve( Accept( t2, $B.1, $A.1,
+                         kdf(<em('P', hp($B.1))^(~ex*~x.1), z, z.1, $A.1, $B.1, pmult(~ex, 'P'), Y
+                             >)
                  ) @ #j )
             case Resp_1
-            solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #j )
+            solve( !LTK( $B.2, pmult(~x, hp($B.2)) ) ▶₁ #j )
               case KGC_request
               solve( !MPK( pmult(~x, 'P') ) ▶₂ #j )
                 case KGC_Setup
-                solve( Sid( ~ey, <'Resp', $B, $A, pmult(~ex, 'P'), pmult(~ey, 'P')>
+                solve( Sid( ~ey.1,
+                            <'Resp', $B.2, $A.2, pmult(~ex.1, 'P'), pmult(~ey.1, 'P')>
                        ) @ #j )
                   case Resp_1
-                  solve( !KU( pmult(~ey, 'P') ) @ #vk )
+                  solve( !KU( pmult(~ey.1, 'P') ) @ #vk )
                     case Resp_1
-                    solve( !KU( pmult(~ex, 'P') ) @ #vk.1 )
+                    solve( !KU( pmult(~ex.1, 'P') ) @ #vk.2 )
                       case Init_1
                       SOLVED // trace found
                     qed
@@ -502,39 +540,40 @@ solve( (∃ matching #i3 #i4 sid.
               (∀ #i5. (MskRev( ) @ #i5) ⇒ ⊥))  ∥
              (∀ #i5. (EphkRev( test ) @ #i5) ⇒ ⊥) )
         case case_1
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -543,25 +582,25 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
-                                solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                                solve( !KU( em('P', hp($A.5))^(~msk*~ey.2) ) @ #vk.7 )
                                   case KGC_Setup
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~ey.3 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~x ) @ #vk.17 )
+                                  solve( !KU( ~x.15 ) @ #vk.21 )
                                     case Reveal_master_key
                                     by contradiction /* from formulas */
                                   qed
@@ -573,8 +612,8 @@ solve( (∃ matching #i3 #i4 sid.
                                   by contradiction /* from formulas */
                                 next
                                   case c_exp
-                                  solve( !KU( ~ey ) @ #vk.18 )
-                                    case Reveal_ephemeral_key
+                                  solve( !KU( ~msk ) @ #vk.21 )
+                                    case Reveal_master_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
@@ -587,9 +626,9 @@ solve( (∃ matching #i3 #i4 sid.
                               by contradiction /* from formulas */
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
-                                solve( !KU( ~x ) @ #vk.17 )
+                                solve( !KU( ~x.8 ) @ #vk.20 )
                                   case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
@@ -606,22 +645,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -630,15 +670,15 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -650,7 +690,7 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -662,13 +702,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -678,39 +718,40 @@ solve( (∃ matching #i3 #i4 sid.
         qed
       next
         case case_2
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -719,15 +760,15 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -739,7 +780,7 @@ solve( (∃ matching #i3 #i4 sid.
                               by contradiction /* from formulas */
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -755,22 +796,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -779,35 +821,35 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case Reveal_ltk_case_1
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case Reveal_ltk_case_2
-                            solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                            solve( !KU( em('P', hp($A.5))^(~msk*~ey.4) ) @ #vk.7 )
                               case KGC_Setup
-                              solve( !KU( ~ey ) @ #vk.15 )
+                              solve( !KU( ~ey.5 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Resp_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.17 ) @ #vk.19 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
@@ -819,14 +861,14 @@ solve( (∃ matching #i3 #i4 sid.
                               by contradiction /* from formulas */
                             next
                               case c_exp
-                              solve( !KU( ~ey ) @ #vk.16 )
-                                case Reveal_ephemeral_key
+                              solve( !KU( ~msk ) @ #vk.19 )
+                                case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             qed
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -838,13 +880,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -859,39 +901,40 @@ solve( (∃ matching #i3 #i4 sid.
               (∀ #i5. (MskRev( ) @ #i5) ⇒ ⊥))  ∥
              (∀ #i5. (EphkRev( test ) @ #i5) ⇒ ⊥) )
         case case_1
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -900,15 +943,15 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -920,7 +963,7 @@ solve( (∃ matching #i3 #i4 sid.
                               by contradiction /* from formulas */
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -936,22 +979,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -960,25 +1004,25 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                              solve( !KU( em('P', hp($A.5))^(~msk*~ey.4) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.17 )
+                                solve( !KU( ~ey.5 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~x ) @ #vk.17 )
+                                solve( !KU( ~x.17 ) @ #vk.21 )
                                   case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
@@ -990,8 +1034,8 @@ solve( (∃ matching #i3 #i4 sid.
                                 by contradiction /* from formulas */
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.18 )
-                                  case Reveal_ephemeral_key
+                                solve( !KU( ~msk ) @ #vk.21 )
+                                  case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
                               qed
@@ -1004,9 +1048,9 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
-                              solve( !KU( ~x ) @ #vk.17 )
+                              solve( !KU( ~x.13 ) @ #vk.20 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
@@ -1019,13 +1063,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -1035,39 +1079,40 @@ solve( (∃ matching #i3 #i4 sid.
         qed
       next
         case case_2
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -1076,15 +1121,15 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -1096,7 +1141,7 @@ solve( (∃ matching #i3 #i4 sid.
                               by contradiction /* from formulas */
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -1112,22 +1157,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -1136,25 +1182,25 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                              solve( !KU( em('P', hp($A.5))^(~msk*~ey.4) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.17 )
+                                solve( !KU( ~ey.5 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~x ) @ #vk.17 )
+                                solve( !KU( ~x.17 ) @ #vk.21 )
                                   case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
@@ -1166,25 +1212,25 @@ solve( (∃ matching #i3 #i4 sid.
                                 by contradiction /* from formulas */
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.18 )
-                                  case Reveal_ephemeral_key
+                                solve( !KU( ~msk ) @ #vk.21 )
+                                  case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
                               qed
                             qed
                           next
                             case Reveal_ltk_case_1
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                              solve( !KU( em('P', hp($A.5))^(~msk*~ey.4) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.17 )
+                                solve( !KU( ~ey.5 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~x ) @ #vk.17 )
+                                solve( !KU( ~x.17 ) @ #vk.21 )
                                   case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
@@ -1196,23 +1242,23 @@ solve( (∃ matching #i3 #i4 sid.
                                 by contradiction /* from formulas */
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.18 )
-                                  case Reveal_ephemeral_key
+                                solve( !KU( ~msk ) @ #vk.21 )
+                                  case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
                               qed
                             qed
                           next
                             case Reveal_ltk_case_2
-                            solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                            solve( !KU( em('P', hp($A.5))^(~msk*~ey.4) ) @ #vk.7 )
                               case KGC_Setup
-                              solve( !KU( ~ey ) @ #vk.15 )
+                              solve( !KU( ~ey.5 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Resp_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.17 ) @ #vk.19 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
@@ -1224,16 +1270,16 @@ solve( (∃ matching #i3 #i4 sid.
                               by contradiction /* from formulas */
                             next
                               case c_exp
-                              solve( !KU( ~ey ) @ #vk.16 )
-                                case Reveal_ephemeral_key
+                              solve( !KU( ~msk ) @ #vk.19 )
+                                case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             qed
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
-                              solve( !KU( ~x ) @ #vk.17 )
+                              solve( !KU( ~x.13 ) @ #vk.20 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
@@ -1246,13 +1292,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -1271,39 +1317,40 @@ solve( (∃ matching #i3 #i4 sid.
               (∀ #i5. (MskRev( ) @ #i5) ⇒ ⊥))  ∥
              (∀ #i5. (EphkRev( test ) @ #i5) ⇒ ⊥) )
         case case_1
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -1312,25 +1359,25 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
-                                solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                                solve( !KU( em('P', hp($A.5))^(~msk*~ey.2) ) @ #vk.7 )
                                   case KGC_Setup
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~ey.3 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~x ) @ #vk.17 )
+                                  solve( !KU( ~x.15 ) @ #vk.21 )
                                     case Reveal_master_key
                                     by contradiction /* from formulas */
                                   qed
@@ -1342,25 +1389,25 @@ solve( (∃ matching #i3 #i4 sid.
                                   by contradiction /* from formulas */
                                 next
                                   case c_exp
-                                  solve( !KU( ~ey ) @ #vk.18 )
-                                    case Reveal_ephemeral_key
+                                  solve( !KU( ~msk ) @ #vk.21 )
+                                    case Reveal_master_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               qed
                             next
                               case Reveal_ltk_case_1
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
-                                solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                                solve( !KU( em('P', hp($A.5))^(~msk*~ey.2) ) @ #vk.7 )
                                   case KGC_Setup
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~ey.3 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~x ) @ #vk.17 )
+                                  solve( !KU( ~x.15 ) @ #vk.21 )
                                     case Reveal_master_key
                                     by contradiction /* from formulas */
                                   qed
@@ -1372,23 +1419,23 @@ solve( (∃ matching #i3 #i4 sid.
                                   by contradiction /* from formulas */
                                 next
                                   case c_exp
-                                  solve( !KU( ~ey ) @ #vk.18 )
-                                    case Reveal_ephemeral_key
+                                  solve( !KU( ~msk ) @ #vk.21 )
+                                    case Reveal_master_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               qed
                             next
                               case Reveal_ltk_case_2
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                              solve( !KU( em('P', hp($A.5))^(~msk*~ey.2) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.15 )
+                                solve( !KU( ~ey.3 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~x ) @ #vk.15 )
+                                solve( !KU( ~x.15 ) @ #vk.19 )
                                   case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
@@ -1400,16 +1447,16 @@ solve( (∃ matching #i3 #i4 sid.
                                 by contradiction /* from formulas */
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.16 )
-                                  case Reveal_ephemeral_key
+                                solve( !KU( ~msk ) @ #vk.19 )
+                                  case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
                               qed
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
-                                solve( !KU( ~x ) @ #vk.17 )
+                                solve( !KU( ~x.8 ) @ #vk.20 )
                                   case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
@@ -1426,22 +1473,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -1450,15 +1498,15 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -1470,7 +1518,7 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -1482,13 +1530,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -1498,39 +1546,40 @@ solve( (∃ matching #i3 #i4 sid.
         qed
       next
         case case_2
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -1539,67 +1588,67 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
-                                solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                                solve( !KU( em('P', hp($A.5))^(~ey.2*~x.12) ) @ #vk.7 )
                                   case KGC_Setup
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~ey.3 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                  solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                     case Init_1
-                                    solve( !KU( ~ey ) @ #vk.17 )
+                                    solve( !KU( ~x.18 ) @ #vk.22 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case Resp_1
-                                    solve( !KU( ~ex ) @ #vk.17 )
+                                    solve( !KU( ~ex.5 ) @ #vk.23 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case c_pmult
-                                    solve( !KU( ~ex ) @ #vk.19 )
+                                    solve( !KU( ~ex.4 ) @ #vk.24 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   qed
                                 next
                                   case Reveal_ltk_case_1
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~ey.3 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Reveal_ltk_case_2
-                                  solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                  solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                     case Init_1
-                                    solve( !KU( ~ey ) @ #vk.16 )
+                                    solve( !KU( ~x.17 ) @ #vk.20 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case Resp_1
-                                    solve( !KU( ~ex ) @ #vk.16 )
+                                    solve( !KU( ~ex.5 ) @ #vk.21 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case c_pmult
-                                    solve( !KU( ~ex ) @ #vk.18 )
+                                    solve( !KU( ~ex.4 ) @ #vk.22 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   qed
                                 next
                                   case c_exp
-                                  solve( !KU( ~ey ) @ #vk.18 )
+                                  solve( !KU( ~ey.2 ) @ #vk.21 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
@@ -1607,43 +1656,43 @@ solve( (∃ matching #i3 #i4 sid.
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_1
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_2
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                              solve( !KU( em('P', hp($A.5))^(~msk*~ey.2) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.15 )
+                                solve( !KU( ~ey.3 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~x ) @ #vk.15 )
+                                solve( !KU( ~x.15 ) @ #vk.19 )
                                   case Reveal_master_key
-                                  solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                  solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                     case Init_1
-                                    solve( !KU( ~ey ) @ #vk.16 )
+                                    solve( !KU( ~x.16 ) @ #vk.20 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case Resp_1
-                                    solve( !KU( ~ex ) @ #vk.16 )
+                                    solve( !KU( ~ex.5 ) @ #vk.21 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case c_pmult
-                                    solve( !KU( ~ex ) @ #vk.18 )
+                                    solve( !KU( ~ex.4 ) @ #vk.22 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
@@ -1651,41 +1700,44 @@ solve( (∃ matching #i3 #i4 sid.
                                 qed
                               next
                                 case Reveal_ltk_case_1
-                                solve( !KU( ~ey ) @ #vk.15 )
+                                solve( !KU( ~ey.3 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Reveal_ltk_case_2
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.11 )
+                                solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.14 )
+                                  solve( !KU( ~x.16 ) @ #vk.18 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.14 )
+                                  solve( !KU( ~ex.5 ) @ #vk.19 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.16 )
+                                  solve( !KU( ~ex.4 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.16 )
-                                  case Reveal_ephemeral_key
-                                  by contradiction /* from formulas */
+                                solve( !KU( ~msk ) @ #vk.19 )
+                                  case Reveal_master_key
+                                  solve( !KU( ~ey.2 ) @ #vk.20 )
+                                    case Reveal_ephemeral_key
+                                    by contradiction /* from formulas */
+                                  qed
                                 qed
                               qed
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -1701,22 +1753,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -1725,67 +1778,67 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                              solve( !KU( em('P', hp($A.5))^(~ey.4*~x.14) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.17 )
+                                solve( !KU( ~ey.5 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~x.20 ) @ #vk.22 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.17 )
+                                  solve( !KU( ~ex.4 ) @ #vk.23 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.19 )
+                                  solve( !KU( ~ex.3 ) @ #vk.24 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               next
                                 case Reveal_ltk_case_1
-                                solve( !KU( ~ey ) @ #vk.17 )
+                                solve( !KU( ~ey.5 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Reveal_ltk_case_2
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.16 )
+                                  solve( !KU( ~x.19 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.16 )
+                                  solve( !KU( ~ex.4 ) @ #vk.21 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.18 )
+                                  solve( !KU( ~ex.3 ) @ #vk.22 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.18 )
+                                solve( !KU( ~ey.4 ) @ #vk.21 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
@@ -1793,43 +1846,43 @@ solve( (∃ matching #i3 #i4 sid.
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case Reveal_ltk_case_1
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case Reveal_ltk_case_2
-                            solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                            solve( !KU( em('P', hp($A.5))^(~msk*~ey.4) ) @ #vk.7 )
                               case KGC_Setup
-                              solve( !KU( ~ey ) @ #vk.15 )
+                              solve( !KU( ~ey.5 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Resp_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.17 ) @ #vk.19 )
                                 case Reveal_master_key
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.16 )
+                                  solve( !KU( ~x.18 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.16 )
+                                  solve( !KU( ~ex.4 ) @ #vk.21 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.18 )
+                                  solve( !KU( ~ex.3 ) @ #vk.22 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
@@ -1837,41 +1890,44 @@ solve( (∃ matching #i3 #i4 sid.
                               qed
                             next
                               case Reveal_ltk_case_1
-                              solve( !KU( ~ey ) @ #vk.15 )
+                              solve( !KU( ~ey.5 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_2
-                              solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.11 )
+                              solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                 case Init_1
-                                solve( !KU( ~ey ) @ #vk.14 )
+                                solve( !KU( ~x.18 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~ex ) @ #vk.14 )
+                                solve( !KU( ~ex.4 ) @ #vk.19 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case c_pmult
-                                solve( !KU( ~ex ) @ #vk.16 )
+                                solve( !KU( ~ex.3 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               qed
                             next
                               case c_exp
-                              solve( !KU( ~ey ) @ #vk.16 )
-                                case Reveal_ephemeral_key
-                                by contradiction /* from formulas */
+                              solve( !KU( ~msk ) @ #vk.19 )
+                                case Reveal_master_key
+                                solve( !KU( ~ey.4 ) @ #vk.20 )
+                                  case Reveal_ephemeral_key
+                                  by contradiction /* from formulas */
+                                qed
                               qed
                             qed
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -1883,13 +1939,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -1904,39 +1960,40 @@ solve( (∃ matching #i3 #i4 sid.
               (∀ #i5. (MskRev( ) @ #i5) ⇒ ⊥))  ∥
              (∀ #i5. (EphkRev( test ) @ #i5) ⇒ ⊥) )
         case case_1
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -1945,35 +2002,35 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_1
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_2
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                              solve( !KU( em('P', hp($A.5))^(~msk*~ey.2) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.15 )
+                                solve( !KU( ~ey.3 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~x ) @ #vk.15 )
+                                solve( !KU( ~x.15 ) @ #vk.19 )
                                   case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
@@ -1985,14 +2042,14 @@ solve( (∃ matching #i3 #i4 sid.
                                 by contradiction /* from formulas */
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.16 )
-                                  case Reveal_ephemeral_key
+                                solve( !KU( ~msk ) @ #vk.19 )
+                                  case Reveal_master_key
                                   by contradiction /* from formulas */
                                 qed
                               qed
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -2008,22 +2065,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -2032,15 +2090,15 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -2052,7 +2110,7 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -2064,13 +2122,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -2080,39 +2138,40 @@ solve( (∃ matching #i3 #i4 sid.
         qed
       next
         case case_2
-        solve( Accept( test, A, B, k ) @ #i1 )
+        solve( Accept( test, A, B, x ) @ #i1 )
           case Init_2
-          solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+          solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
             case Init_1
-            solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+            solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
               case KGC_Setup
-              solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+              solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
                 case KGC_request
                 solve( Sid( matching, sid ) @ #i3 )
                   case Init_2
-                  solve( Init( ~ex.1, $A.1, $B.1 ) ▶₀ #i3 )
+                  solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
                     case Init_1
-                    solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                    solve( !MPK( pmult(~x.4, 'P') ) ▶₁ #i3 )
                       case KGC_Setup
-                      solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                      solve( !LTK( $A.2, pmult(~x.3, hp($A.2)) ) ▶₂ #i3 )
                         case KGC_request
-                        by solve( Match( ~ex, <'Init', $A.1, $B.1, pmult(~ex.1, 'P'), Y.1>
+                        by solve( Match( ~ex, <'Init', $A.2, $B.2, pmult(~ex.1, 'P'), Y.1>
                                   ) @ #i4 )
                       qed
                     qed
                   qed
                 next
                   case Resp_1
-                  solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                  solve( !LTK( $B.2, pmult(~x.3, hp($B.2)) ) ▶₁ #i3 )
                     case KGC_request
-                    solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                    solve( !MPK( pmult(~x.3, 'P') ) ▶₂ #i3 )
                       case KGC_Setup
-                      solve( Match( ~ex, <'Resp', $B.1, $A.1, X, pmult(~ey, 'P')> ) @ #i4 )
+                      solve( Match( ~ex, <'Resp', $B.2, $A.2, X, pmult(~ey, 'P')> ) @ #i4 )
                         case Init_2
-                        solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i4 )
+                        solve( Init( ~ex.3, $A.4, $B.4 ) ▶₀ #i4 )
                           case Init_1
-                          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                           pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                          solve( !KU( kdf(<em('P', hp($B.4))^(~ex.3*~x.8), 
+                                           em('P', hp($A.4))^(~ey.2*~x.8), pmult((~ey.2*~ex.3), 'P'), $A.4, 
+                                           $B.4, pmult(~ex.3, 'P'), pmult(~ey.2, 'P')>)
                                  ) @ #vk )
                             case Reveal_session_key_case_1
                             by contradiction /* from formulas */
@@ -2121,67 +2180,67 @@ solve( (∃ matching #i3 #i4 sid.
                             by contradiction /* from formulas */
                           next
                             case c_kdf
-                            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                            solve( !KU( em('P', hp($B.4))^(~ex.3*~x.8) ) @ #vk.5 )
                               case Init_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.12 ) @ #vk.18 )
                                 case Reveal_master_key
-                                solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                                solve( !KU( em('P', hp($A.5))^(~ey.2*~x.12) ) @ #vk.7 )
                                   case KGC_Setup
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~ey.3 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                  solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                     case Init_1
-                                    solve( !KU( ~ey ) @ #vk.17 )
+                                    solve( !KU( ~x.18 ) @ #vk.22 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case Resp_1
-                                    solve( !KU( ~ex ) @ #vk.17 )
+                                    solve( !KU( ~ex.5 ) @ #vk.23 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case c_pmult
-                                    solve( !KU( ~ex ) @ #vk.19 )
+                                    solve( !KU( ~ex.4 ) @ #vk.24 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   qed
                                 next
                                   case Reveal_ltk_case_1
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~ey.3 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Reveal_ltk_case_2
-                                  solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                  solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                     case Init_1
-                                    solve( !KU( ~ey ) @ #vk.16 )
+                                    solve( !KU( ~x.17 ) @ #vk.20 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case Resp_1
-                                    solve( !KU( ~ex ) @ #vk.16 )
+                                    solve( !KU( ~ex.5 ) @ #vk.21 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case c_pmult
-                                    solve( !KU( ~ex ) @ #vk.18 )
+                                    solve( !KU( ~ex.4 ) @ #vk.22 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   qed
                                 next
                                   case c_exp
-                                  solve( !KU( ~ey ) @ #vk.18 )
+                                  solve( !KU( ~ey.2 ) @ #vk.21 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
@@ -2189,43 +2248,43 @@ solve( (∃ matching #i3 #i4 sid.
                               qed
                             next
                               case KGC_Setup
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_1
-                              solve( !KU( ~ex ) @ #vk.15 )
+                              solve( !KU( ~ex.4 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_2
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                              solve( !KU( em('P', hp($A.5))^(~msk*~ey.2) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.15 )
+                                solve( !KU( ~ey.3 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~x ) @ #vk.15 )
+                                solve( !KU( ~x.15 ) @ #vk.19 )
                                   case Reveal_master_key
-                                  solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                  solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                     case Init_1
-                                    solve( !KU( ~ey ) @ #vk.16 )
+                                    solve( !KU( ~x.16 ) @ #vk.20 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case Resp_1
-                                    solve( !KU( ~ex ) @ #vk.16 )
+                                    solve( !KU( ~ex.5 ) @ #vk.21 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
                                   next
                                     case c_pmult
-                                    solve( !KU( ~ex ) @ #vk.18 )
+                                    solve( !KU( ~ex.4 ) @ #vk.22 )
                                       case Reveal_ephemeral_key
                                       by contradiction /* from formulas */
                                     qed
@@ -2233,41 +2292,44 @@ solve( (∃ matching #i3 #i4 sid.
                                 qed
                               next
                                 case Reveal_ltk_case_1
-                                solve( !KU( ~ey ) @ #vk.15 )
+                                solve( !KU( ~ey.3 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Reveal_ltk_case_2
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.11 )
+                                solve( !KU( pmult((~ex.4*~ey.4), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.14 )
+                                  solve( !KU( ~x.16 ) @ #vk.18 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.14 )
+                                  solve( !KU( ~ex.5 ) @ #vk.19 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.16 )
+                                  solve( !KU( ~ex.4 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.16 )
-                                  case Reveal_ephemeral_key
-                                  by contradiction /* from formulas */
+                                solve( !KU( ~msk ) @ #vk.19 )
+                                  case Reveal_master_key
+                                  solve( !KU( ~ey.2 ) @ #vk.20 )
+                                    case Reveal_ephemeral_key
+                                    by contradiction /* from formulas */
+                                  qed
                                 qed
                               qed
                             next
                               case c_exp
-                              solve( !KU( ~ex ) @ #vk.16 )
+                              solve( !KU( ~ex.3 ) @ #vk.19 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
@@ -2283,22 +2345,23 @@ solve( (∃ matching #i3 #i4 sid.
           qed
         next
           case Resp_1
-          solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+          solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
             case KGC_request
-            solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+            solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
               case KGC_Setup
               solve( Sid( matching, sid ) @ #i3 )
                 case Init_2
-                solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i3 )
+                solve( Init( ~ex, $A.2, $B.2 ) ▶₀ #i3 )
                   case Init_1
-                  solve( !MPK( pmult(~x.1, 'P') ) ▶₁ #i3 )
+                  solve( !MPK( pmult(~x.5, 'P') ) ▶₁ #i3 )
                     case KGC_Setup
-                    solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i3 )
+                    solve( !LTK( $A.2, pmult(~x.4, hp($A.2)) ) ▶₂ #i3 )
                       case KGC_request
-                      solve( Match( ~ey, <'Init', $A.1, $B.1, pmult(~ex, 'P'), Y> ) @ #i4 )
+                      solve( Match( ~ey, <'Init', $A.2, $B.2, pmult(~ex, 'P'), Y> ) @ #i4 )
                         case Resp_1
-                        solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), em('P', hp($A))^(~ey*~x), 
-                                         pmult((~ex*~ey), 'P'), $A, $B, pmult(~ex, 'P'), pmult(~ey, 'P')>)
+                        solve( !KU( kdf(<em('P', hp($B.4))^(~ex.2*~x.13), 
+                                         em('P', hp($A.4))^(~ey.4*~x.13), pmult((~ex.2*~ey.4), 'P'), $A.4, 
+                                         $B.4, pmult(~ex.2, 'P'), pmult(~ey.4, 'P')>)
                                ) @ #vk )
                           case Reveal_session_key_case_1
                           by contradiction /* from formulas */
@@ -2307,67 +2370,67 @@ solve( (∃ matching #i3 #i4 sid.
                           by contradiction /* from formulas */
                         next
                           case c_kdf
-                          solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.5 )
+                          solve( !KU( em('P', hp($B.4))^(~ex.2*~x.13) ) @ #vk.5 )
                             case Init_1
-                            solve( !KU( ~x ) @ #vk.15 )
+                            solve( !KU( ~x.14 ) @ #vk.18 )
                               case Reveal_master_key
-                              solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.10 )
+                              solve( !KU( em('P', hp($A.5))^(~ey.4*~x.14) ) @ #vk.7 )
                                 case KGC_Setup
-                                solve( !KU( ~ey ) @ #vk.17 )
+                                solve( !KU( ~ey.5 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.17 )
+                                  solve( !KU( ~x.20 ) @ #vk.22 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.17 )
+                                  solve( !KU( ~ex.4 ) @ #vk.23 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.19 )
+                                  solve( !KU( ~ex.3 ) @ #vk.24 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               next
                                 case Reveal_ltk_case_1
-                                solve( !KU( ~ey ) @ #vk.17 )
+                                solve( !KU( ~ey.5 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Reveal_ltk_case_2
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.16 )
+                                  solve( !KU( ~x.19 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.16 )
+                                  solve( !KU( ~ex.4 ) @ #vk.21 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.18 )
+                                  solve( !KU( ~ex.3 ) @ #vk.22 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 qed
                               next
                                 case c_exp
-                                solve( !KU( ~ey ) @ #vk.18 )
+                                solve( !KU( ~ey.4 ) @ #vk.21 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
@@ -2375,43 +2438,43 @@ solve( (∃ matching #i3 #i4 sid.
                             qed
                           next
                             case KGC_Setup
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case Reveal_ltk_case_1
-                            solve( !KU( ~ex ) @ #vk.15 )
+                            solve( !KU( ~ex.3 ) @ #vk.18 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
                           next
                             case Reveal_ltk_case_2
-                            solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.8 )
+                            solve( !KU( em('P', hp($A.5))^(~msk*~ey.4) ) @ #vk.7 )
                               case KGC_Setup
-                              solve( !KU( ~ey ) @ #vk.15 )
+                              solve( !KU( ~ey.5 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Resp_1
-                              solve( !KU( ~x ) @ #vk.15 )
+                              solve( !KU( ~x.17 ) @ #vk.19 )
                                 case Reveal_master_key
-                                solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.12 )
+                                solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                   case Init_1
-                                  solve( !KU( ~ey ) @ #vk.16 )
+                                  solve( !KU( ~x.18 ) @ #vk.20 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case Resp_1
-                                  solve( !KU( ~ex ) @ #vk.16 )
+                                  solve( !KU( ~ex.4 ) @ #vk.21 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
                                 next
                                   case c_pmult
-                                  solve( !KU( ~ex ) @ #vk.18 )
+                                  solve( !KU( ~ex.3 ) @ #vk.22 )
                                     case Reveal_ephemeral_key
                                     by contradiction /* from formulas */
                                   qed
@@ -2419,41 +2482,44 @@ solve( (∃ matching #i3 #i4 sid.
                               qed
                             next
                               case Reveal_ltk_case_1
-                              solve( !KU( ~ey ) @ #vk.15 )
+                              solve( !KU( ~ey.5 ) @ #vk.18 )
                                 case Reveal_ephemeral_key
                                 by contradiction /* from formulas */
                               qed
                             next
                               case Reveal_ltk_case_2
-                              solve( !KU( pmult((~ex*~ey), 'P') ) @ #vk.11 )
+                              solve( !KU( pmult((~ex.3*~ey.6), 'P') ) @ #vk.9 )
                                 case Init_1
-                                solve( !KU( ~ey ) @ #vk.14 )
+                                solve( !KU( ~x.18 ) @ #vk.18 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case Resp_1
-                                solve( !KU( ~ex ) @ #vk.14 )
+                                solve( !KU( ~ex.4 ) @ #vk.19 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               next
                                 case c_pmult
-                                solve( !KU( ~ex ) @ #vk.16 )
+                                solve( !KU( ~ex.3 ) @ #vk.20 )
                                   case Reveal_ephemeral_key
                                   by contradiction /* from formulas */
                                 qed
                               qed
                             next
                               case c_exp
-                              solve( !KU( ~ey ) @ #vk.16 )
-                                case Reveal_ephemeral_key
-                                by contradiction /* from formulas */
+                              solve( !KU( ~msk ) @ #vk.19 )
+                                case Reveal_master_key
+                                solve( !KU( ~ey.4 ) @ #vk.20 )
+                                  case Reveal_ephemeral_key
+                                  by contradiction /* from formulas */
+                                qed
                               qed
                             qed
                           next
                             case c_exp
-                            solve( !KU( ~ex ) @ #vk.16 )
+                            solve( !KU( ~ex.2 ) @ #vk.19 )
                               case Reveal_ephemeral_key
                               by contradiction /* from formulas */
                             qed
@@ -2465,13 +2531,13 @@ solve( (∃ matching #i3 #i4 sid.
                 qed
               next
                 case Resp_1
-                solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+                solve( !LTK( $B.2, pmult(~x.4, hp($B.2)) ) ▶₁ #i3 )
                   case KGC_request
-                  solve( !MPK( pmult(~x, 'P') ) ▶₂ #i3 )
+                  solve( !MPK( pmult(~x.4, 'P') ) ▶₂ #i3 )
                     case KGC_Setup
-                    solve( Match( ~ey, <'Resp', $B.1, $A.1, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
+                    solve( Match( ~ey, <'Resp', $B.2, $A.2, X.1, pmult(~ey.1, 'P')> ) @ #i4 )
                       case Init_2
-                      by solve( Init( ~ey, $A.1, $B.1 ) ▶₀ #i4 )
+                      by solve( Init( ~ex.2, $A.4, $B.4 ) ▶₀ #i4 )
                     qed
                   qed
                 qed
@@ -2484,15 +2550,15 @@ solve( (∃ matching #i3 #i4 sid.
   qed
 next
   case case_2
-  solve( Accept( test, A, B, k ) @ #i1 )
+  solve( Accept( test, A, B, x ) @ #i1 )
     case Init_2
-    solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+    solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
       case Init_1
-      solve( !MPK( pmult(~x, 'P') ) ▶₁ #i1 )
+      solve( !MPK( pmult(~x.2, 'P') ) ▶₁ #i1 )
         case KGC_Setup
-        solve( !LTK( $A, pmult(~x.1, hp($A)) ) ▶₂ #i1 )
+        solve( !LTK( $A.1, pmult(~x.1, hp($A.1)) ) ▶₂ #i1 )
           case KGC_request
-          solve( !KU( kdf(<em('P', hp($B))^(~ex*~x), z, z.1, $A, $B, 
+          solve( !KU( kdf(<em('P', hp($B.1))^(~ex*~x.1), z, z.1, $A.1, $B.1, 
                            pmult(~ex, 'P'), Y>)
                  ) @ #vk )
             case Reveal_session_key_case_1
@@ -2502,15 +2568,15 @@ next
             by contradiction /* from formulas */
           next
             case c_kdf
-            solve( !KU( em('P', hp($B))^(~ex*~x) ) @ #vk.4 )
+            solve( !KU( em('P', hp($B.1))^(~ex*~x.1) ) @ #vk.3 )
               case Init_1
-              solve( !KU( ~x ) @ #vk.15 )
+              solve( !KU( ~x.3 ) @ #vk.16 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case KGC_Setup
-              solve( !KU( ~ex ) @ #vk.15 )
+              solve( !KU( ~ex.1 ) @ #vk.16 )
                 case Reveal_ephemeral_key
                 by contradiction /* from formulas */
               qed
@@ -2522,7 +2588,7 @@ next
               by contradiction /* from formulas */
             next
               case c_exp
-              solve( !KU( ~ex ) @ #vk.16 )
+              solve( !KU( ~ex ) @ #vk.17 )
                 case Reveal_ephemeral_key
                 by contradiction /* from formulas */
               qed
@@ -2533,11 +2599,11 @@ next
     qed
   next
     case Resp_1
-    solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+    solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
       case KGC_request
-      solve( !MPK( pmult(~x, 'P') ) ▶₂ #i1 )
+      solve( !MPK( pmult(~x.1, 'P') ) ▶₂ #i1 )
         case KGC_Setup
-        solve( !KU( kdf(<z, em('P', hp($A))^(~ey*~x), z.1, $A, $B, X, 
+        solve( !KU( kdf(<z, em('P', hp($A.1))^(~x.2*~x.3), z.1, $A.1, $B.1, X, 
                          pmult(~ey, 'P')>)
                ) @ #vk )
           case Reveal_session_key_case_1
@@ -2546,18 +2612,75 @@ next
           case Reveal_session_key_case_2
           by contradiction /* from formulas */
         next
+          case Reveal_session_key_case_3
+          by contradiction /* from formulas */
+        next
           case c_kdf
-          solve( !KU( em('P', hp($A))^(~ey*~x) ) @ #vk.6 )
-            case KGC_Setup
-            solve( !KU( ~ey ) @ #vk.15 )
+          solve( !KU( em('P', hp($A.1))^(~x.2*~x.3) ) @ #vk.5 )
+            case Init_1_case_1
+            solve( !KU( ~x.4 ) @ #vk.16 )
+              case Reveal_ephemeral_key_case_1
+              by solve( splitEqs(0) )
+            next
+              case Reveal_ephemeral_key_case_2
+              by solve( splitEqs(0) )
+            next
+              case fresh
+              by solve( splitEqs(0) )
+            qed
+          next
+            case Init_1_case_2
+            solve( !KU( ~x.4 ) @ #vk.16 )
+              case Reveal_ephemeral_key_case_1
+              by solve( splitEqs(0) )
+            next
+              case Reveal_ephemeral_key_case_2
+              by solve( splitEqs(0) )
+            next
+              case fresh
+              by solve( splitEqs(0) )
+            qed
+          next
+            case KGC_Setup_case_1
+            solve( !KU( ~ey ) @ #vk.16 )
               case Reveal_ephemeral_key
               by contradiction /* from formulas */
             qed
           next
-            case Resp_1
-            solve( !KU( ~x ) @ #vk.15 )
+            case KGC_Setup_case_2
+            solve( !KU( ~ey ) @ #vk.16 )
+              case Reveal_ephemeral_key
+              by contradiction /* from formulas */
+            qed
+          next
+            case Resp_1_case_1
+            solve( !KU( ~x.7 ) @ #vk.17 )
+              case Reveal_ephemeral_key_case_1
+              by solve( splitEqs(0) )
+            next
+              case Reveal_ephemeral_key_case_2
+              by solve( splitEqs(0) )
+            next
               case Reveal_master_key
               by contradiction /* from formulas */
+            next
+              case fresh
+              by solve( splitEqs(0) )
+            qed
+          next
+            case Resp_1_case_2
+            solve( !KU( ~x.7 ) @ #vk.17 )
+              case Reveal_ephemeral_key_case_1
+              by solve( splitEqs(0) )
+            next
+              case Reveal_ephemeral_key_case_2
+              by solve( splitEqs(0) )
+            next
+              case Reveal_master_key
+              by contradiction /* from formulas */
+            next
+              case fresh
+              by solve( splitEqs(0) )
             qed
           next
             case Reveal_ltk_case_1
@@ -2566,10 +2689,55 @@ next
             case Reveal_ltk_case_2
             by contradiction /* from formulas */
           next
+            case Reveal_ltk_case_3
+            by contradiction /* from formulas */
+          next
+            case Reveal_ltk_case_4
+            by contradiction /* from formulas */
+          next
             case c_exp
-            solve( !KU( ~ey ) @ #vk.16 )
-              case Reveal_ephemeral_key
+            solve( !KU( ~x.2 ) @ #vk.17 )
+              case Reveal_ephemeral_key_case_1
+              solve( !KU( ~x.3 ) @ #vk.18 )
+                case Reveal_ephemeral_key_case_1
+                by solve( splitEqs(0) )
+              next
+                case Reveal_ephemeral_key_case_2
+                by solve( splitEqs(0) )
+              next
+                case fresh
+                by solve( splitEqs(0) )
+              qed
+            next
+              case Reveal_ephemeral_key_case_2
+              solve( !KU( ~x.3 ) @ #vk.18 )
+                case Reveal_ephemeral_key_case_1
+                by solve( splitEqs(0) )
+              next
+                case Reveal_ephemeral_key_case_2
+                by solve( splitEqs(0) )
+              next
+                case Reveal_master_key
+                by contradiction /* from formulas */
+              next
+                case fresh
+                by solve( splitEqs(0) )
+              qed
+            next
+              case Reveal_master_key
               by contradiction /* from formulas */
+            next
+              case fresh
+              solve( !KU( ~x.3 ) @ #vk.18 )
+                case Reveal_ephemeral_key_case_1
+                by solve( splitEqs(0) )
+              next
+                case Reveal_ephemeral_key_case_2
+                by solve( splitEqs(0) )
+              next
+                case fresh
+                by solve( splitEqs(0) )
+              qed
             qed
           qed
         qed
@@ -2612,8 +2780,8 @@ Failed to derive Variable(s): ~msk
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -2625,13 +2793,13 @@ summary of summaries:
 analyzed: examples/ake/bilinear/Chen_Kudla.spthy
 
   output:          examples/ake/bilinear/Chen_Kudla.spthy.tmp
-  processing time: 21.67s
+  processing time: 25.33s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!
   
   key_agreement_reachable (exists-trace): verified (13 steps)
-  key_secrecy_ephemeral_no_WPFS (all-traces): verified (679 steps)
+  key_secrecy_ephemeral_no_WPFS (all-traces): verified (717 steps)
 
 ==============================================================================
 */

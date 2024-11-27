@@ -64,15 +64,15 @@ rule (modulo E) Serv_1:
     --[ AnswerRequest( $S, z ) ]->
      [ Out( h(z) ) ]
     variants (modulo AC)
-    1. ~ltkS = ~ltkS.5
+    1. ~ltkS = ~x
        request
-             = request.5
-       z     = adec(request.5, ~ltkS.5)
+             = aenc(x.1, pk(~x))
+       z     = x.1
     
-    2. ~ltkS = ~x.5
+    2. ~ltkS = ~ltkS.2
        request
-             = aenc(x.6, pk(~x.5))
-       z     = x.6
+             = request.2
+       z     = adec(request.2, ~ltkS.2)
   */
 
 lemma Client_session_key_secrecy:
@@ -88,11 +88,11 @@ guarded formula characterizing all counter-examples:
   ∀ #r. (LtkReveal( S ) @ #r) ⇒ ⊥"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, x ) ▶₀ #i )
   case Client_1
-  solve( !KU( ~k ) @ #vk.1 )
+  solve( !KU( ~k.2 ) @ #vk.1 )
     case Client_1
-    solve( !KU( ~ltk ) @ #vk.2 )
+    solve( !KU( ~ltk.1 ) @ #vk.2 )
       case Reveal_ltk
       by contradiction /* from formulas */
     qed
@@ -114,18 +114,18 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (LtkReveal( S ) @ #r) ⇒ ¬(#r < #i))"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !KU( h(~k) ) @ #vk )
+  solve( !KU( h(~k.2) ) @ #vk )
     case Serv_1
-    solve( !KU( aenc(~k, pk(~ltkS)) ) @ #vk.1 )
+    solve( !KU( aenc(~k.3, pk(~ltkS)) ) @ #vk.1 )
       case Client_1
       by contradiction /* from formulas */
     next
       case c_aenc
-      solve( !KU( ~k ) @ #vk.2 )
+      solve( !KU( ~k.3 ) @ #vk.2 )
         case Client_1
-        solve( !KU( ~ltk ) @ #vk.4 )
+        solve( !KU( ~ltk.1 ) @ #vk.4 )
           case Reveal_ltk
           by contradiction /* from formulas */
         qed
@@ -133,9 +133,9 @@ solve( Client_1( S, k ) ▶₀ #i )
     qed
   next
     case c_h
-    solve( !KU( ~k ) @ #vk.1 )
+    solve( !KU( ~k.2 ) @ #vk.1 )
       case Client_1
-      solve( !KU( ~ltk ) @ #vk.2 )
+      solve( !KU( ~ltk.1 ) @ #vk.2 )
         case Reveal_ltk
         by contradiction /* from formulas */
       qed
@@ -163,30 +163,30 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (LtkReveal( S ) @ #r) ⇒ ¬(#r < #i))"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !KU( h(~k) ) @ #vk )
+  solve( !KU( h(~k.2) ) @ #vk )
     case Serv_1
-    solve( !KU( aenc(~k, pk(~ltkS)) ) @ #vk.1 )
+    solve( !KU( aenc(~k.3, pk(~ltkS)) ) @ #vk.1 )
       case Client_1
       solve( (#i < #j)  ∥ (#j < #i) )
         case case_1
-        solve( Client_1( $S, ~k ) ▶₀ #j )
+        solve( Client_1( $S.4, ~k.3 ) ▶₀ #j )
           case Client_1
           by contradiction /* cyclic */
         qed
       next
         case case_2
-        solve( Client_1( $S, ~k ) ▶₀ #j )
+        solve( Client_1( $S.4, ~k.3 ) ▶₀ #j )
           case Client_1
           by contradiction /* cyclic */
         qed
       qed
     next
       case c_aenc
-      solve( !KU( ~k ) @ #vk.2 )
+      solve( !KU( ~k.3 ) @ #vk.2 )
         case Client_1
-        solve( !KU( ~ltk ) @ #vk.4 )
+        solve( !KU( ~ltk.1 ) @ #vk.4 )
           case Reveal_ltk
           by contradiction /* from formulas */
         qed
@@ -194,9 +194,9 @@ solve( Client_1( S, k ) ▶₀ #i )
     qed
   next
     case c_h
-    solve( !KU( ~k ) @ #vk.1 )
+    solve( !KU( ~k.2 ) @ #vk.1 )
       case Client_1
-      solve( !KU( ~ltk ) @ #vk.2 )
+      solve( !KU( ~ltk.1 ) @ #vk.2 )
         case Reveal_ltk
         by contradiction /* from formulas */
       qed
@@ -212,11 +212,11 @@ guarded formula characterizing all satisfying traces:
 "∃ S k #i. (SessKeyC( S, k ) @ #i) ∧ ∀ #r. (LtkReveal( S ) @ #r) ⇒ ⊥"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !KU( h(~k) ) @ #vk )
+  solve( !KU( h(~k.2) ) @ #vk )
     case Serv_1
-    solve( !KU( aenc(~k, pk(~ltkS)) ) @ #vk.1 )
+    solve( !KU( aenc(~k.3, pk(~ltkS)) ) @ #vk.1 )
       case Client_1
       SOLVED // trace found
     qed
@@ -243,8 +243,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end

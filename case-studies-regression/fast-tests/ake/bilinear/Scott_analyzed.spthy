@@ -76,32 +76,32 @@ rule (modulo E) Init_2:
     ]->
      [ !Sessk( ~ex, kdf(<z, $A, $B, X, Y>) ) ]
     variants (modulo AC)
-    1. ~ex   = ~ex.10
-       Y     = Y.12
-       z     = Y.12^~ex.10
+    1. ~ex   = ~x.3
+       Y     = x.5^inv(~x.3)
+       z     = x.5
     
-    2. ~ex   = ~ex.11
-       Y     = z.14^inv(~ex.11)
-       z     = z.14
-    
-    3. ~ex   = ~ex.15
-       Y     = x.25^x.26
-       z     = x.25^(~ex.15*x.26)
-    
-    4. ~ex   = ~ex.17
-       Y     = x.29^inv((~ex.17*x.30))
-       z     = x.29^inv(x.30)
-    
-    5. ~ex   = ~ex.17
-       Y     = x.29^(x.30*inv(~ex.17))
-       z     = x.29^x.30
-    
-    6. ~ex   = ~ex.18
-       Y     = x.30^(x.31*inv((~ex.18*x.32)))
-       z     = x.30^(x.31*inv(x.32))
-    
-    7. Y     = DH_neutral
+    2. Y     = DH_neutral
        z     = DH_neutral
+    
+    3. ~ex   = ~ex.3
+       Y     = x.2^x.3
+       z     = x.2^(~ex.3*x.3)
+    
+    4. ~ex   = ~ex.3
+       Y     = Y.3
+       z     = Y.3^~ex.3
+    
+    5. ~ex   = ~x.4
+       Y     = x.6^(x.7*inv(~x.4))
+       z     = x.6^x.7
+    
+    6. ~ex   = ~x.4
+       Y     = x.6^inv((~x.4*x.7))
+       z     = x.6^inv(x.7)
+    
+    7. ~ex   = ~x.5
+       Y     = x.7^(x.8*inv((~x.5*x.9)))
+       z     = x.7^(x.8*inv(x.9))
   */
 
 rule (modulo E) Resp_1:
@@ -133,29 +133,29 @@ rule (modulo E) Resp_1:
      !Sessk( ~ey, kdf(<z, $A, $B, X, em(hp($A), hp($B))^(~ey*~x)>) )
      ]
     variants (modulo AC)
-    1. ~ey   = ~ey.36
-       X     = X.38
-       z     = X.38^~ey.36
+    1. ~ey   = ~ey.3
+       X     = X.3
+       z     = X.3^~ey.3
     
-    2. ~ey   = ~ey.36
-       X     = z.41^inv(~ey.36)
-       z     = z.41
+    2. ~ey   = ~ey.3
+       X     = x.14^x.15
+       z     = x.14^(~ey.3*x.15)
     
-    3. ~ey   = ~ey.372
-       X     = x.739^x.740
-       z     = x.739^(~ey.372*x.740)
+    3. ~ey   = ~x.15
+       X     = x.17^inv(~x.15)
+       z     = x.17
     
-    4. ~ey   = ~ey.374
-       X     = x.743^inv((~ey.374*x.744))
-       z     = x.743^inv(x.744)
+    4. ~ey   = ~x.16
+       X     = x.18^inv((~x.16*x.19))
+       z     = x.18^inv(x.19)
     
-    5. ~ey   = ~ey.374
-       X     = x.743^(x.744*inv(~ey.374))
-       z     = x.743^x.744
+    5. ~ey   = ~x.16
+       X     = x.18^(x.19*inv(~x.16))
+       z     = x.18^x.19
     
-    6. ~ey   = ~ey.375
-       X     = x.744^(x.745*inv((~ey.375*x.746)))
-       z     = x.744^(x.745*inv(x.746))
+    6. ~ey   = ~x.17
+       X     = x.19^(x.20*inv((~x.17*x.21)))
+       z     = x.19^(x.20*inv(x.21))
     
     7. X     = DH_neutral
        z     = DH_neutral
@@ -182,24 +182,24 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( Accept( t1, A, B, k ) @ #i )
   case Init_2
-  solve( Init( ~ex, $A, $B, X ) ▶₀ #i )
+  solve( Init( ~ex, $A.1, $B.1, X ) ▶₀ #i )
     case Init_1
     solve( Match( ~ex, SID ) @ #i )
       case Init_2
-      solve( Accept( t2, $B, $A,
-                     kdf(<z, $A, $B, em(hp($A), hp($B))^(~ex*~s), Y>)
+      solve( Accept( t2, $B.1, $A.1,
+                     kdf(<z, $A.1, $B.1, em(hp($A.1), hp($B.1))^(~ex*~s), Y>)
              ) @ #j )
         case Resp_1
-        solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #j )
+        solve( !LTK( $B.3, pmult(~x, hp($B.3)) ) ▶₁ #j )
           case KGC_request
-          solve( Sid( ~ey,
-                      <'Resp', $B, $A, em(hp($A), hp($B))^(~ex*~x), em(hp($A), hp($B))^(~ey*~x)
-                      >
+          solve( Sid( ~ey.1,
+                      <'Resp', $B.3, $A.3, em(hp($A.3), hp($B.3))^(~x*~ex.1), 
+                       em(hp($A.3), hp($B.3))^(~x*~ey.1)>
                  ) @ #j )
             case Resp_1
-            solve( !KU( em(hp($A), hp($B))^(~ey*~x) ) @ #vk )
+            solve( !KU( em(hp($A.3), hp($B.3))^(~x*~ey.1) ) @ #vk )
               case Resp_1_case_1
-              solve( !KU( em(hp($A), hp($B))^(~ex*~x) ) @ #vk.1 )
+              solve( !KU( em(hp($A.4), hp($B.4))^(~ex.1*~x.1) ) @ #vk.2 )
                 case Init_1_case_1
                 SOLVED // trace found
               qed
@@ -249,30 +249,31 @@ solve( (∃ matching #i3 #i4 sid.
         (∀ #i3. (LtkRev( A ) @ #i3) ⇒ ⊥) ∧
         (∀ #i3. (MskRev( ) @ #i3) ⇒ ⊥)) )
   case case_1
-  solve( Accept( test, A, B, k ) @ #i1 )
+  solve( Accept( test, A, B, x ) @ #i1 )
     case Init_2
-    solve( Init( ~ex, $A, $B, X ) ▶₀ #i1 )
+    solve( Init( ~ex, $A.1, $B.1, X ) ▶₀ #i1 )
       case Init_1
       solve( Sid( matching, sid ) @ #i3 )
         case Init_2
-        solve( Init( ~ex.1, $A.1, $B.1, X ) ▶₀ #i3 )
+        solve( Init( ~ex.1, $A.2, $B.2, X.1 ) ▶₀ #i3 )
           case Init_1
           by solve( Match( ~ex,
-                           <'Init', $A.1, $B.1, em(hp($A.1), hp($B.1))^(~s*~ex.1), Y.1>
+                           <'Init', $A.2, $B.2, em(hp($A.2), hp($B.2))^(~ex.1*~s.1), Y.1>
                     ) @ #i4 )
         qed
       next
         case Resp_1
-        solve( !LTK( $B.1, pmult(~x, hp($B.1)) ) ▶₁ #i3 )
+        solve( !LTK( $B.2, pmult(~x.1, hp($B.2)) ) ▶₁ #i3 )
           case KGC_request
           solve( Match( ~ex,
-                        <'Resp', $B.1, $A.1, X, em(hp($A.1), hp($B.1))^(~ey*~s)>
+                        <'Resp', $B.2, $A.2, X.1, em(hp($A.2), hp($B.2))^(~ey*~x.1)>
                  ) @ #i4 )
             case Init_2
-            solve( Init( ~ex, $A.1, $B.1, X ) ▶₀ #i4 )
+            solve( Init( ~ex.2, $A.4, $B.4, X.2 ) ▶₀ #i4 )
               case Init_1
-              solve( !KU( kdf(<em(hp($A), hp($B))^(~ex*~ey*~s), $A, $B, 
-                               em(hp($A), hp($B))^(~ex*~s), em(hp($A), hp($B))^(~ey*~s)>)
+              solve( !KU( kdf(<em(hp($A.5), hp($B.5))^(~ey.2*~s.2*~ex.3), $A.5, $B.5, 
+                               em(hp($A.5), hp($B.5))^(~s.2*~ex.3), em(hp($A.5), hp($B.5))^(~ey.2*~s.2)
+                              >)
                      ) @ #vk )
                 case Reveal_session_key_case_1
                 by contradiction /* from formulas */
@@ -281,63 +282,63 @@ solve( (∃ matching #i3 #i4 sid.
                 by contradiction /* from formulas */
               next
                 case c_kdf
-                solve( !KU( em(hp($A), hp($B))^(~ex*~ey*~s) ) @ #vk.5 )
+                solve( !KU( em(hp($A.5), hp($B.5))^(~ey.2*~s.2*~ex.3) ) @ #vk.5 )
                   case Init_1_case_1
-                  by solve( !KU( ~ey ) @ #vk.10 )
+                  by solve( !KU( ~ey.3 ) @ #vk.13 )
                 next
                   case Init_1_case_2
-                  by solve( !KU( ~ey ) @ #vk.9 )
+                  by solve( !KU( ~ey.3 ) @ #vk.13 )
                 next
                   case Init_1_case_3
-                  by solve( !KU( ~ex.1 ) @ #vk.13 )
+                  by solve( !KU( ~ex.4 ) @ #vk.20 )
                 next
                   case Init_1_case_4
-                  by solve( !KU( ~ex.1 ) @ #vk.13 )
+                  by solve( !KU( ~ex.4 ) @ #vk.20 )
                 next
                   case Init_1_case_5
-                  solve( !KU( ~s ) @ #vk.13 )
+                  solve( !KU( ~s.3 ) @ #vk.28 )
                     case Reveal_master_key
-                    by solve( !KU( ~ey ) @ #vk.14 )
+                    by solve( !KU( ~ey.3 ) @ #vk.27 )
                   qed
                 next
                   case Init_1_case_6
-                  solve( !KU( ~s ) @ #vk.12 )
+                  solve( !KU( ~s.3 ) @ #vk.28 )
                     case Reveal_master_key
-                    by solve( !KU( ~ey ) @ #vk.13 )
+                    by solve( !KU( ~ey.3 ) @ #vk.27 )
                   qed
                 next
                   case Resp_1_case_1
-                  by solve( !KU( ~ex ) @ #vk.10 )
+                  by solve( !KU( ~ex.4 ) @ #vk.14 )
                 next
                   case Resp_1_case_2
-                  by solve( !KU( ~ex ) @ #vk.9 )
+                  by solve( !KU( ~ex.4 ) @ #vk.14 )
                 next
                   case Resp_1_case_3
-                  by solve( !KU( ~ey.1 ) @ #vk.14 )
+                  by solve( !KU( ~ey.3 ) @ #vk.21 )
                 next
                   case Resp_1_case_4
-                  by solve( !KU( ~ey.1 ) @ #vk.14 )
+                  by solve( !KU( ~ey.3 ) @ #vk.21 )
                 next
                   case Resp_1_case_5
-                  solve( !KU( ~s ) @ #vk.13 )
+                  solve( !KU( ~x.3 ) @ #vk.28 )
                     case Reveal_master_key
-                    by solve( !KU( ~ex ) @ #vk.14 )
+                    by solve( !KU( ~ex.4 ) @ #vk.29 )
                   qed
                 next
                   case Resp_1_case_6
-                  solve( !KU( ~s ) @ #vk.12 )
+                  solve( !KU( ~x.3 ) @ #vk.28 )
                     case Reveal_master_key
-                    by solve( !KU( ~ex ) @ #vk.13 )
+                    by solve( !KU( ~ex.4 ) @ #vk.29 )
                   qed
                 next
                   case Reveal_ltk_case_1
-                  by solve( !KU( ~ex ) @ #vk.12 )
+                  by solve( !KU( ~ey.3 ) @ #vk.15 )
                 next
                   case Reveal_ltk_case_2
-                  by solve( !KU( ~ex ) @ #vk.12 )
+                  by solve( !KU( ~ey.3 ) @ #vk.15 )
                 next
                   case c_exp
-                  by solve( !KU( ~ex ) @ #vk.12 )
+                  by solve( !KU( ~ey.2 ) @ #vk.15 )
                 qed
               qed
             qed
@@ -347,18 +348,19 @@ solve( (∃ matching #i3 #i4 sid.
     qed
   next
     case Resp_1
-    solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+    solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
       case KGC_request
       solve( Sid( matching, sid ) @ #i3 )
         case Init_2
-        solve( Init( ~ex, $A.1, $B.1, X.1 ) ▶₀ #i3 )
+        solve( Init( ~ex, $A.2, $B.2, X.1 ) ▶₀ #i3 )
           case Init_1
           solve( Match( ~ey,
-                        <'Init', $A.1, $B.1, em(hp($A.1), hp($B.1))^(~ex*~x), Y>
+                        <'Init', $A.2, $B.2, em(hp($A.2), hp($B.2))^(~ex*~s), Y>
                  ) @ #i4 )
             case Resp_1
-            solve( !KU( kdf(<em(hp($A), hp($B))^(~ex*~ey*~x), $A, $B, 
-                             em(hp($A), hp($B))^(~ex*~x), em(hp($A), hp($B))^(~ey*~x)>)
+            solve( !KU( kdf(<em(hp($A.5), hp($B.5))^(~ex.2*~ey.3*~x.5), $A.5, $B.5, 
+                             em(hp($A.5), hp($B.5))^(~ex.2*~x.5), em(hp($A.5), hp($B.5))^(~ey.3*~x.5)
+                            >)
                    ) @ #vk )
               case Reveal_session_key_case_1
               by contradiction /* from formulas */
@@ -367,76 +369,76 @@ solve( (∃ matching #i3 #i4 sid.
               by contradiction /* from formulas */
             next
               case c_kdf
-              solve( !KU( em(hp($A), hp($B))^(~ex*~ey*~x) ) @ #vk.5 )
+              solve( !KU( em(hp($A.5), hp($B.5))^(~ex.2*~ey.3*~x.5) ) @ #vk.5 )
                 case Init_1_case_1
-                by solve( !KU( ~ey ) @ #vk.10 )
+                by solve( !KU( ~ey.4 ) @ #vk.13 )
               next
                 case Init_1_case_2
-                by solve( !KU( ~ey ) @ #vk.9 )
+                by solve( !KU( ~ey.4 ) @ #vk.13 )
               next
                 case Init_1_case_3
-                by solve( !KU( ~ex.1 ) @ #vk.13 )
+                by solve( !KU( ~ex.3 ) @ #vk.20 )
               next
                 case Init_1_case_4
-                by solve( !KU( ~ex.1 ) @ #vk.13 )
+                by solve( !KU( ~ex.3 ) @ #vk.20 )
               next
                 case Init_1_case_5
-                solve( !KU( ~x ) @ #vk.13 )
+                solve( !KU( ~s.2 ) @ #vk.27 )
                   case Reveal_master_key
-                  by solve( !KU( ~ey ) @ #vk.14 )
+                  by solve( !KU( ~ey.4 ) @ #vk.28 )
                 qed
               next
                 case Init_1_case_6
-                solve( !KU( ~x ) @ #vk.12 )
+                solve( !KU( ~s.2 ) @ #vk.27 )
                   case Reveal_master_key
-                  by solve( !KU( ~ey ) @ #vk.13 )
+                  by solve( !KU( ~ey.4 ) @ #vk.28 )
                 qed
               next
                 case Resp_1_case_1
-                by solve( !KU( ~ex ) @ #vk.10 )
+                by solve( !KU( ~ex.3 ) @ #vk.14 )
               next
                 case Resp_1_case_2
-                by solve( !KU( ~ex ) @ #vk.9 )
+                by solve( !KU( ~ex.3 ) @ #vk.14 )
               next
                 case Resp_1_case_3
-                by solve( !KU( ~ey.1 ) @ #vk.14 )
+                by solve( !KU( ~ey.4 ) @ #vk.21 )
               next
                 case Resp_1_case_4
-                by solve( !KU( ~ey.1 ) @ #vk.14 )
+                by solve( !KU( ~ey.4 ) @ #vk.21 )
               next
                 case Resp_1_case_5
-                solve( !KU( ~x ) @ #vk.13 )
+                solve( !KU( ~x.6 ) @ #vk.29 )
                   case Reveal_master_key
-                  by solve( !KU( ~ex ) @ #vk.14 )
+                  by solve( !KU( ~ex.3 ) @ #vk.28 )
                 qed
               next
                 case Resp_1_case_6
-                solve( !KU( ~x ) @ #vk.12 )
+                solve( !KU( ~x.6 ) @ #vk.29 )
                   case Reveal_master_key
-                  by solve( !KU( ~ex ) @ #vk.13 )
+                  by solve( !KU( ~ex.3 ) @ #vk.28 )
                 qed
               next
                 case Reveal_ltk_case_1
-                by solve( !KU( ~ex ) @ #vk.12 )
+                by solve( !KU( ~ex.3 ) @ #vk.15 )
               next
                 case Reveal_ltk_case_2
-                by solve( !KU( ~ex ) @ #vk.12 )
+                by solve( !KU( ~ex.3 ) @ #vk.15 )
               next
                 case c_exp
-                by solve( !KU( ~ex ) @ #vk.12 )
+                by solve( !KU( ~ex.2 ) @ #vk.15 )
               qed
             qed
           qed
         qed
       next
         case Resp_1
-        solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i3 )
+        solve( !LTK( $B.2, pmult(~x.2, hp($B.2)) ) ▶₁ #i3 )
           case KGC_request
           solve( Match( ~ey,
-                        <'Resp', $B.1, $A.1, X.1, em(hp($A.1), hp($B.1))^(~x*~ey.1)>
+                        <'Resp', $B.2, $A.2, X.1, em(hp($A.2), hp($B.2))^(~ey.1*~x.2)>
                  ) @ #i4 )
             case Init_2
-            by solve( Init( ~ey, $A.1, $B.1, X.1 ) ▶₀ #i4 )
+            by solve( Init( ~ex.1, $A.4, $B.4, X.2 ) ▶₀ #i4 )
           qed
         qed
       qed
@@ -444,11 +446,12 @@ solve( (∃ matching #i3 #i4 sid.
   qed
 next
   case case_2
-  solve( Accept( test, A, B, k ) @ #i1 )
+  solve( Accept( test, A, B, x ) @ #i1 )
     case Init_2
-    solve( Init( ~ex, $A, $B, X ) ▶₀ #i1 )
+    solve( Init( ~ex, $A.1, $B.1, X ) ▶₀ #i1 )
       case Init_1
-      solve( !KU( kdf(<z, $A, $B, em(hp($A), hp($B))^(~ex*~s), Y>) ) @ #vk )
+      solve( !KU( kdf(<z, $A.1, $B.1, em(hp($A.1), hp($B.1))^(~ex*~s), Y>)
+             ) @ #vk )
         case Reveal_session_key_case_1
         by contradiction /* from formulas */
       next
@@ -458,38 +461,32 @@ next
         case c_kdf
         solve( splitEqs(0) )
           case split_case_1
-          solve( !KU( Y^~ex ) @ #vk.5 )
+          solve( !KU( Y.1^~ex.1 ) @ #vk.3 )
             case Init_1
-            solve( !KU( ~s ) @ #vk.11 )
+            solve( !KU( ~s.1 ) @ #vk.12 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case c_exp
-            by solve( !KU( ~ex ) @ #vk.10 )
+            by solve( !KU( ~ex.1 ) @ #vk.12 )
           qed
         next
           case split_case_2
-          solve( !KU( z^inv(~ex) ) @ #vk.1 )
-            case c_exp
-            by solve( !KU( ~ex ) @ #vk.11 )
-          qed
-        next
-          case split_case_3
-          solve( !KU( x^(~ex*x.1) ) @ #vk.5 )
+          solve( !KU( x.1^(~ex.1*x.2) ) @ #vk.3 )
             case Init_1_case_01
-            solve( !KU( em(hp($A), hp($B))^~s ) @ #vk.2 )
+            solve( !KU( em(hp($A.2), hp($B.2))^~s.1 ) @ #vk.10 )
               case Init_1_case_1
-              by solve( !KU( ~ex.1 ) @ #vk.10 )
+              by solve( !KU( ~ex.3 ) @ #vk.12 )
             next
               case Init_1_case_2
-              by solve( !KU( ~ex.1 ) @ #vk.10 )
+              by solve( !KU( ~ex.3 ) @ #vk.12 )
             next
               case Resp_1_case_1
-              by solve( !KU( ~ey ) @ #vk.11 )
+              by solve( !KU( ~ey ) @ #vk.13 )
             next
               case Resp_1_case_2
-              by solve( !KU( ~ey ) @ #vk.11 )
+              by solve( !KU( ~ey ) @ #vk.13 )
             next
               case Reveal_ltk_case_1
               by contradiction /* from formulas */
@@ -498,268 +495,265 @@ next
               by contradiction /* from formulas */
             next
               case c_exp
-              solve( !KU( ~s ) @ #vk.10 )
+              solve( !KU( ~s.1 ) @ #vk.12 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             qed
           next
             case Init_1_case_02
-            by solve( !KU( ~ex ) @ #vk.10 )
+            by solve( !KU( ~ex.3 ) @ #vk.11 )
           next
             case Init_1_case_03
-            by solve( !KU( ~ex ) @ #vk.11 )
-          next
-            case Init_1_case_04
-            solve( !KU( em(hp($A), hp($B))^(~s*x) ) @ #vk.2 )
+            solve( !KU( em(hp($A.2), hp($B.2))^(~s.1*x.3) ) @ #vk.10 )
               case Init_1_case_01
-              by solve( !KU( ~x ) @ #vk.10 )
+              by solve( !KU( ~ex.3 ) @ #vk.11 )
             next
               case Init_1_case_02
-              by solve( !KU( ~x ) @ #vk.10 )
+              by solve( !KU( ~ex.3 ) @ #vk.11 )
             next
               case Init_1_case_03
-              solve( !KU( ~s ) @ #vk.11 )
+              solve( !KU( ~s.2 ) @ #vk.13 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_04
-              solve( !KU( ~s ) @ #vk.12 )
+              solve( !KU( ~s.2 ) @ #vk.13 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_05
-              by solve( !KU( ~ex.1 ) @ #vk.12 )
+              by solve( !KU( ~ex.3 ) @ #vk.13 )
             next
               case Init_1_case_06
-              solve( !KU( ~s ) @ #vk.11 )
-                case Reveal_master_key
-                by contradiction /* from formulas */
-              qed
+              by solve( !KU( ~ex.3 ) @ #vk.13 )
             next
               case Init_1_case_07
-              solve( !KU( ~s ) @ #vk.12 )
+              solve( !KU( ~s.2 ) @ #vk.18 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_08
-              by solve( !KU( ~ex.1 ) @ #vk.12 )
+              solve( !KU( ~s.2 ) @ #vk.18 )
+                case Reveal_master_key
+                by contradiction /* from formulas */
+              qed
             next
               case Init_1_case_09
-              solve( !KU( ~s ) @ #vk.10 )
+              solve( !KU( ~s.2 ) @ #vk.19 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_10
-              by solve( !KU( ~ex.1 ) @ #vk.13 )
+              by solve( !KU( ~ex.3 ) @ #vk.27 )
             next
               case Init_1_case_11
-              by solve( !KU( ~ex.1 ) @ #vk.13 )
-            next
-              case Init_1_case_12
-              solve( !KU( ~s ) @ #vk.10 )
+              solve( !KU( ~s.2 ) @ #vk.19 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Init_1_case_12
+              by solve( !KU( ~ex.3 ) @ #vk.27 )
+            next
               case Init_1_case_13
-              by solve( !KU( ~ex.1 ) @ #vk.13 )
+              by solve( !KU( ~ex.3 ) @ #vk.18 )
             next
               case Init_1_case_14
-              by solve( !KU( ~ex.1 ) @ #vk.13 )
+              by solve( !KU( ~ex.3 ) @ #vk.18 )
             next
               case Init_1_case_15
-              solve( !KU( ~s ) @ #vk.14 )
+              solve( !KU( ~s.2 ) @ #vk.28 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_16
-              solve( !KU( ~s ) @ #vk.14 )
+              solve( !KU( ~s.2 ) @ #vk.28 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_17
-              by solve( !KU( ~ex.1 ) @ #vk.14 )
+              by solve( !KU( ~ex.3 ) @ #vk.16 )
             next
               case Init_1_case_18
-              by solve( !KU( ~ex.1 ) @ #vk.14 )
+              by solve( !KU( ~ex.3 ) @ #vk.16 )
             next
               case Init_1_case_19
-              solve( !KU( ~s ) @ #vk.12 )
+              solve( !KU( ~s.2 ) @ #vk.28 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_20
-              by solve( !KU( ~ex.1 ) @ #vk.15 )
+              by solve( !KU( ~ex.3 ) @ #vk.36 )
             next
               case Init_1_case_21
-              by solve( !KU( ~ex.1 ) @ #vk.15 )
-            next
-              case Init_1_case_22
-              solve( !KU( ~s ) @ #vk.12 )
+              solve( !KU( ~s.2 ) @ #vk.28 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Init_1_case_22
+              by solve( !KU( ~ex.3 ) @ #vk.36 )
+            next
               case Init_1_case_23
-              by solve( !KU( ~ex.1 ) @ #vk.15 )
+              by solve( !KU( ~ex.3 ) @ #vk.23 )
             next
               case Init_1_case_24
-              by solve( !KU( ~ex.1 ) @ #vk.15 )
+              by solve( !KU( ~ex.3 ) @ #vk.23 )
             next
               case Init_1_case_25
-              solve( !KU( ~s ) @ #vk.12 )
+              solve( !KU( ~s.2 ) @ #vk.31 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_26
-              solve( !KU( ~s ) @ #vk.15 )
+              solve( !KU( ~s.2 ) @ #vk.31 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_27
-              solve( !KU( ~s ) @ #vk.12 )
+              solve( !KU( ~s.2 ) @ #vk.38 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_28
-              solve( !KU( ~s ) @ #vk.15 )
+              solve( !KU( ~s.2 ) @ #vk.38 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_01
-              by solve( !KU( ~x ) @ #vk.10 )
+              by solve( !KU( ~ey ) @ #vk.11 )
             next
               case Resp_1_case_02
-              by solve( !KU( ~x ) @ #vk.10 )
+              by solve( !KU( ~ey ) @ #vk.11 )
             next
               case Resp_1_case_03
-              solve( !KU( ~s ) @ #vk.12 )
+              solve( !KU( ~x.4 ) @ #vk.15 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_04
-              solve( !KU( ~s ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.15 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_05
-              by solve( !KU( ~ey ) @ #vk.13 )
+              by solve( !KU( ~ey ) @ #vk.14 )
             next
               case Resp_1_case_06
-              solve( !KU( ~s ) @ #vk.12 )
-                case Reveal_master_key
-                by contradiction /* from formulas */
-              qed
+              by solve( !KU( ~ey ) @ #vk.14 )
             next
               case Resp_1_case_07
-              solve( !KU( ~s ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.19 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_08
-              by solve( !KU( ~ey ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.19 )
+                case Reveal_master_key
+                by contradiction /* from formulas */
+              qed
             next
               case Resp_1_case_09
-              solve( !KU( ~s ) @ #vk.10 )
+              solve( !KU( ~x.4 ) @ #vk.20 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_10
-              by solve( !KU( ~ey ) @ #vk.14 )
+              by solve( !KU( ~ey ) @ #vk.28 )
             next
               case Resp_1_case_11
-              by solve( !KU( ~ey ) @ #vk.14 )
-            next
-              case Resp_1_case_12
-              solve( !KU( ~s ) @ #vk.10 )
+              solve( !KU( ~x.4 ) @ #vk.20 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Resp_1_case_12
+              by solve( !KU( ~ey ) @ #vk.28 )
+            next
               case Resp_1_case_13
-              by solve( !KU( ~ey ) @ #vk.14 )
+              by solve( !KU( ~ey ) @ #vk.19 )
             next
               case Resp_1_case_14
-              by solve( !KU( ~ey ) @ #vk.14 )
+              by solve( !KU( ~ey ) @ #vk.19 )
             next
               case Resp_1_case_15
-              solve( !KU( ~s ) @ #vk.15 )
+              solve( !KU( ~x.4 ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_16
-              solve( !KU( ~s ) @ #vk.15 )
+              solve( !KU( ~x.4 ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_17
-              by solve( !KU( ~ey ) @ #vk.15 )
+              by solve( !KU( ~ey ) @ #vk.17 )
             next
               case Resp_1_case_18
-              by solve( !KU( ~ey ) @ #vk.15 )
+              by solve( !KU( ~ey ) @ #vk.17 )
             next
               case Resp_1_case_19
-              solve( !KU( ~s ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_20
-              by solve( !KU( ~ey ) @ #vk.16 )
+              by solve( !KU( ~ey ) @ #vk.37 )
             next
               case Resp_1_case_21
-              by solve( !KU( ~ey ) @ #vk.16 )
-            next
-              case Resp_1_case_22
-              solve( !KU( ~s ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Resp_1_case_22
+              by solve( !KU( ~ey ) @ #vk.37 )
+            next
               case Resp_1_case_23
-              by solve( !KU( ~ey ) @ #vk.16 )
+              by solve( !KU( ~ey ) @ #vk.24 )
             next
               case Resp_1_case_24
-              by solve( !KU( ~ey ) @ #vk.16 )
+              by solve( !KU( ~ey ) @ #vk.24 )
             next
               case Resp_1_case_25
-              solve( !KU( ~s ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.32 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_26
-              solve( !KU( ~s ) @ #vk.16 )
+              solve( !KU( ~x.4 ) @ #vk.32 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_27
-              solve( !KU( ~s ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.39 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_28
-              solve( !KU( ~s ) @ #vk.16 )
+              solve( !KU( ~x.4 ) @ #vk.39 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
@@ -806,321 +800,324 @@ next
               case Reveal_ltk_case_14
               by contradiction /* non-normal bilinear pairing rule instance */
             next
-              case Reveal_ltk_case_15
-              by contradiction /* from formulas */
-            next
-              case Reveal_ltk_case_16
-              by contradiction /* from formulas */
-            next
               case c_exp
-              solve( !KU( ~s ) @ #vk.13 )
+              solve( !KU( ~s.1 ) @ #vk.14 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             qed
           next
+            case Init_1_case_04
+            by solve( !KU( ~ex.3 ) @ #vk.12 )
+          next
             case Init_1_case_05
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.3 ) @ #vk.15 )
           next
             case Init_1_case_06
-            by solve( !KU( ~ex.1 ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.18 )
           next
             case Init_1_case_07
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.2 ) @ #vk.15 )
           next
             case Init_1_case_08
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.18 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_09
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_10
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.15 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_11
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.3 ) @ #vk.17 )
           next
             case Init_1_case_12
-            by solve( !KU( ~ex.1 ) @ #vk.14 )
+            by solve( !KU( ~ex.2 ) @ #vk.25 )
           next
             case Init_1_case_13
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.3 ) @ #vk.17 )
           next
             case Init_1_case_14
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~s.1 ) @ #vk.25 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_15
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~s.1 ) @ #vk.22 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_01
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.2 ) @ #vk.12 )
           next
             case Resp_1_case_02
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.13 )
           next
             case Resp_1_case_03
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.16 )
           next
             case Resp_1_case_04
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey ) @ #vk.19 )
           next
             case Resp_1_case_05
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.16 )
           next
             case Resp_1_case_06
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~x.3 ) @ #vk.19 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_07
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.18 )
           next
             case Resp_1_case_08
-            by solve( !KU( ~ey ) @ #vk.15 )
+            by solve( !KU( ~ey ) @ #vk.26 )
           next
             case Resp_1_case_09
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.18 )
           next
             case Resp_1_case_10
-            solve( !KU( ~s ) @ #vk.15 )
+            solve( !KU( ~x.3 ) @ #vk.26 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Reveal_ltk_case_1
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.2 ) @ #vk.12 )
           next
             case Reveal_ltk_case_2
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.13 )
           next
             case Reveal_ltk_case_3
-            by solve( !KU( ~ex ) @ #vk.10 )
+            by solve( !KU( ~ex.2 ) @ #vk.11 )
           next
             case Reveal_ltk_case_4
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.2 ) @ #vk.12 )
           next
             case c_exp
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.1 ) @ #vk.13 )
+          qed
+        next
+          case split_case_3
+          solve( !KU( z.1^inv(~ex.1) ) @ #vk.10 )
+            case c_exp
+            by solve( !KU( ~ex.1 ) @ #vk.13 )
           qed
         next
           case split_case_4
-          solve( !KU( x^inv((~ex*x.1)) ) @ #vk.1 )
+          solve( !KU( x.1^inv((~ex.1*x.2)) ) @ #vk.10 )
             case c_exp
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex.1 ) @ #vk.14 )
           qed
         next
           case split_case_5
-          solve( !KU( x^(x.1*inv(~ex)) ) @ #vk.1 )
+          solve( !KU( x.1^(x.2*inv(~ex.1)) ) @ #vk.10 )
             case Init_1_case_01
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.3 ) @ #vk.12 )
           next
             case Init_1_case_02
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex.3 ) @ #vk.14 )
           next
             case Init_1_case_03
-            by solve( !KU( ~ex.1 ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.16 )
           next
             case Init_1_case_04
-            by solve( !KU( ~ex.1 ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.17 )
           next
             case Init_1_case_05
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.16 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_06
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_07
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.15 )
           next
             case Init_1_case_08
-            by solve( !KU( ~ex ) @ #vk.12 )
+            solve( !KU( ~s.1 ) @ #vk.15 )
+              case Reveal_master_key
+              by contradiction /* from formulas */
+            qed
           next
             case Init_1_case_09
-            by solve( !KU( ~ex.1 ) @ #vk.14 )
+            by solve( !KU( ~ex.2 ) @ #vk.22 )
           next
             case Init_1_case_10
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~s.1 ) @ #vk.22 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_01
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.13 )
           next
             case Resp_1_case_02
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex.2 ) @ #vk.15 )
           next
             case Resp_1_case_03
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey ) @ #vk.17 )
           next
             case Resp_1_case_04
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey ) @ #vk.18 )
           next
             case Resp_1_case_05
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~x.3 ) @ #vk.19 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_06
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~x.3 ) @ #vk.20 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_07
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ey ) @ #vk.16 )
           next
             case Resp_1_case_08
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.16 )
           next
             case Resp_1_case_09
-            by solve( !KU( ~ey ) @ #vk.15 )
+            by solve( !KU( ~ey ) @ #vk.23 )
           next
             case Resp_1_case_10
-            solve( !KU( ~s ) @ #vk.15 )
-              case Reveal_master_key
-              by contradiction /* from formulas */
-            qed
+            by solve( !KU( ~ex.2 ) @ #vk.23 )
           next
             case Reveal_ltk_case_1
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.13 )
           next
             case Reveal_ltk_case_2
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex.2 ) @ #vk.15 )
           next
             case Reveal_ltk_case_3
-            by solve( !KU( ~ex ) @ #vk.11 )
+            by solve( !KU( ~ex.2 ) @ #vk.12 )
           next
             case Reveal_ltk_case_4
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.14 )
           next
             case c_exp
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex.1 ) @ #vk.15 )
           qed
         next
           case split_case_6
-          solve( !KU( x^(x.1*inv((~ex*x.2))) ) @ #vk.1 )
+          solve( !KU( x.1^(x.2*inv((~ex.1*x.3))) ) @ #vk.10 )
             case Init_1_case_01
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.3 ) @ #vk.13 )
           next
             case Init_1_case_02
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex.3 ) @ #vk.15 )
           next
             case Init_1_case_03
-            by solve( !KU( ~ex.1 ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.16 )
           next
             case Init_1_case_04
-            by solve( !KU( ~ex.1 ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.17 )
           next
             case Init_1_case_05
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.16 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_06
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_07
-            by solve( !KU( ~ex.1 ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.15 )
           next
             case Init_1_case_08
-            solve( !KU( ~s ) @ #vk.13 )
+            solve( !KU( ~s.1 ) @ #vk.15 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_09
-            by solve( !KU( ~ex.1 ) @ #vk.14 )
+            by solve( !KU( ~ex.2 ) @ #vk.23 )
           next
             case Init_1_case_10
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~s.1 ) @ #vk.23 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_01
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.14 )
           next
             case Resp_1_case_02
-            by solve( !KU( ~ex ) @ #vk.15 )
+            by solve( !KU( ~ex.2 ) @ #vk.16 )
           next
             case Resp_1_case_03
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey ) @ #vk.17 )
           next
             case Resp_1_case_04
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey ) @ #vk.18 )
           next
             case Resp_1_case_05
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~x.4 ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_06
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~x.4 ) @ #vk.18 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_07
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey ) @ #vk.16 )
           next
             case Resp_1_case_08
-            solve( !KU( ~s ) @ #vk.14 )
+            solve( !KU( ~x.4 ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_09
-            by solve( !KU( ~ey ) @ #vk.15 )
+            by solve( !KU( ~ey ) @ #vk.24 )
           next
             case Resp_1_case_10
-            solve( !KU( ~s ) @ #vk.15 )
+            solve( !KU( ~x.4 ) @ #vk.25 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Reveal_ltk_case_1
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex.2 ) @ #vk.14 )
           next
             case Reveal_ltk_case_2
-            by solve( !KU( ~ex ) @ #vk.15 )
+            by solve( !KU( ~ex.2 ) @ #vk.16 )
           next
             case Reveal_ltk_case_3
-            by solve( !KU( ~ex ) @ #vk.12 )
+            by solve( !KU( ~ex.2 ) @ #vk.13 )
           next
             case Reveal_ltk_case_4
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex.2 ) @ #vk.15 )
           next
             case c_exp
-            by solve( !KU( ~ex ) @ #vk.15 )
+            by solve( !KU( ~ex.1 ) @ #vk.16 )
           qed
         next
           case split_case_7
@@ -1130,9 +1127,10 @@ next
     qed
   next
     case Resp_1
-    solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #i1 )
+    solve( !LTK( $B.1, pmult(~x.1, hp($B.1)) ) ▶₁ #i1 )
       case KGC_request
-      solve( !KU( kdf(<z, $A, $B, X, em(hp($A), hp($B))^(~ey*~x)>) ) @ #vk )
+      solve( !KU( kdf(<z, $A.1, $B.1, X, em(hp($A.1), hp($B.1))^(~ey*~x.1)>)
+             ) @ #vk )
         case Reveal_session_key_case_1
         by contradiction /* from formulas */
       next
@@ -1142,74 +1140,68 @@ next
         case c_kdf
         solve( splitEqs(0) )
           case split_case_1
-          solve( !KU( X^~ey ) @ #vk.5 )
+          solve( !KU( X.1^~ey.1 ) @ #vk.3 )
             case Resp_1
-            solve( !KU( ~x ) @ #vk.11 )
+            solve( !KU( ~x.2 ) @ #vk.13 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case c_exp
-            by solve( !KU( ~ey ) @ #vk.10 )
+            by solve( !KU( ~ey.1 ) @ #vk.12 )
           qed
         next
           case split_case_2
-          solve( !KU( z^inv(~ey) ) @ #vk.1 )
-            case c_exp
-            by solve( !KU( ~ey ) @ #vk.11 )
-          qed
-        next
-          case split_case_3
-          solve( !KU( x.1^(~ey*x.2) ) @ #vk.5 )
+          solve( !KU( x.2^(~ey.1*x.3) ) @ #vk.3 )
             case Init_1_case_01
-            by solve( !KU( ~ey ) @ #vk.10 )
+            by solve( !KU( ~ey.2 ) @ #vk.11 )
           next
             case Init_1_case_02
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.12 )
           next
             case Init_1_case_03
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.15 )
           next
             case Init_1_case_04
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex ) @ #vk.18 )
           next
             case Init_1_case_05
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.15 )
           next
             case Init_1_case_06
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~s ) @ #vk.18 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_07
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.17 )
           next
             case Init_1_case_08
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex ) @ #vk.25 )
           next
             case Init_1_case_09
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.17 )
           next
             case Init_1_case_10
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~s ) @ #vk.25 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_01
-            solve( !KU( em(hp($A), hp($B))^~x ) @ #vk.2 )
+            solve( !KU( em(hp($A.2), hp($B.2))^~x.4 ) @ #vk.11 )
               case Init_1_case_1
-              by solve( !KU( ~ex ) @ #vk.10 )
+              by solve( !KU( ~ex ) @ #vk.13 )
             next
               case Init_1_case_2
-              by solve( !KU( ~ex ) @ #vk.10 )
+              by solve( !KU( ~ex ) @ #vk.13 )
             next
               case Resp_1_case_1
-              by solve( !KU( ~ey.1 ) @ #vk.11 )
+              by solve( !KU( ~ey.3 ) @ #vk.14 )
             next
               case Resp_1_case_2
-              by solve( !KU( ~ey.1 ) @ #vk.11 )
+              by solve( !KU( ~ey.3 ) @ #vk.14 )
             next
               case Reveal_ltk_case_1
               by contradiction /* from formulas */
@@ -1218,268 +1210,268 @@ next
               by contradiction /* from formulas */
             next
               case c_exp
-              solve( !KU( ~x ) @ #vk.10 )
+              solve( !KU( ~x.4 ) @ #vk.13 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             qed
           next
             case Resp_1_case_02
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.3 ) @ #vk.12 )
           next
             case Resp_1_case_03
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.3 ) @ #vk.13 )
           next
             case Resp_1_case_04
-            solve( !KU( em(hp($A), hp($B))^(~x*x.1) ) @ #vk.2 )
+            solve( !KU( em(hp($A.2), hp($B.2))^(~x.4*x.5) ) @ #vk.11 )
               case Init_1_case_01
-              by solve( !KU( ~x.1 ) @ #vk.10 )
+              by solve( !KU( ~ex ) @ #vk.12 )
             next
               case Init_1_case_02
-              by solve( !KU( ~x.1 ) @ #vk.10 )
+              by solve( !KU( ~ex ) @ #vk.12 )
             next
               case Init_1_case_03
-              solve( !KU( ~x ) @ #vk.11 )
+              solve( !KU( ~s ) @ #vk.15 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_04
-              solve( !KU( ~x ) @ #vk.12 )
-                case Reveal_master_key
-                by contradiction /* from formulas */
-              qed
+              by solve( !KU( ~ex ) @ #vk.14 )
             next
               case Init_1_case_05
-              by solve( !KU( ~ex ) @ #vk.12 )
-            next
-              case Init_1_case_06
-              solve( !KU( ~x ) @ #vk.11 )
+              solve( !KU( ~s ) @ #vk.15 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Init_1_case_06
+              by solve( !KU( ~ex ) @ #vk.14 )
+            next
               case Init_1_case_07
-              solve( !KU( ~x ) @ #vk.12 )
+              solve( !KU( ~s ) @ #vk.19 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_08
-              by solve( !KU( ~ex ) @ #vk.12 )
+              solve( !KU( ~s ) @ #vk.19 )
+                case Reveal_master_key
+                by contradiction /* from formulas */
+              qed
             next
               case Init_1_case_09
-              solve( !KU( ~x ) @ #vk.10 )
+              solve( !KU( ~s ) @ #vk.20 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_10
-              by solve( !KU( ~ex ) @ #vk.13 )
+              by solve( !KU( ~ex ) @ #vk.19 )
             next
               case Init_1_case_11
-              by solve( !KU( ~ex ) @ #vk.13 )
-            next
-              case Init_1_case_12
-              solve( !KU( ~x ) @ #vk.10 )
+              solve( !KU( ~s ) @ #vk.20 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Init_1_case_12
+              by solve( !KU( ~ex ) @ #vk.19 )
+            next
               case Init_1_case_13
-              by solve( !KU( ~ex ) @ #vk.13 )
+              by solve( !KU( ~ex ) @ #vk.28 )
             next
               case Init_1_case_14
-              by solve( !KU( ~ex ) @ #vk.13 )
+              by solve( !KU( ~ex ) @ #vk.28 )
             next
               case Init_1_case_15
-              solve( !KU( ~x ) @ #vk.14 )
+              solve( !KU( ~s ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_16
-              solve( !KU( ~x ) @ #vk.14 )
+              solve( !KU( ~s ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_17
-              by solve( !KU( ~ex ) @ #vk.14 )
+              by solve( !KU( ~ex ) @ #vk.17 )
             next
               case Init_1_case_18
-              by solve( !KU( ~ex ) @ #vk.14 )
+              by solve( !KU( ~ex ) @ #vk.17 )
             next
               case Init_1_case_19
-              solve( !KU( ~x ) @ #vk.12 )
+              solve( !KU( ~s ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_20
-              by solve( !KU( ~ex ) @ #vk.15 )
+              by solve( !KU( ~ex ) @ #vk.24 )
             next
               case Init_1_case_21
-              by solve( !KU( ~ex ) @ #vk.15 )
-            next
-              case Init_1_case_22
-              solve( !KU( ~x ) @ #vk.12 )
+              solve( !KU( ~s ) @ #vk.29 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Init_1_case_22
+              by solve( !KU( ~ex ) @ #vk.24 )
+            next
               case Init_1_case_23
-              by solve( !KU( ~ex ) @ #vk.15 )
+              by solve( !KU( ~ex ) @ #vk.37 )
             next
               case Init_1_case_24
-              by solve( !KU( ~ex ) @ #vk.15 )
+              by solve( !KU( ~ex ) @ #vk.37 )
             next
               case Init_1_case_25
-              solve( !KU( ~x ) @ #vk.12 )
+              solve( !KU( ~s ) @ #vk.32 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_26
-              solve( !KU( ~x ) @ #vk.15 )
+              solve( !KU( ~s ) @ #vk.32 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_27
-              solve( !KU( ~x ) @ #vk.12 )
+              solve( !KU( ~s ) @ #vk.39 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Init_1_case_28
-              solve( !KU( ~x ) @ #vk.15 )
+              solve( !KU( ~s ) @ #vk.39 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_01
-              by solve( !KU( ~x.1 ) @ #vk.10 )
+              by solve( !KU( ~ey.3 ) @ #vk.12 )
             next
               case Resp_1_case_02
-              by solve( !KU( ~x.1 ) @ #vk.10 )
+              by solve( !KU( ~ey.3 ) @ #vk.12 )
             next
               case Resp_1_case_03
-              solve( !KU( ~x ) @ #vk.12 )
+              solve( !KU( ~x.6 ) @ #vk.16 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_04
-              solve( !KU( ~x ) @ #vk.13 )
-                case Reveal_master_key
-                by contradiction /* from formulas */
-              qed
+              by solve( !KU( ~ey.3 ) @ #vk.15 )
             next
               case Resp_1_case_05
-              by solve( !KU( ~ey.1 ) @ #vk.13 )
-            next
-              case Resp_1_case_06
-              solve( !KU( ~x ) @ #vk.12 )
+              solve( !KU( ~x.6 ) @ #vk.16 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
+              case Resp_1_case_06
+              by solve( !KU( ~ey.3 ) @ #vk.15 )
+            next
               case Resp_1_case_07
-              solve( !KU( ~x ) @ #vk.13 )
+              solve( !KU( ~x.6 ) @ #vk.20 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_08
-              by solve( !KU( ~ey.1 ) @ #vk.13 )
+              solve( !KU( ~x.6 ) @ #vk.20 )
+                case Reveal_master_key
+                by contradiction /* from formulas */
+              qed
             next
               case Resp_1_case_09
-              solve( !KU( ~x ) @ #vk.10 )
+              solve( !KU( ~x.6 ) @ #vk.21 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_10
-              by solve( !KU( ~ey.1 ) @ #vk.14 )
+              by solve( !KU( ~ey.3 ) @ #vk.29 )
             next
               case Resp_1_case_11
-              by solve( !KU( ~ey.1 ) @ #vk.14 )
+              by solve( !KU( ~ey.3 ) @ #vk.20 )
             next
               case Resp_1_case_12
-              solve( !KU( ~x ) @ #vk.10 )
+              solve( !KU( ~x.6 ) @ #vk.21 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_13
-              by solve( !KU( ~ey.1 ) @ #vk.14 )
+              by solve( !KU( ~ey.3 ) @ #vk.29 )
             next
               case Resp_1_case_14
-              by solve( !KU( ~ey.1 ) @ #vk.14 )
+              by solve( !KU( ~ey.3 ) @ #vk.20 )
             next
               case Resp_1_case_15
-              solve( !KU( ~x ) @ #vk.15 )
+              solve( !KU( ~x.6 ) @ #vk.30 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_16
-              solve( !KU( ~x ) @ #vk.15 )
+              solve( !KU( ~x.6 ) @ #vk.30 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_17
-              by solve( !KU( ~ey.1 ) @ #vk.15 )
+              by solve( !KU( ~ey.3 ) @ #vk.18 )
             next
               case Resp_1_case_18
-              by solve( !KU( ~ey.1 ) @ #vk.15 )
+              by solve( !KU( ~ey.3 ) @ #vk.18 )
             next
               case Resp_1_case_19
-              solve( !KU( ~x ) @ #vk.13 )
+              solve( !KU( ~x.6 ) @ #vk.30 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_20
-              by solve( !KU( ~ey.1 ) @ #vk.16 )
+              by solve( !KU( ~ey.3 ) @ #vk.38 )
             next
               case Resp_1_case_21
-              by solve( !KU( ~ey.1 ) @ #vk.16 )
+              by solve( !KU( ~ey.3 ) @ #vk.25 )
             next
               case Resp_1_case_22
-              solve( !KU( ~x ) @ #vk.13 )
+              solve( !KU( ~x.6 ) @ #vk.30 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_23
-              by solve( !KU( ~ey.1 ) @ #vk.16 )
+              by solve( !KU( ~ey.3 ) @ #vk.38 )
             next
               case Resp_1_case_24
-              by solve( !KU( ~ey.1 ) @ #vk.16 )
+              by solve( !KU( ~ey.3 ) @ #vk.25 )
             next
               case Resp_1_case_25
-              solve( !KU( ~x ) @ #vk.13 )
+              solve( !KU( ~x.6 ) @ #vk.33 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_26
-              solve( !KU( ~x ) @ #vk.16 )
+              solve( !KU( ~x.6 ) @ #vk.33 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_27
-              solve( !KU( ~x ) @ #vk.13 )
+              solve( !KU( ~x.6 ) @ #vk.40 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             next
               case Resp_1_case_28
-              solve( !KU( ~x ) @ #vk.16 )
+              solve( !KU( ~x.6 ) @ #vk.40 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
@@ -1512,10 +1504,10 @@ next
               by contradiction /* non-normal bilinear pairing rule instance */
             next
               case Reveal_ltk_case_10
-              by contradiction /* non-normal bilinear pairing rule instance */
+              by contradiction /* from formulas */
             next
               case Reveal_ltk_case_11
-              by contradiction /* from formulas */
+              by contradiction /* non-normal bilinear pairing rule instance */
             next
               case Reveal_ltk_case_12
               by contradiction /* from formulas */
@@ -1526,285 +1518,285 @@ next
               case Reveal_ltk_case_14
               by contradiction /* non-normal bilinear pairing rule instance */
             next
-              case Reveal_ltk_case_15
-              by contradiction /* from formulas */
-            next
-              case Reveal_ltk_case_16
-              by contradiction /* from formulas */
-            next
               case c_exp
-              solve( !KU( ~x ) @ #vk.13 )
+              solve( !KU( ~x.4 ) @ #vk.15 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
             qed
           next
             case Resp_1_case_05
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.3 ) @ #vk.16 )
           next
             case Resp_1_case_06
-            by solve( !KU( ~ey.1 ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.19 )
           next
             case Resp_1_case_07
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.3 ) @ #vk.16 )
           next
             case Resp_1_case_08
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~x.4 ) @ #vk.19 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_09
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~x.4 ) @ #vk.18 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_10
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~x.4 ) @ #vk.16 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_11
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.3 ) @ #vk.18 )
           next
             case Resp_1_case_12
-            by solve( !KU( ~ey.1 ) @ #vk.15 )
+            by solve( !KU( ~ey.2 ) @ #vk.26 )
           next
             case Resp_1_case_13
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.3 ) @ #vk.18 )
           next
             case Resp_1_case_14
-            solve( !KU( ~x ) @ #vk.15 )
+            solve( !KU( ~x.4 ) @ #vk.26 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_15
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~x.4 ) @ #vk.23 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Reveal_ltk_case_1
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.12 )
           next
             case Reveal_ltk_case_2
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.2 ) @ #vk.13 )
           next
             case Reveal_ltk_case_3
-            by solve( !KU( ~ey ) @ #vk.10 )
+            by solve( !KU( ~ey.2 ) @ #vk.11 )
           next
             case Reveal_ltk_case_4
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.12 )
           next
             case c_exp
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.1 ) @ #vk.13 )
+          qed
+        next
+          case split_case_3
+          solve( !KU( z.1^inv(~ey.1) ) @ #vk.9 )
+            case c_exp
+            by solve( !KU( ~ey.1 ) @ #vk.13 )
           qed
         next
           case split_case_4
-          solve( !KU( x.1^inv((~ey*x.2)) ) @ #vk.1 )
+          solve( !KU( x.2^inv((~ey.1*x.3)) ) @ #vk.9 )
             case c_exp
-            by solve( !KU( ~ey ) @ #vk.13 )
+            by solve( !KU( ~ey.1 ) @ #vk.14 )
           qed
         next
           case split_case_5
-          solve( !KU( x.1^(x.2*inv(~ey)) ) @ #vk.1 )
+          solve( !KU( x.2^(x.3*inv(~ey.1)) ) @ #vk.9 )
             case Init_1_case_01
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.12 )
           next
             case Init_1_case_02
-            by solve( !KU( ~ey ) @ #vk.13 )
+            by solve( !KU( ~ey.2 ) @ #vk.14 )
           next
             case Init_1_case_03
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex ) @ #vk.16 )
           next
             case Init_1_case_04
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex ) @ #vk.17 )
           next
             case Init_1_case_05
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~s ) @ #vk.16 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_06
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~s ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_07
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ex ) @ #vk.15 )
           next
             case Init_1_case_08
-            by solve( !KU( ~ey ) @ #vk.12 )
+            solve( !KU( ~s ) @ #vk.15 )
+              case Reveal_master_key
+              by contradiction /* from formulas */
+            qed
           next
             case Init_1_case_09
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex ) @ #vk.22 )
           next
             case Init_1_case_10
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~s ) @ #vk.22 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_01
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.3 ) @ #vk.13 )
           next
             case Resp_1_case_02
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey.3 ) @ #vk.15 )
           next
             case Resp_1_case_03
-            by solve( !KU( ~ey.1 ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.17 )
           next
             case Resp_1_case_04
-            by solve( !KU( ~ey.1 ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.18 )
           next
             case Resp_1_case_05
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~x.4 ) @ #vk.19 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_06
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~x.4 ) @ #vk.20 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_07
-            by solve( !KU( ~ey ) @ #vk.13 )
+            by solve( !KU( ~ey.2 ) @ #vk.16 )
           next
             case Resp_1_case_08
-            by solve( !KU( ~ey ) @ #vk.13 )
+            by solve( !KU( ~ey.3 ) @ #vk.16 )
           next
             case Resp_1_case_09
-            by solve( !KU( ~ey.1 ) @ #vk.15 )
+            by solve( !KU( ~ey.2 ) @ #vk.23 )
           next
             case Resp_1_case_10
-            solve( !KU( ~x ) @ #vk.15 )
-              case Reveal_master_key
-              by contradiction /* from formulas */
-            qed
+            by solve( !KU( ~ey.3 ) @ #vk.23 )
           next
             case Reveal_ltk_case_1
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.2 ) @ #vk.13 )
           next
             case Reveal_ltk_case_2
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.15 )
           next
             case Reveal_ltk_case_3
-            by solve( !KU( ~ey ) @ #vk.11 )
+            by solve( !KU( ~ey.2 ) @ #vk.12 )
           next
             case Reveal_ltk_case_4
-            by solve( !KU( ~ey ) @ #vk.13 )
+            by solve( !KU( ~ey.2 ) @ #vk.14 )
           next
             case c_exp
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey.1 ) @ #vk.15 )
           qed
         next
           case split_case_6
-          solve( !KU( x.1^(x.2*inv((~ey*x.3))) ) @ #vk.1 )
+          solve( !KU( x.2^(x.3*inv((~ey.1*x.4))) ) @ #vk.9 )
             case Init_1_case_01
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.2 ) @ #vk.13 )
           next
             case Init_1_case_02
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.15 )
           next
             case Init_1_case_03
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex ) @ #vk.16 )
           next
             case Init_1_case_04
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex ) @ #vk.17 )
           next
             case Init_1_case_05
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~s ) @ #vk.16 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_06
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~s ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_07
-            by solve( !KU( ~ex ) @ #vk.13 )
+            by solve( !KU( ~ex ) @ #vk.15 )
           next
             case Init_1_case_08
-            solve( !KU( ~x ) @ #vk.13 )
+            solve( !KU( ~s ) @ #vk.15 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Init_1_case_09
-            by solve( !KU( ~ex ) @ #vk.14 )
+            by solve( !KU( ~ex ) @ #vk.23 )
           next
             case Init_1_case_10
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~s ) @ #vk.23 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_01
-            by solve( !KU( ~ey ) @ #vk.13 )
+            by solve( !KU( ~ey.3 ) @ #vk.14 )
           next
             case Resp_1_case_02
-            by solve( !KU( ~ey ) @ #vk.15 )
+            by solve( !KU( ~ey.3 ) @ #vk.16 )
           next
             case Resp_1_case_03
-            by solve( !KU( ~ey.1 ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.17 )
           next
             case Resp_1_case_04
-            by solve( !KU( ~ey.1 ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.18 )
           next
             case Resp_1_case_05
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~x.5 ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_06
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~x.5 ) @ #vk.18 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_07
-            by solve( !KU( ~ey.1 ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.16 )
           next
             case Resp_1_case_08
-            solve( !KU( ~x ) @ #vk.14 )
+            solve( !KU( ~x.5 ) @ #vk.17 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Resp_1_case_09
-            by solve( !KU( ~ey.1 ) @ #vk.15 )
+            by solve( !KU( ~ey.2 ) @ #vk.24 )
           next
             case Resp_1_case_10
-            solve( !KU( ~x ) @ #vk.15 )
+            solve( !KU( ~x.5 ) @ #vk.25 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
           next
             case Reveal_ltk_case_1
-            by solve( !KU( ~ey ) @ #vk.13 )
+            by solve( !KU( ~ey.2 ) @ #vk.14 )
           next
             case Reveal_ltk_case_2
-            by solve( !KU( ~ey ) @ #vk.15 )
+            by solve( !KU( ~ey.2 ) @ #vk.16 )
           next
             case Reveal_ltk_case_3
-            by solve( !KU( ~ey ) @ #vk.12 )
+            by solve( !KU( ~ey.2 ) @ #vk.13 )
           next
             case Reveal_ltk_case_4
-            by solve( !KU( ~ey ) @ #vk.14 )
+            by solve( !KU( ~ey.2 ) @ #vk.15 )
           next
             case c_exp
-            by solve( !KU( ~ey ) @ #vk.15 )
+            by solve( !KU( ~ey.1 ) @ #vk.16 )
           qed
         next
           case split_case_7
@@ -1844,8 +1836,8 @@ Failed to derive Variable(s): ~s
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -1857,13 +1849,13 @@ summary of summaries:
 analyzed: examples/ake/bilinear/Scott.spthy
 
   output:          examples/ake/bilinear/Scott.spthy.tmp
-  processing time: 7.52s
+  processing time: 8.34s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!
   
   key_agreement_reachable (exists-trace): verified (10 steps)
-  key_secrecy (all-traces): verified (520 steps)
+  key_secrecy (all-traces): verified (516 steps)
 
 ==============================================================================
 */

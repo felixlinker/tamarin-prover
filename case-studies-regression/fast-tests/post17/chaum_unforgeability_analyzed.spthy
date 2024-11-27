@@ -59,13 +59,13 @@ guarded formula characterizing all satisfying traces:
 "∃ x #i. (Spend( x ) @ #i)"
 */
 simplify
-solve( Private_Ch( x ) ▶₀ #i )
+solve( Private_Ch( x.1 ) ▶₀ #i )
   case B_2
-  solve( St_S_1( $B, x ) ▶₁ #i )
+  solve( St_S_1( $B, x.1 ) ▶₁ #i )
     case S_1
-    solve( !KU( sign(~x, ~ltkB) ) @ #vk.3 )
+    solve( !KU( sign(~x.2, ~ltkB) ) @ #vk.2 )
       case B_1
-      solve( !KU( sign(~x, ~ltkB.1) ) @ #vk.5 )
+      solve( !KU( sign(~x.2, ~ltkB.1) ) @ #vk.5 )
         case B_1
         SOLVED // trace found
       qed
@@ -91,28 +91,28 @@ guarded formula characterizing all counter-examples:
    ((¬(#i < #j)) ∨ (∃ #l. (Spend( x ) @ #l) ∧ ¬(#l = #j)))"
 */
 simplify
-solve( Private_Ch( x ) ▶₀ #j )
+solve( Private_Ch( x.1 ) ▶₀ #j )
   case B_2
-  solve( St_S_1( $B, x ) ▶₁ #j )
+  solve( St_S_1( $B, x.1 ) ▶₁ #j )
     case S_1
-    solve( !KU( sign(~x, ~ltkB) ) @ #vk.3 )
+    solve( !KU( sign(~x.2, ~ltkB) ) @ #vk.2 )
       case B_1
       solve( (#l < #j)  ∥ (#j < #l) )
         case case_1
-        solve( Private_Ch( ~x ) ▶₀ #l )
+        solve( Private_Ch( ~x.2 ) ▶₀ #l )
           case B_2
           by contradiction /* cyclic */
         qed
       next
         case case_2
-        solve( Private_Ch( ~x ) ▶₀ #l )
+        solve( Private_Ch( ~x.2 ) ▶₀ #l )
           case B_2
           by contradiction /* cyclic */
         qed
       qed
     next
       case c_sign
-      by solve( !KU( ~ltkB ) @ #vk.5 )
+      by solve( !KU( ~ltkB ) @ #vk.7 )
     qed
   qed
 qed
@@ -152,8 +152,8 @@ Failed to derive Variable(s): ~ltkB
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -165,7 +165,7 @@ summary of summaries:
 analyzed: examples/post17/chaum_unforgeability.spthy
 
   output:          examples/post17/chaum_unforgeability.spthy.tmp
-  processing time: 0.19s
+  processing time: 0.18s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

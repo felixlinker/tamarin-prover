@@ -69,32 +69,32 @@ next
     case case_1
     solve( Secret( k ) @ #i )
       case Receive
-      solve( !KU( senc(k, k0) ) @ #vk )
+      solve( !KU( senc(k.1, k0) ) @ #vk )
         case Send
-        solve( !KU( ~k ) @ #j )
+        solve( !KU( ~k.2 ) @ #j )
           case Send
-          solve( Receiver( k0 ) ▶₀ #i )
+          solve( Receiver( x ) ▶₀ #i )
             case Receive
             by contradiction /* from formulas */
           next
             case Setup
-            by solve( !KU( ~k ) @ #vk.1 )
+            by solve( !KU( ~k.3 ) @ #vk.1 )
           qed
         qed
       next
         case c_senc
-        by contradiction /* node #i after last node #j */
+        by contradiction /* node #i after last node #vk.1 */
       qed
     next
       case Send
-      solve( !KU( ~k ) @ #j )
+      solve( !KU( ~k.1 ) @ #j )
         case Send
-        solve( Sender( k0 ) ▶₀ #i )
+        solve( Sender( x ) ▶₀ #vr )
           case Send
           by contradiction /* from formulas */
         next
           case Setup
-          by solve( !KU( ~k ) @ #vk )
+          by solve( !KU( ~k.2 ) @ #vk )
         qed
       qed
     qed
@@ -102,9 +102,9 @@ next
     case case_2
     solve( Secret( k ) @ #i )
       case Receive
-      solve( !KU( senc(k, k0) ) @ #vk )
+      solve( !KU( senc(k.1, k0) ) @ #vk )
         case Send
-        by solve( !KU( ~k ) @ #i )
+        by solve( !KU( ~k.2 ) @ #i )
       next
         case c_senc
         solve( Receiver( k0 ) ▶₀ #i )
@@ -112,12 +112,12 @@ next
           by contradiction /* from formulas */
         next
           case Setup
-          by solve( !KU( ~k ) @ #vk.1 )
+          by solve( !KU( ~k.2 ) @ #vk.2 )
         qed
       qed
     next
       case Send
-      solve( !KU( ~k ) @ #j )
+      solve( !KU( ~k.1 ) @ #j )
         case Send
         by contradiction /* from formulas */
       qed
@@ -141,8 +141,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -154,7 +154,7 @@ summary of summaries:
 analyzed: examples/loops/Minimal_KeyRenegotiation.spthy
 
   output:          examples/loops/Minimal_KeyRenegotiation.spthy.tmp
-  processing time: 0.12s
+  processing time: 0.10s
   
   Secret_reachable (exists-trace): verified (4 steps)
   secrecy (all-traces): verified (22 steps)

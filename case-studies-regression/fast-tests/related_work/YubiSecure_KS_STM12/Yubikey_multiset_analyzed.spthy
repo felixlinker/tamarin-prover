@@ -94,17 +94,17 @@ guarded formula characterizing all satisfying traces:
 "∃ #i pid sid x otp1. (Login( pid, sid, x, otp1 ) @ #i)"
 */
 simplify
-solve( !SharedKey( pid, k ) ▶₂ #i )
+solve( !SharedKey( pid.1, k ) ▶₂ #i )
   case BuyANewYubikey
-  solve( !KU( senc(<sid, (otc++z), ~pr>, ~k) ) @ #vk.4 )
+  solve( !KU( senc(<sid.1, (otc++z), ~pr>, ~k.1) ) @ #vk.4 )
     case Yubikey_PressButton
-    solve( Server( ~pid, ~sid, otc ) ▶₀ #i )
+    solve( Server( ~pid.3, ~sid.3, otc ) ▶₀ #i )
       case BuyANewYubikey
-      solve( Y_counter( ~pid, ('1'++z) ) ▶₁ #vr.1 )
+      solve( Y_counter( ~pid.3, ('1'++z) ) ▶₁ #vr.1 )
         case Yubikey_Plugin
-        solve( Y_counter( ~pid, z ) ▶₀ #vr.4 )
+        solve( Y_counter( ~pid.3, sc ) ▶₀ #vr.6 )
           case BuyANewYubikey
-          solve( !KU( ~pid ) @ #vk.3 )
+          solve( !KU( ~pid.3 ) @ #vk.1 )
             case BuyANewYubikey
             SOLVED // trace found
           qed
@@ -135,7 +135,7 @@ induction
   by contradiction /* from formulas */
 next
   case non_empty_trace
-  solve( (¬(#t1 < #t2))  ∥ (∀ z.2. ((otc1++z++z.2) = (otc2++z.1)) ⇒ ⊥) )
+  solve( (¬(#t1 < #t2))  ∥ (∀ z.2. ((otc++z++z.2) = (otc.1++z.1)) ⇒ ⊥) )
     case case_1
     solve( (#t2 = #t1)  ∥ (#t1 < #t2) )
       case case_1
@@ -163,25 +163,25 @@ next
              (∃ #i a b.
                (Smaller( a, b ) @ #i) ∧ (¬(last(#i))) ∧ (∀ z. ((a++z) = b) ⇒ ⊥)) )
         case case_1
-        solve( (last(#t2))  ∥ (∃ z.2. ((otc1++z++z.2) = (otc2++z.1))) )
+        solve( (last(#t2))  ∥ (∃ z.2. ((otc++z++z.2) = (otc.1++z.1))) )
           case case_1
-          solve( !SharedKey( pid, k ) ▶₂ #t1 )
+          solve( !SharedKey( pid.2, k ) ▶₂ #t1 )
             case BuyANewYubikey
-            solve( !SharedKey( ~pid, k.1 ) ▶₂ #t2 )
+            solve( !SharedKey( ~pid.3, k.1 ) ▶₂ #t2 )
               case BuyANewYubikey
-              solve( !KU( senc(<sid, (otc1++z), ~pr>, ~k) ) @ #vk.5 )
+              solve( !KU( senc(<sid.1, (otc++z), ~pr>, ~k.3) ) @ #vk.4 )
                 case Yubikey_PressButton
-                solve( !KU( senc(<~sid, (otc2++z.1), ~pr.1>, ~k) ) @ #vk.10 )
+                solve( !KU( senc(<~sid.4, (otc.1++z.1), ~pr.1>, ~k.3) ) @ #vk.10 )
                   case Yubikey_PressButton
-                  solve( Server( ~pid, ~sid, otc1 ) ▶₀ #t1 )
+                  solve( Server( ~pid.5, ~sid.4, otc ) ▶₀ #t1 )
                     case BuyANewYubikey
-                    solve( Server( ~pid, ~sid, otc2 ) ▶₀ #t2 )
+                    solve( Server( ~pid.5, ~sid.4, otc.1 ) ▶₀ #t2 )
                       case BuyANewYubikey
                       by contradiction /* cyclic */
                     next
                       case Server_ReceiveOTP_NewSession
-                      solve( ((#vr.7 < #t1) ∧ (∃ z.2. ((otc++z.1++z.2) = ('1'++z))))  ∥
-                             (#t1 < #vr.7)  ∥ (#vr.7 = #t1) )
+                      solve( ((#vr.11 < #t1) ∧ (∃ z.3. ((otc.2++z.2++z.3) = ('1'++z))))  ∥
+                             (#t1 < #vr.11)  ∥ (#vr.11 = #t1) )
                         case case_1_case_1
                         by contradiction /* cyclic */
                       next
@@ -254,15 +254,16 @@ next
                     qed
                   next
                     case Server_ReceiveOTP_NewSession
-                    solve( !KU( senc(<~sid, (otc++z), ~pr.2>, ~k) ) @ #vk.18 )
+                    solve( !KU( senc(<~sid.5, (otc.2++z.2), ~pr.2>, ~k.4) ) @ #vk.22 )
                       case Yubikey_PressButton
-                      solve( Server( ~pid, ~sid, otc2 ) ▶₀ #t2 )
+                      solve( Server( ~pid.6, ~sid.5, otc.1 ) ▶₀ #t2 )
                         case BuyANewYubikey
                         by contradiction /* cyclic */
                       next
                         case Server_ReceiveOTP_NewSession
-                        solve( ((#vr.11 < #t1) ∧ (∃ z.3. ((otc.1++z.2++z.3) = (otc++z++z.1))))  ∥
-                               (#t1 < #vr.11)  ∥ (#vr.11 = #t1) )
+                        solve( ((#vr.16 < #t1) ∧
+                                (∃ z.4. ((otc.3++z.3++z.4) = (z++otc.2++z.2))))  ∥
+                               (#t1 < #vr.16)  ∥ (#vr.16 = #t1) )
                           case case_1_case_001
                           by contradiction /* cyclic */
                         next
@@ -1301,16 +1302,16 @@ next
                       qed
                     next
                       case c_senc
-                      by solve( !KU( ~k ) @ #vk.23 )
+                      by solve( !KU( ~k.4 ) @ #vk.30 )
                     qed
                   qed
                 next
                   case c_senc
-                  by solve( !KU( ~k ) @ #vk.15 )
+                  by solve( !KU( ~k.3 ) @ #vk.16 )
                 qed
               next
                 case c_senc
-                by solve( !KU( ~k ) @ #vk.13 )
+                by solve( !KU( ~k.3 ) @ #vk.13 )
               qed
             qed
           qed
@@ -1452,20 +1453,20 @@ guarded formula characterizing all counter-examples:
     (∃ otp2 #t3. (Login( pid, sid, x, otp2 ) @ #t3) ∧ ¬(#t3 = #t2)))"
 */
 simplify
-solve( !SharedKey( pid, k ) ▶₂ #t2 )
+solve( !SharedKey( pid.1, k ) ▶₂ #t2 )
   case BuyANewYubikey
-  solve( !KU( senc(<sid, (otc++z), ~pr>, ~k) ) @ #vk.4 )
+  solve( !KU( senc(<sid.1, (otc++z), ~pr>, ~k.1) ) @ #vk.4 )
     case Yubikey_PressButton
     solve( (#t3 < #t2)  ∥ (#t2 < #t3) )
       case case_1
-      by solve( Login( ~pid, ~sid, (otc++z), otp2 ) @ #t3 )
+      by solve( Login( ~pid.3, ~sid.3, (otc++z), otp2 ) @ #t3 )
     next
       case case_2
-      by solve( Login( ~pid, ~sid, (otc++z), otp2 ) @ #t3 )
+      by solve( Login( ~pid.3, ~sid.3, (otc++z), otp2 ) @ #t3 )
     qed
   next
     case c_senc
-    by solve( !KU( ~k ) @ #vk.8 )
+    by solve( !KU( ~k.1 ) @ #vk.7 )
   qed
 qed
 
@@ -1488,9 +1489,9 @@ guarded formula characterizing all counter-examples:
 simplify
 solve( (#t1 = #t2)  ∥ (#t2 < #t1) )
   case case_1
-  solve( !SharedKey( pid, k ) ▶₂ #t1 )
+  solve( !SharedKey( pid.1, k ) ▶₂ #t2 )
     case BuyANewYubikey
-    by solve( LoginCounter( ~pid, otc2, (otc1++z++z.1) ) @ #t1 )
+    by solve( LoginCounter( ~pid.2, otc2, (otc++z++z.1) ) @ #t2 )
   qed
 qed
 
@@ -1510,8 +1511,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -1523,7 +1524,7 @@ summary of summaries:
 analyzed: examples/related_work/YubiSecure_KS_STM12/Yubikey_multiset.spthy
 
   output:          examples/related_work/YubiSecure_KS_STM12/Yubikey_multiset.spthy.tmp
-  processing time: 7.57s
+  processing time: 5.53s
   
   transitivity (all-traces): verified (2 steps)
   Login_reachable (exists-trace): verified (8 steps)

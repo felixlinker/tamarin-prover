@@ -94,15 +94,15 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∃ #j. (Create_V_1( e ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+         (∃ #j. (Create_V_1( e.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
     case case_1
     solve( !AdminLtk( A, ~ltkA ) ▶₁ #i )
       case Register_Admin_pk
       solve( !Pk( V, pk(~ltkV) ) ▶₂ #i )
         case Register_Voter_pk
-        solve( !KU( sign(e, ~ltkV) ) @ #vk.2 )
+        solve( !KU( sign(e.1, ~ltkV) ) @ #vk.2 )
           case A_1
-          solve( (#vr.7, 0) ~~> (#vk, 0) )
+          solve( (#vr.7, 0) ~~> (#vk.2, 0) )
             case d_0_open
             by contradiction /* forbidden KD-fact */
           qed
@@ -110,7 +110,7 @@ next
           case V_1_case_1
           solve( !KU( ~b ) @ #vk.3 )
             case A_1
-            solve( (#vr.11, 0) ~~> (#vk.1, 0) )
+            solve( (#vr.11, 0) ~~> (#vk.3, 0) )
               case d_0_open
               by contradiction /* forbidden KD-fact */
             qed
@@ -122,7 +122,7 @@ next
           case V_1_case_3
           solve( !KU( ~b ) @ #vk.4 )
             case A_1
-            solve( (#vr.12, 0) ~~> (#vk.1, 0) )
+            solve( (#vr.12, 0) ~~> (#vk.4, 0) )
               case d_0_open
               by contradiction /* forbidden KD-fact */
             qed
@@ -131,16 +131,16 @@ next
           case V_1_case_4
           solve( !KU( ~b ) @ #vk.3 )
             case A_1
-            solve( (#vr.10, 0) ~~> (#vk.1, 0) )
+            solve( (#vr.11, 0) ~~> (#vk.3, 0) )
               case d_0_open
               by contradiction /* forbidden KD-fact */
             qed
           qed
         next
           case c_sign
-          solve( !KU( ~ltkV ) @ #vk.3 )
+          solve( !KU( ~ltkV ) @ #vk.4 )
             case A_1
-            solve( (#vr.7, 0) ~~> (#vk.1, 0) )
+            solve( (#vr.7, 0) ~~> (#vk.4, 0) )
               case d_0_open
               by contradiction /* forbidden KD-fact */
             qed
@@ -161,14 +161,14 @@ guarded formula characterizing all satisfying traces:
 "∃ x #i. (VotePublished( x ) @ #i)"
 */
 simplify
-solve( P_Ch_Timeliness( $vote, ~r, x ) ▶₀ #i )
+solve( P_Ch_Timeliness( $vote, ~r, x.1 ) ▶₀ #i )
   case V_2
   solve( !KU( sign(blind(tdcommit($vote, ~r, ~td), ~b), ~ltkA) ) @ #vk.2 )
     case A_1
-    solve( !KU( sign(blind(tdcommit($vote, ~r, ~td), ~b), ~ltkV.1)
-           ) @ #vk.4 )
+    solve( !KU( sign(blind(tdcommit($vote, ~r, ~td), ~b), ~ltkV.2)
+           ) @ #vk.5 )
       case V_1
-      solve( !KU( blind(tdcommit($vote, ~r, ~td), ~b) ) @ #vk.3 )
+      solve( !KU( blind(tdcommit($vote, ~r, ~td), ~b) ) @ #vk.4 )
         case V_1_case_1
         SOLVED // trace found
       qed
@@ -189,14 +189,14 @@ guarded formula characterizing all counter-examples:
   ∀ b #i. (Registered( blind(x, b) ) @ #i) ⇒ ¬(#i < #j)"
 */
 simplify
-solve( P_Ch_Timeliness( $vote, ~r, x ) ▶₀ #j )
+solve( P_Ch_Timeliness( $vote, ~r, x.1 ) ▶₀ #j )
   case V_2
   solve( !KU( sign(blind(tdcommit($vote, ~r, ~td), ~b), ~ltkA) ) @ #vk.2 )
     case A_1
     by contradiction /* from formulas */
   next
     case c_sign
-    by solve( !KU( ~ltkA ) @ #vk.3 )
+    by solve( !KU( ~ltkA ) @ #vk.4 )
   qed
 qed
 
@@ -244,8 +244,8 @@ Failed to derive Variable(s): ~ltkA
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -257,7 +257,7 @@ summary of summaries:
 analyzed: examples/post17/okamoto_eligibility.spthy
 
   output:          examples/post17/okamoto_eligibility.spthy.tmp
-  processing time: 0.62s
+  processing time: 0.63s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

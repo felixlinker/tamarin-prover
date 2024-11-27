@@ -26,13 +26,13 @@ rule (modulo E) KGC_request:
   rule (modulo AC) KGC_request:
      [ !MSK( s ) ] --> [ !LTK( $ID, z ) ]
     variants (modulo AC)
-    1. $ID   = $ID.4
-       s     = s.4
-       z     = pmult(s.4, hp($ID.4))
-    
-    2. $ID   = $ID.4
+    1. $ID   = $ID.2
        s     = one
-       z     = hp($ID.4)
+       z     = hp($ID.2)
+    
+    2. $ID   = $ID.2
+       s     = s.2
+       z     = pmult(s.2, hp($ID.2))
   */
 
 rule (modulo E) Reveal_ltk:
@@ -72,101 +72,101 @@ rule (modulo E) Init_2:
     ]->
      [ !Sessk( ~ex, kdf(<z, z.1, $A, $B, 'g'^~ex, Y>) ) ]
     variants (modulo AC)
-     1. $B    = $B.12
-        ~ex   = ~ex.13
-        Y     = Y.14
-        skA   = skA.15
-        z     = Y.14^~ex.13
-        z.1   = em(skA.15, hp($B.12))
+     1. $B    = $B.3
+        ~ex   = ~x.2
+        Y     = x.3^inv(~x.2)
+        skA   = skA.3
+        z     = x.3
+        z.1   = em(skA.3, hp($B.3))
     
-     2. $B    = $B.12
+     2. $B    = $B.3
+        ~ex   = ~x.4
+        Y     = x.5^inv(~x.4)
+        skA   = pmult(x.6, x.7)
+        z     = x.5
+        z.1   = em(x.7, hp($B.3))^x.6
+    
+     3. $B    = $B.3
         Y     = DH_neutral
-        skA   = skA.15
+        skA   = skA.3
         z     = DH_neutral
-        z.1   = em(skA.15, hp($B.12))
+        z.1   = em(skA.3, hp($B.3))
     
-     3. $B    = $B.13
-        ~ex   = ~ex.14
-        Y     = z.17^inv(~ex.14)
-        skA   = skA.16
-        z     = z.17
-        z.1   = em(skA.16, hp($B.13))
-    
-     4. $B    = $B.52
-        ~ex   = ~ex.53
-        Y     = Y.54
-        skA   = pmult(x.100, x.101)
-        z     = Y.54^~ex.53
-        z.1   = em(x.101, hp($B.52))^x.100
-    
-     5. $B    = $B.52
-        ~ex   = ~ex.53
-        Y     = x.100^x.101
-        skA   = skA.55
-        z     = x.100^(~ex.53*x.101)
-        z.1   = em(skA.55, hp($B.52))
-    
-     6. $B    = $B.52
+     4. $B    = $B.3
         Y     = DH_neutral
-        skA   = pmult(x.100, x.101)
+        skA   = pmult(x.2, x.3)
         z     = DH_neutral
-        z.1   = em(x.101, hp($B.52))^x.100
+        z.1   = em(x.3, hp($B.3))^x.2
     
-     7. $B    = $B.53
-        ~ex   = ~ex.54
-        Y     = x.102^inv((~ex.54*x.103))
-        skA   = skA.56
-        z     = x.102^inv(x.103)
-        z.1   = em(skA.56, hp($B.53))
+     5. $B    = $B.3
+        ~ex   = ~ex.3
+        Y     = x.2^x.3
+        skA   = skA.3
+        z     = x.2^(~ex.3*x.3)
+        z.1   = em(skA.3, hp($B.3))
     
-     8. $B    = $B.53
-        ~ex   = ~ex.54
-        Y     = x.102^(x.103*inv(~ex.54))
-        skA   = skA.56
-        z     = x.102^x.103
-        z.1   = em(skA.56, hp($B.53))
+     6. $B    = $B.3
+        ~ex   = ~ex.3
+        Y     = Y.3
+        skA   = skA.3
+        z     = Y.3^~ex.3
+        z.1   = em(skA.3, hp($B.3))
     
-     9. $B    = $B.54
-        ~ex   = ~ex.55
-        Y     = z.58^inv(~ex.55)
-        skA   = pmult(x.104, x.105)
-        z     = z.58
-        z.1   = em(x.105, hp($B.54))^x.104
+     7. $B    = $B.3
+        ~ex   = ~ex.3
+        Y     = Y.3
+        skA   = pmult(x.2, x.3)
+        z     = Y.3^~ex.3
+        z.1   = em(x.3, hp($B.3))^x.2
     
-    10. $B    = $B.54
-        ~ex   = ~ex.55
-        Y     = x.102^x.103
-        skA   = pmult(x.104, x.105)
-        z     = x.102^(~ex.55*x.103)
-        z.1   = em(x.105, hp($B.54))^x.104
+     8. $B    = $B.3
+        ~ex   = ~x.3
+        Y     = x.4^(x.5*inv(~x.3))
+        skA   = skA.3
+        z     = x.4^x.5
+        z.1   = em(skA.3, hp($B.3))
     
-    11. $B    = $B.54
-        ~ex   = ~ex.55
-        Y     = x.103^(x.104*inv((~ex.55*x.105)))
-        skA   = skA.57
-        z     = x.103^(x.104*inv(x.105))
-        z.1   = em(skA.57, hp($B.54))
+     9. $B    = $B.3
+        ~ex   = ~x.3
+        Y     = x.4^inv((~x.3*x.5))
+        skA   = skA.3
+        z     = x.4^inv(x.5)
+        z.1   = em(skA.3, hp($B.3))
     
-    12. $B    = $B.55
-        ~ex   = ~ex.56
-        Y     = x.104^inv((~ex.56*x.105))
-        skA   = pmult(x.106, x.107)
-        z     = x.104^inv(x.105)
-        z.1   = em(x.107, hp($B.55))^x.106
+    10. $B    = $B.3
+        ~ex   = ~ex.3
+        Y     = x.4^x.5
+        skA   = pmult(x.6, x.7)
+        z     = x.4^(~ex.3*x.5)
+        z.1   = em(x.7, hp($B.3))^x.6
     
-    13. $B    = $B.55
-        ~ex   = ~ex.56
-        Y     = x.104^(x.105*inv(~ex.56))
-        skA   = pmult(x.106, x.107)
-        z     = x.104^x.105
-        z.1   = em(x.107, hp($B.55))^x.106
+    11. $B    = $B.3
+        ~ex   = ~x.4
+        Y     = x.5^(x.6*inv((~x.4*x.7)))
+        skA   = skA.3
+        z     = x.5^(x.6*inv(x.7))
+        z.1   = em(skA.3, hp($B.3))
     
-    14. $B    = $B.56
-        ~ex   = ~ex.57
-        Y     = x.105^(x.106*inv((~ex.57*x.107)))
-        skA   = pmult(x.108, x.109)
-        z     = x.105^(x.106*inv(x.107))
-        z.1   = em(x.109, hp($B.56))^x.108
+    12. $B    = $B.3
+        ~ex   = ~x.5
+        Y     = x.6^(x.7*inv(~x.5))
+        skA   = pmult(x.8, x.9)
+        z     = x.6^x.7
+        z.1   = em(x.9, hp($B.3))^x.8
+    
+    13. $B    = $B.3
+        ~ex   = ~x.5
+        Y     = x.6^inv((~x.5*x.7))
+        skA   = pmult(x.8, x.9)
+        z     = x.6^inv(x.7)
+        z.1   = em(x.9, hp($B.3))^x.8
+    
+    14. $B    = $B.3
+        ~ex   = ~x.6
+        Y     = x.7^(x.8*inv((~x.6*x.9)))
+        skA   = pmult(x.10, x.11)
+        z     = x.7^(x.8*inv(x.9))
+        z.1   = em(x.11, hp($B.3))^x.10
   */
 
 rule (modulo E) Resp_1:
@@ -189,101 +189,101 @@ rule (modulo E) Resp_1:
     ]->
      [ Out( 'g'^~ey ), !Sessk( ~ey, kdf(<z, z.1, $A, $B, X, 'g'^~ey>) ) ]
     variants (modulo AC)
-     1. $A    = $A.14
-        ~ey   = ~ey.16
-        X     = X.17
-        skB   = skB.18
-        z     = X.17^~ey.16
-        z.1   = em(skB.18, hp($A.14))
+     1. $A    = $A.3
+        ~ey   = ~x.2
+        X     = x.3^inv(~x.2)
+        skB   = skB.3
+        z     = x.3
+        z.1   = em(skB.3, hp($A.3))
     
-     2. $A    = $A.14
+     2. $A    = $A.3
+        ~ey   = ~ey.3
+        X     = X.3
+        skB   = skB.3
+        z     = X.3^~ey.3
+        z.1   = em(skB.3, hp($A.3))
+    
+     3. $A    = $A.3
+        ~ey   = ~ey.3
+        X     = X.3
+        skB   = pmult(x.2, x.3)
+        z     = X.3^~ey.3
+        z.1   = em(x.3, hp($A.3))^x.2
+    
+     4. $A    = $A.3
+        ~ey   = ~ey.3
+        X     = x.2^x.3
+        skB   = skB.3
+        z     = x.2^(~ey.3*x.3)
+        z.1   = em(skB.3, hp($A.3))
+    
+     5. $A    = $A.3
+        ~ey   = ~ey.3
+        X     = x.4^x.5
+        skB   = pmult(x.6, x.7)
+        z     = x.4^(~ey.3*x.5)
+        z.1   = em(x.7, hp($A.3))^x.6
+    
+     6. $A    = $A.3
+        ~ey   = ~x.3
+        X     = x.4^inv((~x.3*x.5))
+        skB   = skB.3
+        z     = x.4^inv(x.5)
+        z.1   = em(skB.3, hp($A.3))
+    
+     7. $A    = $A.3
+        ~ey   = ~x.3
+        X     = x.4^(x.5*inv(~x.3))
+        skB   = skB.3
+        z     = x.4^x.5
+        z.1   = em(skB.3, hp($A.3))
+    
+     8. $A    = $A.3
+        ~ey   = ~x.4
+        X     = x.5^inv(~x.4)
+        skB   = pmult(x.6, x.7)
+        z     = x.5
+        z.1   = em(x.7, hp($A.3))^x.6
+    
+     9. $A    = $A.3
+        ~ey   = ~x.4
+        X     = x.5^(x.6*inv((~x.4*x.7)))
+        skB   = skB.3
+        z     = x.5^(x.6*inv(x.7))
+        z.1   = em(skB.3, hp($A.3))
+    
+    10. $A    = $A.3
+        ~ey   = ~x.5
+        X     = x.6^inv((~x.5*x.7))
+        skB   = pmult(x.8, x.9)
+        z     = x.6^inv(x.7)
+        z.1   = em(x.9, hp($A.3))^x.8
+    
+    11. $A    = $A.3
+        ~ey   = ~x.5
+        X     = x.6^(x.7*inv(~x.5))
+        skB   = pmult(x.8, x.9)
+        z     = x.6^x.7
+        z.1   = em(x.9, hp($A.3))^x.8
+    
+    12. $A    = $A.3
+        ~ey   = ~x.6
+        X     = x.7^(x.8*inv((~x.6*x.9)))
+        skB   = pmult(x.10, x.11)
+        z     = x.7^(x.8*inv(x.9))
+        z.1   = em(x.11, hp($A.3))^x.10
+    
+    13. $A    = $A.3
         X     = DH_neutral
-        skB   = skB.18
+        skB   = skB.3
         z     = DH_neutral
-        z.1   = em(skB.18, hp($A.14))
+        z.1   = em(skB.3, hp($A.3))
     
-     3. $A    = $A.16
-        ~ey   = ~ey.18
-        X     = z.22^inv(~ey.18)
-        skB   = skB.20
-        z     = z.22
-        z.1   = em(skB.20, hp($A.16))
-    
-     4. $A    = $A.57
-        ~ey   = ~ey.59
-        X     = X.60
-        skB   = pmult(x.111, x.112)
-        z     = X.60^~ey.59
-        z.1   = em(x.112, hp($A.57))^x.111
-    
-     5. $A    = $A.57
-        ~ey   = ~ey.59
-        X     = x.111^x.112
-        skB   = skB.61
-        z     = x.111^(~ey.59*x.112)
-        z.1   = em(skB.61, hp($A.57))
-    
-     6. $A    = $A.57
+    14. $A    = $A.3
         X     = DH_neutral
-        skB   = pmult(x.111, x.112)
+        skB   = pmult(x.2, x.3)
         z     = DH_neutral
-        z.1   = em(x.112, hp($A.57))^x.111
-    
-     7. $A    = $A.58
-        ~ey   = ~ey.60
-        X     = x.113^inv((~ey.60*x.114))
-        skB   = skB.62
-        z     = x.113^inv(x.114)
-        z.1   = em(skB.62, hp($A.58))
-    
-     8. $A    = $A.58
-        ~ey   = ~ey.60
-        X     = x.113^(x.114*inv(~ey.60))
-        skB   = skB.62
-        z     = x.113^x.114
-        z.1   = em(skB.62, hp($A.58))
-    
-     9. $A    = $A.59
-        ~ey   = ~ey.61
-        X     = z.65^inv(~ey.61)
-        skB   = pmult(x.115, x.116)
-        z     = z.65
-        z.1   = em(x.116, hp($A.59))^x.115
-    
-    10. $A    = $A.59
-        ~ey   = ~ey.61
-        X     = x.113^x.114
-        skB   = pmult(x.115, x.116)
-        z     = x.113^(~ey.61*x.114)
-        z.1   = em(x.116, hp($A.59))^x.115
-    
-    11. $A    = $A.59
-        ~ey   = ~ey.61
-        X     = x.114^(x.115*inv((~ey.61*x.116)))
-        skB   = skB.63
-        z     = x.114^(x.115*inv(x.116))
-        z.1   = em(skB.63, hp($A.59))
-    
-    12. $A    = $A.60
-        ~ey   = ~ey.62
-        X     = x.115^inv((~ey.62*x.116))
-        skB   = pmult(x.117, x.118)
-        z     = x.115^inv(x.116)
-        z.1   = em(x.118, hp($A.60))^x.117
-    
-    13. $A    = $A.60
-        ~ey   = ~ey.62
-        X     = x.115^(x.116*inv(~ey.62))
-        skB   = pmult(x.117, x.118)
-        z     = x.115^x.116
-        z.1   = em(x.118, hp($A.60))^x.117
-    
-    14. $A    = $A.61
-        ~ey   = ~ey.63
-        X     = x.116^(x.117*inv((~ey.63*x.118)))
-        skB   = pmult(x.119, x.120)
-        z     = x.116^(x.117*inv(x.118))
-        z.1   = em(x.120, hp($A.61))^x.119
+        z.1   = em(x.3, hp($A.3))^x.2
   */
 
 lemma key_agreement_reachable:
@@ -306,22 +306,23 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( Accept( t1, k ) @ #i )
   case Init_2
-  solve( Init( ~ex, $A, $B ) ▶₀ #i )
+  solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i )
     case Init_1
-    solve( !LTK( $A, skA ) ▶₁ #i )
+    solve( !LTK( $A.1, skA ) ▶₁ #i )
       case KGC_request
-      solve( Sid( ~ex, <A.1, B.1, X, Y.1, role1> ) @ #i )
+      solve( Sid( ~ex, <A, B, X, Y, role1> ) @ #i )
         case Init_2
-        solve( Accept( t2, kdf(<z, em(hp($A), hp($B))^~n, $A, $B, 'g'^~ex, Y>)
+        solve( Accept( t2,
+                       kdf(<z, em(hp($A.1), hp($B.1))^~n, $A.1, $B.1, 'g'^~ex, Y.1>)
                ) @ #j )
           case Resp_1
-          solve( !LTK( $B, pmult(~n, hp($B)) ) ▶₁ #j )
+          solve( !LTK( $B.3, pmult(~n.1, hp($B.3)) ) ▶₁ #j )
             case KGC_request
-            solve( Sid( ~ey, <$B, $A, 'g'^~ey, 'g'^~ex, role2> ) @ #j )
+            solve( Sid( ~ey.1, <$B.3, $A.2, 'g'^~ey.1, 'g'^~ex.1, role2> ) @ #j )
               case Resp_1
-              solve( !KU( 'g'^~ey ) @ #vk )
+              solve( !KU( 'g'^~ey.1 ) @ #vk )
                 case Resp_1
-                solve( !KU( 'g'^~ex ) @ #vk.1 )
+                solve( !KU( 'g'^~ex.1 ) @ #vk.2 )
                   case Init_1
                   SOLVED // trace found
                 qed
@@ -388,23 +389,23 @@ solve( (∃ matching #i3 role2.
     by contradiction /* from formulas */
   next
     case case_2
-    solve( Accept( test, k ) @ #i1 )
+    solve( Accept( test, x ) @ #i1 )
       case Init_2
-      solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+      solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
         case Init_1
-        solve( !LTK( $A, skA ) ▶₁ #i1 )
+        solve( !LTK( $A.1, skA ) ▶₁ #i1 )
           case KGC_request
-          solve( Sid( ~ex, <A.1, B.1, X, Y.1, role1> ) @ #i1 )
+          solve( Sid( ~ex, <A, B, X, Y, role1> ) @ #i1 )
             case Init_2
-            solve( Sid( matching, <$B, $A, Y, 'g'^~ex, role2> ) @ #i3 )
+            solve( Sid( matching, <$B.1, $A.1, Y.1, 'g'^~ex, role2> ) @ #i3 )
               case Init_2
               by contradiction /* from formulas */
             next
               case Resp_1
-              solve( !LTK( $B, skB ) ▶₁ #i3 )
+              solve( !LTK( $B.2, skB ) ▶₁ #i3 )
                 case KGC_request
-                solve( !KU( kdf(<'g'^(~ex*~ey), em(hp($A), hp($B))^~n, $A, $B, 'g'^~ex, 
-                                 'g'^~ey>)
+                solve( !KU( kdf(<'g'^(~ex.1*~ey.1), em(hp($A.3), hp($B.3))^~n, $A.3, 
+                                 $B.3, 'g'^~ex.1, 'g'^~ey.1>)
                        ) @ #vk )
                   case Reveal_session_key_case_1
                   by contradiction /* from formulas */
@@ -413,15 +414,15 @@ solve( (∃ matching #i3 role2.
                   by contradiction /* from formulas */
                 next
                   case c_kdf
-                  solve( !KU( 'g'^(~ex*~ey) ) @ #vk.5 )
+                  solve( !KU( 'g'^(~ex.1*~ey.1) ) @ #vk.4 )
                     case Init_1
-                    by solve( !KU( ~ey ) @ #vk.12 )
+                    by solve( !KU( ~ey.2 ) @ #vk.14 )
                   next
                     case Resp_1
-                    by solve( !KU( ~ex ) @ #vk.12 )
+                    by solve( !KU( ~ex.2 ) @ #vk.15 )
                   next
                     case c_exp
-                    by solve( !KU( ~ex ) @ #vk.14 )
+                    by solve( !KU( ~ex.1 ) @ #vk.16 )
                   qed
                 qed
               qed
@@ -431,18 +432,18 @@ solve( (∃ matching #i3 role2.
       qed
     next
       case Resp_1
-      solve( !LTK( $B, skB ) ▶₁ #i1 )
+      solve( !LTK( $B.1, skB ) ▶₁ #i1 )
         case KGC_request
-        solve( Sid( ~ey, <A.1, B.1, X.1, Y, role1> ) @ #i1 )
+        solve( Sid( ~ey, <A, B, X, Y, role1> ) @ #i1 )
           case Resp_1
-          solve( Sid( matching, <$A, $B, X, 'g'^~ey, role2> ) @ #i3 )
+          solve( Sid( matching, <$A.1, $B.1, X.1, 'g'^~ey, role2> ) @ #i3 )
             case Init_2
-            solve( Init( ~ex, $A, $B ) ▶₀ #i3 )
+            solve( Init( ~ex.1, $A.2, $B.2 ) ▶₀ #i3 )
               case Init_1
-              solve( !LTK( $A, skA ) ▶₁ #i3 )
+              solve( !LTK( $A.2, skA ) ▶₁ #i3 )
                 case KGC_request
-                solve( !KU( kdf(<'g'^(~ex*~ey), em(hp($A), hp($B))^~n, $A, $B, 'g'^~ex, 
-                                 'g'^~ey>)
+                solve( !KU( kdf(<'g'^(~ex.1*~ey.1), em(hp($A.3), hp($B.3))^~n, $A.3, 
+                                 $B.3, 'g'^~ex.1, 'g'^~ey.1>)
                        ) @ #vk )
                   case Reveal_session_key_case_1
                   by contradiction /* from formulas */
@@ -451,15 +452,15 @@ solve( (∃ matching #i3 role2.
                   by contradiction /* from formulas */
                 next
                   case c_kdf
-                  solve( !KU( 'g'^(~ex*~ey) ) @ #vk.5 )
+                  solve( !KU( 'g'^(~ex.1*~ey.1) ) @ #vk.4 )
                     case Init_1
-                    by solve( !KU( ~ey ) @ #vk.12 )
+                    by solve( !KU( ~ey.2 ) @ #vk.14 )
                   next
                     case Resp_1
-                    by solve( !KU( ~ex ) @ #vk.12 )
+                    by solve( !KU( ~ex.2 ) @ #vk.15 )
                   next
                     case c_exp
-                    by solve( !KU( ~ex ) @ #vk.14 )
+                    by solve( !KU( ~ex.1 ) @ #vk.16 )
                   qed
                 qed
               qed
@@ -474,15 +475,16 @@ solve( (∃ matching #i3 role2.
   qed
 next
   case case_2
-  solve( Accept( test, k ) @ #i1 )
+  solve( Accept( test, x ) @ #i1 )
     case Init_2
-    solve( Init( ~ex, $A, $B ) ▶₀ #i1 )
+    solve( Init( ~ex, $A.1, $B.1 ) ▶₀ #i1 )
       case Init_1
-      solve( !LTK( $A, skA ) ▶₁ #i1 )
+      solve( !LTK( $A.1, skA ) ▶₁ #i1 )
         case KGC_request
-        solve( Sid( ~ex, <A.1, B.1, X, Y.1, role1> ) @ #i1 )
+        solve( Sid( ~ex, <A, B, X, Y, role1> ) @ #i1 )
           case Init_2
-          solve( !KU( kdf(<z, em(hp($A), hp($B))^~n, $A, $B, 'g'^~ex, Y>) ) @ #vk )
+          solve( !KU( kdf(<z, em(hp($A.1), hp($B.1))^~n, $A.1, $B.1, 'g'^~ex, Y.1>)
+                 ) @ #vk )
             case Reveal_session_key_case_1
             by contradiction /* from formulas */
           next
@@ -490,7 +492,7 @@ next
             by contradiction /* from formulas */
           next
             case c_kdf
-            solve( !KU( em(hp($A), hp($B))^~n ) @ #vk.6 )
+            solve( !KU( em(hp($A.1), hp($B.1))^~n ) @ #vk.5 )
               case Reveal_ltk_case_1
               by contradiction /* from formulas */
             next
@@ -498,7 +500,7 @@ next
               by contradiction /* from formulas */
             next
               case c_exp
-              solve( !KU( ~n ) @ #vk.13 )
+              solve( !KU( ~n ) @ #vk.14 )
                 case Reveal_master_key
                 by contradiction /* from formulas */
               qed
@@ -509,11 +511,12 @@ next
     qed
   next
     case Resp_1
-    solve( !LTK( $B, skB ) ▶₁ #i1 )
+    solve( !LTK( $B.1, skB ) ▶₁ #i1 )
       case KGC_request
-      solve( Sid( ~ey, <A.1, B.1, X.1, Y, role1> ) @ #i1 )
+      solve( Sid( ~ey, <A, B, X, Y, role1> ) @ #i1 )
         case Resp_1
-        solve( !KU( kdf(<z, em(hp($A), hp($B))^~n, $A, $B, X, 'g'^~ey>) ) @ #vk )
+        solve( !KU( kdf(<z, em(hp($A.1), hp($B.1))^~n, $A.1, $B.1, X.1, 'g'^~ey>)
+               ) @ #vk )
           case Reveal_session_key_case_1
           by contradiction /* from formulas */
         next
@@ -521,7 +524,7 @@ next
           by contradiction /* from formulas */
         next
           case c_kdf
-          solve( !KU( em(hp($A), hp($B))^~n ) @ #vk.6 )
+          solve( !KU( em(hp($A.1), hp($B.1))^~n ) @ #vk.5 )
             case Reveal_ltk_case_1
             by contradiction /* from formulas */
           next
@@ -529,7 +532,7 @@ next
             by contradiction /* from formulas */
           next
             case c_exp
-            solve( !KU( ~n ) @ #vk.13 )
+            solve( !KU( ~n ) @ #vk.14 )
               case Reveal_master_key
               by contradiction /* from formulas */
             qed
@@ -556,8 +559,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -569,7 +572,7 @@ summary of summaries:
 analyzed: examples/ake/bilinear/RYY.spthy
 
   output:          examples/ake/bilinear/RYY.spthy.tmp
-  processing time: 3.92s
+  processing time: 4.02s
   
   key_agreement_reachable (exists-trace): verified (11 steps)
   key_secrecy_WPFS (all-traces): verified (53 steps)

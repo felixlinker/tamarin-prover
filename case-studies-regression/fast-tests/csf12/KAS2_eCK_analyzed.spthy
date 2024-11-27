@@ -70,13 +70,13 @@ rule (modulo E) Resp_1:
      )
      ]
     variants (modulo AC)
-    1. ~lkR  = ~lkR.11
-       c1    = c1.13
-       z     = adec(c1.13, ~lkR.11)
+    1. ~lkR  = ~x.3
+       c1    = aenc(x.5, pk(~x.3))
+       z     = x.5
     
-    2. ~lkR  = ~lkR.13
-       c1    = aenc(z.17, pk(~lkR.13))
-       z     = z.17
+    2. ~lkR  = ~lkR.3
+       c1    = c1.3
+       z     = adec(c1.3, ~lkR.3)
   */
 
 rule (modulo E) Init_2:
@@ -115,13 +115,13 @@ rule (modulo E) Init_2:
      !Sessk( ~m1, KDF(<~m1, z, $I, $R, c1, c2>) )
      ]
     variants (modulo AC)
-    1. ~lkI  = ~lkI.12
-       c2    = c2.15
-       z     = adec(c2.15, ~lkI.12)
+    1. ~lkI  = ~x.4
+       c2    = aenc(x.7, pk(~x.4))
+       z     = x.7
     
-    2. ~lkI  = ~lkI.13
-       c2    = aenc(z.17, pk(~lkI.13))
-       z     = z.17
+    2. ~lkI  = ~lkI.3
+       c2    = c2.3
+       z     = adec(c2.3, ~lkI.3)
   */
 
 rule (modulo E) Resp_2:
@@ -186,7 +186,7 @@ solve( (∃ ss #i4 #i5 C D ms.
        ((∀ #i6. (LtkRev( B ) @ #i6) ⇒ ⊥) ∧
         (∀ #i6 #i7. (LtkRev( A ) @ #i6) ∧ (EphkRev( s ) @ #i7) ⇒ ⊥)) )
   case case_1
-  solve( Accept( s, A, B, k ) @ #i1 )
+  solve( Accept( s, A, B, x ) @ #i1 )
     case Resp_2
     solve( Resp_1( ~m2, $I, $R, ~lkR, m1, ~m2, c1, c2 ) ▶₀ #i1 )
       case Resp_1
@@ -201,22 +201,22 @@ solve( (∃ ss #i4 #i5 C D ms.
               case Resp_1
               solve( splitEqs(1) )
                 case split_case_1
-                solve( !KU( MAC(KDF(<~m1, ~m2, $I, $R, aenc(~m1, pk(~lkR)), 
-                                     aenc(~m2, pk(~ltkA))>),
-                                <'Init', $I, $R, aenc(~m1, pk(~lkR)), aenc(~m2, pk(~ltkA))>)
+                solve( !KU( MAC(KDF(<~m1.2, ~m2.1, $I, $R, aenc(~m1.2, pk(~lkR.2)), 
+                                     aenc(~m2.1, pk(~ltkA))>),
+                                <'Init', $I, $R, aenc(~m1.2, pk(~lkR.2)), aenc(~m2.1, pk(~ltkA))>)
                        ) @ #vk.1 )
                   case c_MAC
-                  solve( !KU( KDF(<~m1, ~m2, $I, $R, aenc(~m1, pk(~lkR)), 
-                                   aenc(~m2, pk(~ltkA))>)
-                         ) @ #vk.1 )
+                  solve( !KU( KDF(<~m1.2, ~m2.1, $I, $R, aenc(~m1.2, pk(~lkR.2)), 
+                                   aenc(~m2.1, pk(~ltkA))>)
+                         ) @ #vk.4 )
                     case c_KDF
-                    solve( !KU( ~m1 ) @ #vk.13 )
+                    solve( !KU( ~m1.2 ) @ #vk.15 )
                       case Ephk_reveal
-                      solve( !KU( ~m2 ) @ #vk.14 )
+                      solve( !KU( ~m2.1 ) @ #vk.17 )
                         case Ephk_reveal
-                        solve( !KU( aenc(~m1, pk(~lkR)) ) @ #vk.5 )
+                        solve( !KU( aenc(~m1.2, pk(~lkR.3)) ) @ #vk.25 )
                           case Init_1
-                          solve( !KU( aenc(~m2, pk(~ltkA)) ) @ #vk.14 )
+                          solve( !KU( aenc(~m2.1, pk(~ltkA.3)) ) @ #vk.24 )
                             case Resp_1
                             SOLVED // trace found
                           qed
@@ -258,8 +258,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -271,7 +271,7 @@ summary of summaries:
 analyzed: examples/csf12/KAS2_eCK.spthy
 
   output:          examples/csf12/KAS2_eCK.spthy.tmp
-  processing time: 1.26s
+  processing time: 1.03s
   
   eCK_key_secrecy (all-traces): falsified - found trace (16 steps)
 

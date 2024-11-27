@@ -46,13 +46,13 @@ next
   case non_empty_trace
   solve( (last(#j))  ∥ (last(#i)) )
     case case_1
-    solve( !KU( ~k ) @ #j )
+    solve( !KU( ~k.1 ) @ #j )
       case WrapKey
       by contradiction /* from formulas */
     qed
   next
     case case_2
-    solve( !KU( ~k ) @ #j )
+    solve( !KU( ~k.1 ) @ #j )
       case WrapKey
       by contradiction /* from formulas */
     qed
@@ -84,8 +84,8 @@ by contradiction /* from formulas */
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -97,7 +97,7 @@ summary of summaries:
 analyzed: examples/loops/Minimal_Crypto_API.spthy
 
   output:          examples/loops/Minimal_Crypto_API.spthy.tmp
-  processing time: 0.15s
+  processing time: 0.13s
   
   NewKey_invariant (all-traces): verified (7 steps)
   NewKey_secrecy (all-traces): verified (2 steps)

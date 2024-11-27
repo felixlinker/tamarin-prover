@@ -92,7 +92,7 @@ next
       case Decrypt_Left
       solve( !Device_Left( sk ) ▶₀ #i )
         case Select_Left_case_1
-        solve( !KU( aenc(<m, y>, pk(~sk)) ) @ #vk )
+        solve( !KU( aenc(<x, y>, pk(~sk.1)) ) @ #vk )
           case Alice
           by contradiction /* from formulas */
         next
@@ -157,7 +157,7 @@ next
         qed
       next
         case Select_Left_case_2
-        solve( !KU( aenc(<m, y>, pk(~sk)) ) @ #vk )
+        solve( !KU( aenc(<x, y>, pk(~sk.1)) ) @ #vk )
           case Alice
           by contradiction /* from formulas */
         next
@@ -225,7 +225,7 @@ next
       case Decrypt_Right
       solve( !Device_Right( sk ) ▶₀ #i )
         case Select_Right_case_1
-        solve( !KU( aenc(<x, m>, pk(~sk)) ) @ #vk )
+        solve( !KU( aenc(<x, y>, pk(~sk.1)) ) @ #vk )
           case Alice
           by contradiction /* from formulas */
         next
@@ -290,7 +290,7 @@ next
         qed
       next
         case Select_Right_case_2
-        solve( !KU( aenc(<x, m>, pk(~sk)) ) @ #vk )
+        solve( !KU( aenc(<x, y>, pk(~sk.1)) ) @ #vk )
           case Alice
           by contradiction /* from formulas */
         next
@@ -382,13 +382,13 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∀ #j. (ToBob( sk ) @ #j) ⇒ ((last(#j)) ∨ (#i < #j))) )
+         (∀ #j. (ToBob( sk.2 ) @ #j) ⇒ ((last(#j)) ∨ (#i < #j))) )
     case case_1
-    solve( Device_Init( sk ) ▶₀ #j )
+    solve( Device_Init( sk.2 ) ▶₀ #j )
       case GenKey
-      solve( Device_Alice( ~sk ) ▶₁ #j )
+      solve( Device_Alice( ~sk.3 ) ▶₁ #j )
         case Alice
-        solve( Device_Alice( ~sk ) ▶₀ #i )
+        solve( Device_Alice( ~sk.3 ) ▶₀ #i )
           case Alice
           by contradiction /* cyclic */
         next
@@ -397,7 +397,7 @@ next
         qed
       next
         case GenKey
-        solve( Device_Alice( ~sk ) ▶₀ #i )
+        solve( Device_Alice( ~sk.3 ) ▶₀ #i )
           case Alice
           by contradiction /* cyclic */
         qed
@@ -428,18 +428,18 @@ induction
   by contradiction /* from formulas */
 next
   case non_empty_trace
-  solve( (∃ #j. (ToBob( sk ) @ #j) ∧ ¬(#i < #j))  ∥
-         (∀ #j. (Device_Key( sk ) @ #j) ⇒ ¬(#j < #i)) )
+  solve( (∃ #j. (ToBob( sk.1 ) @ #j) ∧ ¬(#i < #j))  ∥
+         (∀ #j. (Device_Key( sk.1 ) @ #j) ⇒ ¬(#j < #i)) )
     case case_1
     solve( (last(#i))  ∥
-           ((∀ #j. (ToBob( sk ) @ #j) ⇒ ((last(#j)) ∨ (#i < #j))) ∧
-            (∃ #j. (Device_Key( sk ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))) )
+           ((∀ #j. (ToBob( sk.2 ) @ #j) ⇒ ((last(#j)) ∨ (#i < #j))) ∧
+            (∃ #j. (Device_Key( sk.2 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))) )
       case case_1
-      solve( Device_Init( sk ) ▶₀ #j )
+      solve( Device_Init( sk.2 ) ▶₀ #j )
         case GenKey
-        solve( Device_Alice( ~sk ) ▶₁ #j )
+        solve( Device_Alice( ~sk.3 ) ▶₁ #j )
           case Alice
-          solve( Device_Alice( ~sk ) ▶₀ #i )
+          solve( Device_Alice( ~sk.4 ) ▶₀ #i )
             case Alice
             by contradiction /* cyclic */
           next
@@ -448,7 +448,7 @@ next
           qed
         next
           case GenKey
-          solve( Device_Alice( ~sk ) ▶₀ #i )
+          solve( Device_Alice( ~sk.3 ) ▶₀ #i )
             case Alice
             by contradiction /* cyclic */
           qed
@@ -461,10 +461,10 @@ next
   next
     case case_2
     solve( (last(#i))  ∥
-           ((∀ #j. (ToBob( sk ) @ #j) ⇒ ((last(#j)) ∨ (#i < #j))) ∧
-            (∃ #j. (Device_Key( sk ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))) )
+           ((∀ #j. (ToBob( sk.1 ) @ #j) ⇒ ((last(#j)) ∨ (#i < #j))) ∧
+            (∃ #j. (Device_Key( sk.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))) )
       case case_1
-      solve( Device_Alice( sk ) ▶₀ #i )
+      solve( Device_Alice( sk.1 ) ▶₀ #i )
         case Alice
         by contradiction /* from formulas */
       next
@@ -485,17 +485,17 @@ guarded formula characterizing all satisfying traces:
 "∃ x y #i #j. (Exclusive( x, y ) @ #i) ∧ (K( x ) @ #j)"
 */
 simplify
-solve( !KU( ~x ) @ #vk )
+solve( !KU( ~x.1 ) @ #vk )
   case Decrypt_Left_case_2
-  solve( !KU( aenc(<~x, y.1>, pk(~sk.1)) ) @ #vk.1 )
+  solve( !KU( aenc(<~x.1, y.3>, pk(~sk.5)) ) @ #vk.1 )
     case Alice
-    solve( Device_Alice( ~sk ) ▶₀ #i )
+    solve( Device_Alice( ~sk.6 ) ▶₀ #vr.5 )
       case Alice
-      solve( Device_Alice( ~sk ) ▶₀ #vr.3 )
+      solve( Device_Alice( ~sk.7 ) ▶₀ #vr.4 )
         case Alice
-        solve( Device_Alice( ~sk ) ▶₀ #vr.4 )
+        solve( Device_Alice( ~sk.8 ) ▶₀ #vr.6 )
           case GenKey
-          solve( Device_Alice( ~sk ) ▶₀ #vr.5 )
+          solve( Device_Alice( ~sk.8 ) ▶₀ #vr.7 )
             case GenKey
             SOLVED // trace found
           qed
@@ -523,8 +523,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -536,7 +536,7 @@ summary of summaries:
 analyzed: examples/loops/RFID_Simple.spthy
 
   output:          examples/loops/RFID_Simple.spthy.tmp
-  processing time: 0.37s
+  processing time: 0.32s
   
   types (all-traces): verified (85 steps)
   Device_ToBob (all-traces): verified (11 steps)

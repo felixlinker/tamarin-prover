@@ -59,18 +59,18 @@ rule (modulo E) Client_LeakKey:
      [ Out( sk ) ]
     variants (modulo AC)
     1. pkServer
-             = pkServer.6
+             = pk(x)
        request
-             = request.6
-       sig   = sig.6
-       z     = verify(sig.6, <'confirm', request.6>, pkServer.6)
+             = x.1
+       sig   = sign(<'confirm', x.1>, x)
+       z     = true
     
     2. pkServer
-             = pk(x.6)
+             = pkServer.2
        request
-             = x.7
-       sig   = sign(<'confirm', x.7>, x.6)
-       z     = true
+             = request.2
+       sig   = sig.2
+       z     = verify(sig.2, <'confirm', request.2>, pkServer.2)
   */
 
 rule (modulo E) Server_RenewKey:
@@ -91,18 +91,18 @@ rule (modulo E) Server_RenewKey:
     --[ Eq( z, true ) ]->
      [ ServerDB( A, pkNew ), Out( sign(<'confirm', requestSig>, skServer) ) ]
     variants (modulo AC)
-    1. A     = A.13
-       pkNew = pkNew.14
+    1. A     = A.3
+       pkNew = pkNew.3
        requestSig
-             = requestSig.15
-       sk    = sk.16
-       z     = verify(requestSig.15, <'renew', A.13, pkNew.14>, pk(sk.16))
+             = requestSig.3
+       sk    = sk.3
+       z     = verify(requestSig.3, <'renew', A.3, pkNew.3>, pk(sk.3))
     
-    2. A     = A.13
-       pkNew = pkNew.14
+    2. A     = x.3
+       pkNew = x.4
        requestSig
-             = sign(<'renew', A.13, pkNew.14>, sk.16)
-       sk    = sk.16
+             = sign(<'renew', x.3, x.4>, x.5)
+       sk    = x.5
        z     = true
     // loop breaker: [1]
   */
@@ -121,7 +121,7 @@ guarded formula characterizing all counter-examples:
   (HonestKey( sk ) @ #i) ∧ (K( sk ) @ #d) ∧ ∀ #r. (Revoked( sk ) @ #r) ⇒ ⊥"
 */
 simplify
-solve( HonestKey( sk ) @ #i )
+solve( HonestKey( x ) @ #i )
   case Client_RenewKey
   solve( !KU( ~skNew ) @ #vk )
     case Client_LeakKey
@@ -129,7 +129,7 @@ solve( HonestKey( sk ) @ #i )
   qed
 next
   case SetupHonestKey
-  solve( !KU( ~sk ) @ #vk )
+  solve( !KU( ~sk.1 ) @ #vk )
     case Client_LeakKey
     by contradiction /* from formulas */
   qed
@@ -165,8 +165,8 @@ Failed to derive Variable(s): sk
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -178,7 +178,7 @@ summary of summaries:
 analyzed: examples/related_work/AIF_Moedersheim_CCS10/Keyserver.spthy
 
   output:          examples/related_work/AIF_Moedersheim_CCS10/Keyserver.spthy.tmp
-  processing time: 0.19s
+  processing time: 0.17s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

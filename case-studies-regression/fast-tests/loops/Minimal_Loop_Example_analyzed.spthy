@@ -40,9 +40,9 @@ induction
 next
   case non_empty_trace
   solve( (last(#j))  ∥
-         (∃ #i. (Start( x ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) )
+         (∃ #i. (Start( x.1 ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) )
     case case_1
-    solve( A( x ) ▶₀ #j )
+    solve( A( x.1 ) ▶₀ #j )
       case Loop
       by contradiction /* from formulas */
     next
@@ -63,7 +63,7 @@ guarded formula characterizing all counter-examples:
 "∃ x #j. (Stop( x ) @ #j) ∧ ∀ #i. (Start( x ) @ #i) ⇒ ¬(#i < #j)"
 */
 simplify
-solve( A( x ) ▶₀ #j )
+solve( A( x.1 ) ▶₀ #j )
   case Loop
   by contradiction /* from formulas */
 next
@@ -82,9 +82,9 @@ induction
   by contradiction /* from formulas */
 next
   case non_empty_trace
-  solve( A( ~n ) ▶₀ #j )
+  solve( A( ~n.1 ) ▶₀ #j )
     case Loop
-    solve( A( ~n ) ▶₀ #i )
+    solve( A( ~n.2 ) ▶₀ #i )
       case Loop
       by contradiction /* cyclic */
     next
@@ -93,7 +93,7 @@ next
     qed
   next
     case Start
-    solve( A( ~n ) ▶₀ #i )
+    solve( A( ~n.1 ) ▶₀ #i )
       case Loop
       by contradiction /* from formulas */
     qed
@@ -109,7 +109,7 @@ guarded formula characterizing all counter-examples:
 simplify
 solve( (#i < #j)  ∥ (#j < #i) )
   case case_1
-  solve( A( x ) ▶₀ #i )
+  solve( A( x.2 ) ▶₀ #i )
     case Loop
     solve( A( ~n ) ▶₀ #j )
       case Loop
@@ -130,7 +130,7 @@ solve( (#i < #j)  ∥ (#j < #i) )
   qed
 next
   case case_2
-  solve( A( x ) ▶₀ #i )
+  solve( A( x.2 ) ▶₀ #i )
     case Loop
     by contradiction /* cyclic */
   next
@@ -162,8 +162,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -175,7 +175,7 @@ summary of summaries:
 analyzed: examples/loops/Minimal_Loop_Example.spthy
 
   output:          examples/loops/Minimal_Loop_Example.spthy.tmp
-  processing time: 0.09s
+  processing time: 0.08s
   
   Start_before_Loop (all-traces): verified (7 steps)
   Start_before_Stop (all-traces): verified (4 steps)

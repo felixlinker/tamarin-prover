@@ -80,7 +80,7 @@ next
       case UseLeftDevice
       solve( !ConfiguredDevice( sk, 'left' ) ▶₀ #i )
         case ConfigureDevice
-        solve( !KU( aenc(<m, y>, pk(~sk)) ) @ #vk )
+        solve( !KU( aenc(<x, y>, pk(~sk.1)) ) @ #vk )
           case Alice
           by contradiction /* from formulas */
         next
@@ -120,7 +120,7 @@ next
       case UseRightDevice
       solve( !ConfiguredDevice( sk, 'right' ) ▶₀ #i )
         case ConfigureDevice
-        solve( !KU( aenc(<x, m>, pk(~sk)) ) @ #vk )
+        solve( !KU( aenc(<x, y>, pk(~sk.1)) ) @ #vk )
           case Alice
           by contradiction /* from formulas */
         next
@@ -178,9 +178,9 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( !DevicePublicKey( key ) ▶₂ #i )
   case NewDevice
-  solve( !KU( ~x ) @ #vk )
+  solve( !KU( ~x.1 ) @ #vk )
     case UseLeftDevice
-    solve( !KU( aenc(<~x, y.1>, pk(~sk.1)) ) @ #vk.1 )
+    solve( !KU( aenc(<~x.1, y.3>, pk(~sk.2)) ) @ #vk.1 )
       case Alice
       SOLVED // trace found
     qed
@@ -196,9 +196,9 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( !DevicePublicKey( key ) ▶₂ #i )
   case NewDevice
-  solve( !KU( ~y ) @ #vk )
+  solve( !KU( ~y.1 ) @ #vk )
     case UseRightDevice
-    solve( !KU( aenc(<x.1, ~y>, pk(~sk.1)) ) @ #vk.1 )
+    solve( !KU( aenc(<x.4, ~y.1>, pk(~sk.2)) ) @ #vk.1 )
       case Alice
       SOLVED // trace found
     qed
@@ -217,19 +217,19 @@ guarded formula characterizing all counter-examples:
 simplify
 solve( !DevicePublicKey( key ) ▶₂ #i )
   case NewDevice
-  solve( !KU( ~x ) @ #vk )
+  solve( !KU( ~x.1 ) @ #vk )
     case Alice
-    by solve( !KU( ~sk ) @ #vk.2 )
+    by solve( !KU( ~sk.1 ) @ #vk.2 )
   next
     case UseLeftDevice
-    solve( !KU( ~y ) @ #vk.1 )
+    solve( !KU( ~y.2 ) @ #vk.1 )
       case Alice
-      by solve( !KU( ~sk ) @ #vk.4 )
+      by solve( !KU( ~sk.3 ) @ #vk.4 )
     next
       case UseLeftDevice
-      solve( !KU( aenc(<~x, y.1>, pk(~sk.1)) ) @ #vk.2 )
+      solve( !KU( aenc(<~x.4, y.3>, pk(~sk.2)) ) @ #vk.2 )
         case Alice
-        solve( !KU( aenc(<~y, y.1>, pk(~sk.1)) ) @ #vk.4 )
+        solve( !KU( aenc(<~y.5, y.4>, pk(~sk.4)) ) @ #vk.4 )
           case c_aenc
           by contradiction /* cyclic */
         qed
@@ -239,9 +239,9 @@ solve( !DevicePublicKey( key ) ▶₂ #i )
       qed
     next
       case UseRightDevice
-      solve( !KU( aenc(<~x, y.1>, pk(~sk.1)) ) @ #vk.2 )
+      solve( !KU( aenc(<~x.4, y.3>, pk(~sk.2)) ) @ #vk.2 )
         case Alice
-        solve( !KU( aenc(<x.1, ~y>, pk(~sk.1)) ) @ #vk.4 )
+        solve( !KU( aenc(<x.5, ~y.4>, pk(~sk.4)) ) @ #vk.4 )
           case c_aenc
           by contradiction /* cyclic */
         qed
@@ -252,18 +252,18 @@ solve( !DevicePublicKey( key ) ▶₂ #i )
     qed
   next
     case UseRightDevice
-    solve( !KU( ~y ) @ #vk.1 )
+    solve( !KU( ~y.2 ) @ #vk.1 )
       case Alice
-      by solve( !KU( ~sk ) @ #vk.4 )
+      by solve( !KU( ~sk.3 ) @ #vk.4 )
     next
       case UseLeftDevice
-      solve( !KU( aenc(<x.1, ~x>, pk(~sk.1)) ) @ #vk.2 )
+      solve( !KU( aenc(<x.4, ~x.5>, pk(~sk.2)) ) @ #vk.2 )
         case c_aenc
         by contradiction /* cyclic */
       qed
     next
       case UseRightDevice
-      solve( !KU( aenc(<x.1, ~x>, pk(~sk.1)) ) @ #vk.2 )
+      solve( !KU( aenc(<x.4, ~x.5>, pk(~sk.2)) ) @ #vk.2 )
         case c_aenc
         by contradiction /* cyclic */
       qed
@@ -289,8 +289,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -302,7 +302,7 @@ summary of summaries:
 analyzed: examples/related_work/StatVerif_ARR_CSF11/StatVerif_Security_Device.spthy
 
   output:          examples/related_work/StatVerif_ARR_CSF11/StatVerif_Security_Device.spthy.tmp
-  processing time: 0.26s
+  processing time: 0.24s
   
   types (all-traces): verified (31 steps)
   reachability_left (exists-trace): verified (5 steps)

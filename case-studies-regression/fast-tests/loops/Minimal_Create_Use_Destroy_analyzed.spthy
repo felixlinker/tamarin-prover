@@ -52,9 +52,9 @@ induction
 next
   case non_empty_trace
   solve( (last(#j))  ∥
-         (∃ #i. (Create( x ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) )
+         (∃ #i. (Create( x.1 ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) )
     case case_1
-    solve( Object( x ) ▶₀ #j )
+    solve( Object( x.1 ) ▶₀ #j )
       case Create
       by contradiction /* from formulas */
     next
@@ -88,16 +88,16 @@ induction
   by contradiction /* from formulas */
 next
   case non_empty_trace
-  solve( (∀ #i. (Create( x ) @ #i) ⇒ ¬(#i < #j))  ∥
-         (∃ #i. (Use( x ) @ #i) ∧ ¬(#i < #j))  ∥
-         (∃ #i. (Destroy( x ) @ #i) ∧ ¬(#i = #j)) )
+  solve( (∀ #i. (Create( x.1 ) @ #i) ⇒ ¬(#i < #j))  ∥
+         (∃ #i. (Use( x.1 ) @ #i) ∧ ¬(#i < #j))  ∥
+         (∃ #i. (Destroy( x.1 ) @ #i) ∧ ¬(#i = #j)) )
     case case_1
     solve( (last(#j))  ∥
-           ((∃ #i. (Create( x ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) ∧
-            (∀ #i. (Use( x ) @ #i) ⇒ ((last(#i)) ∨ (#i < #j))) ∧
-            (∀ #i. (Destroy( x ) @ #i) ⇒ ((last(#i)) ∨ (#i = #j)))) )
+           ((∃ #i. (Create( x.1 ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) ∧
+            (∀ #i. (Use( x.1 ) @ #i) ⇒ ((last(#i)) ∨ (#i < #j))) ∧
+            (∀ #i. (Destroy( x.1 ) @ #i) ⇒ ((last(#i)) ∨ (#i = #j)))) )
       case case_1
-      solve( Object( x ) ▶₀ #j )
+      solve( Object( x.1 ) ▶₀ #j )
         case Create
         by contradiction /* from formulas */
       next
@@ -110,15 +110,15 @@ next
     qed
   next
     case case_2
-    solve( Object( ~n ) ▶₀ #j )
+    solve( Object( ~n.1 ) ▶₀ #j )
       case Create
-      solve( Object( ~n ) ▶₀ #i )
+      solve( Object( ~n.1 ) ▶₀ #last )
         case Use
         by contradiction /* from formulas */
       qed
     next
       case Use
-      solve( Object( ~n ) ▶₀ #i )
+      solve( Object( ~n.2 ) ▶₀ #last )
         case Create
         by contradiction /* cyclic */
       next
@@ -129,9 +129,9 @@ next
   next
     case case_3
     solve( (last(#j))  ∥
-           ((∃ #i. (Create( x ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) ∧
-            (∀ #i. (Use( x ) @ #i) ⇒ ((last(#i)) ∨ (#i < #j))) ∧
-            (∀ #i. (Destroy( x ) @ #i) ⇒ ((last(#i)) ∨ (#i = #j)))) )
+           ((∃ #i. (Create( x.2 ) @ #i) ∧ (¬(last(#i))) ∧ (#i < #j)) ∧
+            (∀ #i. (Use( x.2 ) @ #i) ⇒ ((last(#i)) ∨ (#i < #j))) ∧
+            (∀ #i. (Destroy( x.2 ) @ #i) ⇒ ((last(#i)) ∨ (#i = #j)))) )
       case case_1
       solve( Object( ~n ) ▶₀ #j )
         case Create
@@ -149,7 +149,7 @@ next
         case case_2
         solve( Object( ~n ) ▶₀ #j )
           case Create
-          solve( Object( ~n ) ▶₀ #i )
+          solve( Object( ~n ) ▶₀ #last )
             case Create
             by contradiction /* cyclic */
           next
@@ -158,7 +158,7 @@ next
           qed
         next
           case Use
-          solve( Object( ~n ) ▶₀ #i )
+          solve( Object( ~n.1 ) ▶₀ #last )
             case Create
             by contradiction /* cyclic */
           next
@@ -183,8 +183,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -196,7 +196,7 @@ summary of summaries:
 analyzed: examples/loops/Minimal_Create_Use_Destroy.spthy
 
   output:          examples/loops/Minimal_Create_Use_Destroy.spthy.tmp
-  processing time: 0.11s
+  processing time: 0.09s
   
   Use_charn (all-traces): verified (7 steps)
   Destroy_charn (all-traces): verified (27 steps)

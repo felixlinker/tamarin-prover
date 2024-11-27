@@ -142,7 +142,7 @@ next
     step( simplify )
     step( solve( DiffIntrDestrd_exp( ) @ #i ) )
       case d_exp_case_01
-      step( solve( !KD( x^x.1 ) ▶₀ #i ) )
+      step( solve( !KD( x.1^x.2 ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -214,7 +214,7 @@ next
       qed
     next
       case d_exp_case_02
-      step( solve( !KD( x^x.1 ) ▶₀ #i ) )
+      step( solve( !KD( x.1^x ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -286,7 +286,7 @@ next
       qed
     next
       case d_exp_case_03
-      step( solve( !KD( x^inv(x.1) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^inv(x) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -349,7 +349,7 @@ next
       qed
     next
       case d_exp_case_04
-      step( solve( !KD( x^inv(x.1) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^inv(x.2) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -556,7 +556,7 @@ next
       qed
     next
       case d_exp_case_07
-      step( solve( !KD( x^inv(x.1) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^inv(x) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -619,7 +619,7 @@ next
       qed
     next
       case d_exp_case_08
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^inv((x*x.2)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -682,7 +682,7 @@ next
       qed
     next
       case d_exp_case_09
-      step( solve( !KD( x^(x.1*x.2) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x*x.2) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -745,7 +745,7 @@ next
       qed
     next
       case d_exp_case_10
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x.2*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -871,7 +871,7 @@ next
       qed
     next
       case d_exp_case_12
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x.2*inv(x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1006,7 +1006,7 @@ next
       qed
     next
       case d_exp_case_14
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^inv((x*x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1069,7 +1069,7 @@ next
       qed
     next
       case d_exp_case_15
-      step( solve( !KD( x^(x.1*x.2) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1132,7 +1132,7 @@ next
       qed
     next
       case d_exp_case_16
-      step( solve( !KD( x^(x.1*x.2) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1195,7 +1195,7 @@ next
       qed
     next
       case d_exp_case_17
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1258,7 +1258,7 @@ next
       qed
     next
       case d_exp_case_18
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x.2*inv((x*x.3))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1321,7 +1321,7 @@ next
       qed
     next
       case d_exp_case_19
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv(x.4)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1384,7 +1384,7 @@ next
       qed
     next
       case d_exp_case_20
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1447,7 +1447,7 @@ next
       qed
     next
       case d_exp_case_21
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^inv((x*x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1510,7 +1510,7 @@ next
       qed
     next
       case d_exp_case_22
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*inv(x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1636,7 +1636,7 @@ next
       qed
     next
       case d_exp_case_24
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1699,7 +1699,7 @@ next
       qed
     next
       case d_exp_case_25
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1762,7 +1762,7 @@ next
       qed
     next
       case d_exp_case_26
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1825,7 +1825,7 @@ next
       qed
     next
       case d_exp_case_27
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^inv((x*x.4)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1888,7 +1888,7 @@ next
       qed
     next
       case d_exp_case_28
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3*inv(x.4)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -1951,7 +1951,7 @@ next
       qed
     next
       case d_exp_case_29
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*inv((x*x.3))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2077,7 +2077,7 @@ next
       qed
     next
       case d_exp_case_31
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2203,7 +2203,7 @@ next
       qed
     next
       case d_exp_case_33
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2266,7 +2266,7 @@ next
       qed
     next
       case d_exp_case_34
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2329,7 +2329,7 @@ next
       qed
     next
       case d_exp_case_35
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2455,7 +2455,7 @@ next
       qed
     next
       case d_exp_case_37
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2518,7 +2518,7 @@ next
       qed
     next
       case d_exp_case_38
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.4*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2581,7 +2581,7 @@ next
       qed
     next
       case d_exp_case_39
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv(x.5)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2644,7 +2644,7 @@ next
       qed
     next
       case d_exp_case_40
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2707,7 +2707,7 @@ next
       qed
     next
       case d_exp_case_41
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2833,7 +2833,7 @@ next
       qed
     next
       case d_exp_case_43
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.4^(x.3*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2896,7 +2896,7 @@ next
       qed
     next
       case d_exp_case_44
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -2959,7 +2959,7 @@ next
       qed
     next
       case d_exp_case_45
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.4^(x.3*x.5*inv((x*x.6))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3026,7 +3026,7 @@ next
     step( simplify )
     step( solve( DiffIntrDestrd_exp( ) @ #i ) )
       case d_exp_case_01
-      step( solve( !KD( x^x.1 ) ▶₀ #i ) )
+      step( solve( !KD( x.1^x.2 ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3122,7 +3122,7 @@ next
       qed
     next
       case d_exp_case_02
-      step( solve( !KD( x^x.1 ) ▶₀ #i ) )
+      step( solve( !KD( x.1^x ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3218,7 +3218,7 @@ next
       qed
     next
       case d_exp_case_03
-      step( solve( !KD( x^inv(x.1) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^inv(x) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3305,7 +3305,7 @@ next
       qed
     next
       case d_exp_case_04
-      step( solve( !KD( x^inv(x.1) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^inv(x.2) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3584,7 +3584,7 @@ next
       qed
     next
       case d_exp_case_07
-      step( solve( !KD( x^inv(x.1) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^inv(x) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3671,7 +3671,7 @@ next
       qed
     next
       case d_exp_case_08
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^inv((x*x.2)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3758,7 +3758,7 @@ next
       qed
     next
       case d_exp_case_09
-      step( solve( !KD( x^(x.1*x.2) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x*x.2) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -3841,17 +3841,17 @@ next
               by step( solve( (#vr.3, 0) ~~> (#i, 0) ) )
             next
               case exp_case_1
-              by step( solve( !KU( ~y ) @ #vk.1 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.1 ) )
             next
               case exp_case_2
-              by step( solve( !KU( ~x ) @ #vk.1 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.1 ) )
             qed
           qed
         qed
       qed
     next
       case d_exp_case_10
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x.2*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4025,7 +4025,7 @@ next
       qed
     next
       case d_exp_case_12
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x.2*inv(x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4208,7 +4208,7 @@ next
       qed
     next
       case d_exp_case_14
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^inv((x*x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4295,7 +4295,7 @@ next
       qed
     next
       case d_exp_case_15
-      step( solve( !KD( x^(x.1*x.2) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4378,17 +4378,17 @@ next
               by step( solve( (#vr.3, 0) ~~> (#i, 0) ) )
             next
               case exp_case_1
-              by step( solve( !KU( ~y ) @ #vk.3 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
             next
               case exp_case_2
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.9 ) @ #vk.3 ) )
             qed
           qed
         qed
       qed
     next
       case d_exp_case_16
-      step( solve( !KD( x^(x.1*x.2) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4471,17 +4471,17 @@ next
               by step( solve( (#vr.3, 0) ~~> (#i, 0) ) )
             next
               case exp_case_1
-              by step( solve( !KU( ~y ) @ #vk.3 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
             next
               case exp_case_2
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.9 ) @ #vk.3 ) )
             qed
           qed
         qed
       qed
     next
       case d_exp_case_17
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4568,7 +4568,7 @@ next
       qed
     next
       case d_exp_case_18
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.1^(x.2*inv((x*x.3))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4655,7 +4655,7 @@ next
       qed
     next
       case d_exp_case_19
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv(x.4)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4742,7 +4742,7 @@ next
       qed
     next
       case d_exp_case_20
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4829,7 +4829,7 @@ next
       qed
     next
       case d_exp_case_21
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^inv((x*x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -4916,7 +4916,7 @@ next
       qed
     next
       case d_exp_case_22
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*inv(x.3)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5086,17 +5086,17 @@ next
               by step( solve( (#vr.3, 0) ~~> (#i, 0) ) )
             next
               case exp_case_1
-              by step( solve( !KU( ~y ) @ #vk.4 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.4 ) )
             next
               case exp_case_2
-              by step( solve( !KU( ~x ) @ #vk.4 ) )
+              by step( solve( !KU( ~x.10 ) @ #vk.4 ) )
             qed
           qed
         qed
       qed
     next
       case d_exp_case_24
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5183,7 +5183,7 @@ next
       qed
     next
       case d_exp_case_25
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5270,7 +5270,7 @@ next
       qed
     next
       case d_exp_case_26
-      step( solve( !KD( x^(x.1*inv(x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5357,7 +5357,7 @@ next
       qed
     next
       case d_exp_case_27
-      step( solve( !KD( x^inv((x.1*x.2)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^inv((x*x.4)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5444,7 +5444,7 @@ next
       qed
     next
       case d_exp_case_28
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3*inv(x.4)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5531,7 +5531,7 @@ next
       qed
     next
       case d_exp_case_29
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*inv((x*x.3))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5705,7 +5705,7 @@ next
       qed
     next
       case d_exp_case_31
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5879,7 +5879,7 @@ next
       qed
     next
       case d_exp_case_33
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.3*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -5966,7 +5966,7 @@ next
       qed
     next
       case d_exp_case_34
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6053,7 +6053,7 @@ next
       qed
     next
       case d_exp_case_35
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv(x)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6227,7 +6227,7 @@ next
       qed
     next
       case d_exp_case_37
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.2^(x.1*x.3*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6314,7 +6314,7 @@ next
       qed
     next
       case d_exp_case_38
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.4*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6401,7 +6401,7 @@ next
       qed
     next
       case d_exp_case_39
-      step( solve( !KD( x^(x.1*x.2*inv(x.3)) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv(x.5)) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6488,7 +6488,7 @@ next
       qed
     next
       case d_exp_case_40
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*inv((x*x.4))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6575,7 +6575,7 @@ next
       qed
     next
       case d_exp_case_41
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6749,7 +6749,7 @@ next
       qed
     next
       case d_exp_case_43
-      step( solve( !KD( x^(x.1*inv((x.2*x.3))) ) ▶₀ #i ) )
+      step( solve( !KD( x.4^(x.3*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6836,7 +6836,7 @@ next
       qed
     next
       case d_exp_case_44
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.3^(x.2*x.4*inv((x*x.5))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -6923,7 +6923,7 @@ next
       qed
     next
       case d_exp_case_45
-      step( solve( !KD( x^(x.1*x.2*inv((x.3*x.4))) ) ▶₀ #i ) )
+      step( solve( !KD( x.4^(x.3*x.5*inv((x*x.6))) ) ▶₀ #i ) )
         case DDH
         step( solve( (#vl, 0) ~~> (#i, 0) ) )
           case d_0_fst
@@ -7040,30 +7040,30 @@ next
           case d_exp_case_1
           step( solve( (#vr.2, 0) ~~> (#i, 1) ) )
             case exp
-            step( solve( !KU( g^(~x*x.1) ) @ #vk ) )
+            step( solve( !KU( g^(~x.1*x.4) ) @ #vk ) )
               case DDH_case_1
-              by step( solve( !KU( ~x ) @ #vk.2 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.2 ) )
             next
               case DDH_case_2
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.3 ) )
             next
               case DDH_case_3
               MIRRORED
             next
               case DDH_case_4
-              by step( solve( !KU( ~x ) @ #vk.2 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.2 ) )
             next
               case DDH_case_5
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.3 ) )
             next
               case DDH_case_6
-              by step( solve( !KU( ~x ) @ #vk.2 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.2 ) )
             next
               case DDH_case_7
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.3 ) )
             next
               case c_exp
-              by step( solve( !KU( ~x ) @ #vk.4 ) )
+              by step( solve( !KU( ~x.1 ) @ #vk.4 ) )
             qed
           qed
         next
@@ -7080,12 +7080,12 @@ next
           by step( contradiction /* non-normal exponentiation rule instance */ )
         next
           case exp
-          step( solve( !KU( g^~x ) @ #vk ) )
+          step( solve( !KU( g^~x.1 ) @ #vk ) )
             case DDH
             MIRRORED
           next
             case c_exp
-            by step( solve( !KU( ~x ) @ #vk.2 ) )
+            by step( solve( !KU( ~x.1 ) @ #vk.2 ) )
           qed
         qed
       next
@@ -7096,27 +7096,27 @@ next
             case d_exp_case_1
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              step( solve( !KU( g^(~y*x) ) @ #vk ) )
+              step( solve( !KU( g^(~y*x.6) ) @ #vk ) )
                 case DDH_case_1
-                by step( solve( !KU( ~y ) @ #vk.2 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.2 ) )
               next
                 case DDH_case_2
-                by step( solve( !KU( ~y ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_3
-                by step( solve( !KU( ~y ) @ #vk.2 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.2 ) )
               next
                 case DDH_case_4
-                by step( solve( !KU( ~y ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_5
                 MIRRORED
               next
                 case DDH_case_6
-                by step( solve( !KU( ~y ) @ #vk.2 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.2 ) )
               next
                 case DDH_case_7
-                by step( solve( !KU( ~y ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case c_exp
                 by step( solve( !KU( ~y ) @ #vk.4 ) )
@@ -7150,24 +7150,24 @@ next
             case d_exp_case_1
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              step( solve( !KU( g^(~z*x) ) @ #vk ) )
+              step( solve( !KU( g^(~z*x.6) ) @ #vk ) )
                 case DDH_case_1
-                by step( solve( !KU( ~z ) @ #vk.2 ) )
+                by step( solve( !KU( ~z.1 ) @ #vk.2 ) )
               next
                 case DDH_case_2
-                by step( solve( !KU( ~z ) @ #vk.3 ) )
+                by step( solve( !KU( ~z.1 ) @ #vk.3 ) )
               next
                 case DDH_case_3
-                by step( solve( !KU( ~z ) @ #vk.2 ) )
+                by step( solve( !KU( ~z.1 ) @ #vk.2 ) )
               next
                 case DDH_case_4
-                by step( solve( !KU( ~z ) @ #vk.3 ) )
+                by step( solve( !KU( ~z.1 ) @ #vk.3 ) )
               next
                 case DDH_case_5
-                by step( solve( !KU( ~z ) @ #vk.2 ) )
+                by step( solve( !KU( ~z.1 ) @ #vk.2 ) )
               next
                 case DDH_case_6
-                by step( solve( !KU( ~z ) @ #vk.3 ) )
+                by step( solve( !KU( ~z.1 ) @ #vk.3 ) )
               next
                 case DDH_case_7
                 MIRRORED
@@ -7202,12 +7202,12 @@ next
           case pair
           step( solve( !KU( g^~y ) @ #vk.1 ) )
             case DDH
-            step( solve( !KU( g^~z ) @ #vk.2 ) )
+            step( solve( !KU( g^~z.1 ) @ #vk.2 ) )
               case DDH
               MIRRORED
             next
               case c_exp
-              by step( solve( !KU( ~z ) @ #vk.4 ) )
+              by step( solve( !KU( ~z.1 ) @ #vk.4 ) )
             qed
           next
             case c_exp
@@ -7216,24 +7216,24 @@ next
         qed
       next
         case pair
-        step( solve( !KU( g^~x ) @ #vk.2 ) )
+        step( solve( !KU( g^~x.1 ) @ #vk.1 ) )
           case DDH
-          step( solve( !KU( g^~y ) @ #vk.3 ) )
+          step( solve( !KU( g^~y.1 ) @ #vk.3 ) )
             case DDH
-            step( solve( !KU( g^~z ) @ #vk.4 ) )
+            step( solve( !KU( g^~z.2 ) @ #vk.4 ) )
               case DDH
               MIRRORED
             next
               case c_exp
-              by step( solve( !KU( ~z ) @ #vk.6 ) )
+              by step( solve( !KU( ~z.2 ) @ #vk.6 ) )
             qed
           next
             case c_exp
-            by step( solve( !KU( ~y ) @ #vk.6 ) )
+            by step( solve( !KU( ~y.1 ) @ #vk.6 ) )
           qed
         next
           case c_exp
-          by step( solve( !KU( ~x ) @ #vk.6 ) )
+          by step( solve( !KU( ~x.1 ) @ #vk.6 ) )
         qed
       qed
     qed
@@ -7248,36 +7248,36 @@ next
           case d_exp_case_1
           step( solve( (#vr.2, 0) ~~> (#i, 1) ) )
             case exp
-            step( solve( !KU( g^(~x*x.1) ) @ #vk ) )
+            step( solve( !KU( g^(~x.1*x.4) ) @ #vk ) )
               case DDH_case_1
-              by step( solve( !KU( ~x ) @ #vk.2 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.2 ) )
             next
               case DDH_case_2
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.3 ) )
             next
               case DDH_case_3
               MIRRORED
             next
               case DDH_case_4
-              by step( solve( !KU( ~x ) @ #vk.2 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.2 ) )
             next
               case DDH_case_5
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.3 ) )
             next
               case DDH_case_6
-              by step( solve( !KU( ~y ) @ #vk.1 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.1 ) )
             next
               case DDH_case_7
-              by step( solve( !KU( ~x ) @ #vk.2 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.2 ) )
             next
               case DDH_case_8
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
             next
               case DDH_case_9
-              by step( solve( !KU( ~y ) @ #vk.3 ) )
+              by step( solve( !KU( ~x.8 ) @ #vk.3 ) )
             next
               case c_exp
-              by step( solve( !KU( ~x ) @ #vk.4 ) )
+              by step( solve( !KU( ~x.1 ) @ #vk.4 ) )
             qed
           qed
         next
@@ -7294,12 +7294,12 @@ next
           by step( contradiction /* non-normal exponentiation rule instance */ )
         next
           case exp
-          step( solve( !KU( g^~x ) @ #vk ) )
+          step( solve( !KU( g^~x.1 ) @ #vk ) )
             case DDH
             MIRRORED
           next
             case c_exp
-            by step( solve( !KU( ~x ) @ #vk.2 ) )
+            by step( solve( !KU( ~x.1 ) @ #vk.2 ) )
           qed
         qed
       next
@@ -7310,33 +7310,33 @@ next
             case d_exp_case_1
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              step( solve( !KU( g^(~y*x) ) @ #vk ) )
+              step( solve( !KU( g^(~y*x.6) ) @ #vk ) )
                 case DDH_case_1
-                by step( solve( !KU( ~y ) @ #vk.2 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.2 ) )
               next
                 case DDH_case_2
-                by step( solve( !KU( ~y ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_3
-                by step( solve( !KU( ~y ) @ #vk.2 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.2 ) )
               next
                 case DDH_case_4
-                by step( solve( !KU( ~y ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_5
                 MIRRORED
               next
                 case DDH_case_6
-                by step( solve( !KU( ~x ) @ #vk.1 ) )
+                by step( solve( !KU( ~x.9 ) @ #vk.1 ) )
               next
                 case DDH_case_7
-                by step( solve( !KU( ~y ) @ #vk.2 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.2 ) )
               next
                 case DDH_case_8
-                by step( solve( !KU( ~y ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_9
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~x.9 ) @ #vk.3 ) )
               next
                 case c_exp
                 by step( solve( !KU( ~y ) @ #vk.4 ) )
@@ -7370,48 +7370,48 @@ next
             case d_exp_case_01
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              step( solve( !KU( g^(~x*~y*x.1) ) @ #vk ) )
+              step( solve( !KU( g^(~y*~x.1*x.6) ) @ #vk ) )
                 case DDH_case_01
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_02
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_03
-                by step( solve( !KU( ~y ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.2 ) @ #vk.3 ) )
               next
                 case DDH_case_04
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_05
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_06
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~x.9 ) @ #vk.3 ) )
               next
                 case DDH_case_07
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_08
-                by step( solve( !KU( ~x ) @ #vk.3 ) )
+                by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
               next
                 case DDH_case_09
-                by step( solve( !KU( ~x ) @ #vk.1 ) )
+                by step( solve( !KU( ~y.2 ) @ #vk.2 ) )
               next
                 case DDH_case_10
-                by step( solve( !KU( ~x ) @ #vk.2 ) )
+                by step( solve( !KU( ~y.2 ) @ #vk.5 ) )
               next
                 case DDH_case_11
-                by step( solve( !KU( ~y ) @ #vk.1 ) )
+                by step( solve( !KU( ~x.9 ) @ #vk.2 ) )
               next
                 case DDH_case_12
                 MIRRORED
               next
                 case DDH_case_13
-                by step( solve( !KU( ~y ) @ #vk.2 ) )
+                by step( solve( !KU( ~x.9 ) @ #vk.5 ) )
               next
                 case c_exp
-                by step( solve( !KU( ~x ) @ #vk.4 ) )
+                by step( solve( !KU( ~y ) @ #vk.4 ) )
               qed
             qed
           next
@@ -7427,13 +7427,13 @@ next
             case d_exp_case_05
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~y ) @ #vk.2 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.2 ) )
             qed
           next
             case d_exp_case_06
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~x ) @ #vk.2 ) )
+              by step( solve( !KU( ~x.9 ) @ #vk.2 ) )
             qed
           next
             case d_exp_case_07
@@ -7442,102 +7442,102 @@ next
             case d_exp_case_08
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~y ) @ #vk.4 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.4 ) )
             qed
           next
             case d_exp_case_09
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~x.1 ) @ #vk.4 ) )
+              by step( solve( !KU( ~x.10 ) @ #vk.4 ) )
             qed
           next
             case d_exp_case_10
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~y ) @ #vk.4 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.4 ) )
             qed
           next
             case d_exp_case_11
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~x.1 ) @ #vk.4 ) )
+              by step( solve( !KU( ~x.10 ) @ #vk.4 ) )
             qed
           next
             case d_exp_case_12
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~y ) @ #vk.5 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.5 ) )
             qed
           next
             case d_exp_case_13
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case exp
-              by step( solve( !KU( ~x.2 ) @ #vk.5 ) )
+              by step( solve( !KU( ~x.11 ) @ #vk.5 ) )
             qed
           next
             case exp
-            step( solve( !KU( g^(~x*~y) ) @ #vk ) )
+            step( solve( !KU( g^(~y*~x.1) ) @ #vk ) )
               case DDH_case_1
-              by step( solve( !KU( ~y ) @ #vk.1 ) )
+              by step( solve( !KU( ~y.2 ) @ #vk.1 ) )
             next
               case DDH_case_2
-              by step( solve( !KU( ~x ) @ #vk.1 ) )
+              by step( solve( !KU( ~x.6 ) @ #vk.1 ) )
             next
               case DDH_case_3
               MIRRORED
             next
               case c_exp
-              by step( solve( !KU( ~x ) @ #vk.3 ) )
+              by step( solve( !KU( ~y ) @ #vk.3 ) )
             qed
           qed
         next
           case pair
-          step( solve( !KU( g^(~x*~y) ) @ #vk.2 ) )
+          step( solve( !KU( g^(~y*~x.1) ) @ #vk.2 ) )
             case DDH_case_1
-            by step( solve( !KU( ~y ) @ #vk.3 ) )
+            by step( solve( !KU( ~y.1 ) @ #vk.3 ) )
           next
             case DDH_case_2
-            by step( solve( !KU( ~x ) @ #vk.3 ) )
+            by step( solve( !KU( ~x.4 ) @ #vk.3 ) )
           next
             case DDH_case_3
-            step( solve( !KU( g^~y ) @ #vk.2 ) )
+            step( solve( !KU( g^~y.1 ) @ #vk.1 ) )
               case DDH
               MIRRORED
             next
               case c_exp
-              by step( solve( !KU( ~y ) @ #vk.4 ) )
+              by step( solve( !KU( ~y.1 ) @ #vk.4 ) )
             qed
           next
             case c_exp
-            by step( solve( !KU( ~x ) @ #vk.5 ) )
+            by step( solve( !KU( ~y ) @ #vk.5 ) )
           qed
         qed
       next
         case pair
-        step( solve( !KU( g^(~x*~y) ) @ #vk.4 ) )
+        step( solve( !KU( g^(~y*~x.1) ) @ #vk.4 ) )
           case DDH_case_1
-          by step( solve( !KU( ~y ) @ #vk.5 ) )
+          by step( solve( !KU( ~y.1 ) @ #vk.5 ) )
         next
           case DDH_case_2
-          by step( solve( !KU( ~x ) @ #vk.5 ) )
+          by step( solve( !KU( ~x.2 ) @ #vk.5 ) )
         next
           case DDH_case_3
-          step( solve( !KU( g^~x ) @ #vk.3 ) )
+          step( solve( !KU( g^~x.2 ) @ #vk.1 ) )
             case DDH
-            step( solve( !KU( g^~y ) @ #vk.4 ) )
+            step( solve( !KU( g^~y.2 ) @ #vk.3 ) )
               case DDH
               MIRRORED
             next
               case c_exp
-              by step( solve( !KU( ~y ) @ #vk.6 ) )
+              by step( solve( !KU( ~y.2 ) @ #vk.6 ) )
             qed
           next
             case c_exp
-            by step( solve( !KU( ~x ) @ #vk.6 ) )
+            by step( solve( !KU( ~x.2 ) @ #vk.6 ) )
           qed
         next
           case c_exp
-          by step( solve( !KU( ~x ) @ #vk.7 ) )
+          by step( solve( !KU( ~y ) @ #vk.7 ) )
         qed
       qed
     qed
@@ -7561,8 +7561,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -7574,7 +7574,7 @@ summary of summaries:
 analyzed: examples/ccs15/DDH.spthy
 
   output:          examples/ccs15/DDH.spthy.tmp
-  processing time: 2.59s
+  processing time: 2.23s
   
   DiffLemma:  Observational_equivalence : verified (2522 steps)
 

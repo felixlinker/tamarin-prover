@@ -105,11 +105,11 @@ guarded formula characterizing all counter-examples:
     ⊥)"
 */
 simplify
-solve( Init_1( ~ekI, $I, $R, ~lkI, ~ekI ) ▶₀ #i1 )
+solve( Init_1( ~ekI, $I.1, $R.1, ~lkI, ~ekI ) ▶₀ #i1 )
   case Init_1
-  solve( !Pk( $R, 'g'^~lkR ) ▶₂ #i1 )
+  solve( !Pk( $R.1, 'g'^~lkR ) ▶₂ #i1 )
     case generate_ltk
-    solve( !KU( h(<$I, $R, ~ekI, hkR, 'g'^(~lkI*~lkR)>) ) @ #vk.1 )
+    solve( !KU( h(<$I.1, $R.1, ~ekI, Y, 'g'^(~lkI*~lkR)>) ) @ #vk.1 )
       case Sessk_reveal_case_1
       by contradiction /* from formulas */
     next
@@ -123,21 +123,21 @@ solve( Init_1( ~ekI, $I, $R, ~lkI, ~ekI ) ▶₀ #i1 )
       by contradiction /* from formulas */
     next
       case c_h
-      solve( !KU( 'g'^(~lkI*~lkR) ) @ #vk.9 )
+      solve( !KU( 'g'^(~lkI*~lkR) ) @ #vk.10 )
         case c_exp
-        solve( !KU( ~lkI ) @ #vk.12 )
+        solve( !KU( ~lkI ) @ #vk.13 )
           case Ltk_reveal
           by contradiction /* from formulas */
         qed
       next
         case generate_ltk_case_1
-        solve( !KU( ~lkI ) @ #vk.10 )
+        solve( !KU( ~lkI.1 ) @ #vk.11 )
           case Ltk_reveal
           by contradiction /* from formulas */
         qed
       next
         case generate_ltk_case_2
-        solve( !KU( ~lkR ) @ #vk.10 )
+        solve( !KU( ~lkR.1 ) @ #vk.11 )
           case Ltk_reveal
           by contradiction /* from formulas */
         qed
@@ -172,11 +172,11 @@ guarded formula characterizing all counter-examples:
     ⊥)"
 */
 simplify
-solve( !Ltk( $R, ~lkR ) ▶₂ #i1 )
+solve( !Ltk( $R.1, ~lkR ) ▶₂ #i1 )
   case generate_ltk
-  solve( !Pk( $I, 'g'^~lkI ) ▶₃ #i1 )
+  solve( !Pk( $I.1, 'g'^~lkI ) ▶₃ #i1 )
     case generate_ltk
-    solve( !KU( h(<$I, $R, hkI, ~ekR, 'g'^(~lkI*~lkR)>) ) @ #vk.1 )
+    solve( !KU( h(<$I.1, $R.1, X, ~ekR, 'g'^(~lkI*~lkR)>) ) @ #vk.1 )
       case Sessk_reveal_case_1
       by contradiction /* from formulas */
     next
@@ -190,21 +190,21 @@ solve( !Ltk( $R, ~lkR ) ▶₂ #i1 )
       by contradiction /* from formulas */
     next
       case c_h
-      solve( !KU( 'g'^(~lkI*~lkR) ) @ #vk.9 )
+      solve( !KU( 'g'^(~lkI*~lkR) ) @ #vk.10 )
         case c_exp
-        solve( !KU( ~lkI ) @ #vk.12 )
+        solve( !KU( ~lkI ) @ #vk.13 )
           case Ltk_reveal
           by contradiction /* from formulas */
         qed
       next
         case generate_ltk_case_1
-        solve( !KU( ~lkI ) @ #vk.10 )
+        solve( !KU( ~lkI.1 ) @ #vk.11 )
           case Ltk_reveal
           by contradiction /* from formulas */
         qed
       next
         case generate_ltk_case_2
-        solve( !KU( ~lkR ) @ #vk.10 )
+        solve( !KU( ~lkR.1 ) @ #vk.11 )
           case Ltk_reveal
           by contradiction /* from formulas */
         qed
@@ -240,8 +240,8 @@ Failed to derive Variable(s): ~lkI
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -253,7 +253,7 @@ summary of summaries:
 analyzed: examples/csf12/JKL_TS1_2008_KI.spthy
 
   output:          examples/csf12/JKL_TS1_2008_KI.spthy.tmp
-  processing time: 0.24s
+  processing time: 0.23s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

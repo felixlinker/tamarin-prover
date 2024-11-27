@@ -59,12 +59,12 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∃ #j. (!KU( k ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
-         (∃ #j. (Out_Initiator( senc(<sec, k>, key) ) @ #j) ∧ ¬(last(#j))) )
+         (∃ #j. (!KU( pub ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+         (∃ #j. (Out_Initiator( senc(<sec, pub>, key) ) @ #j) ∧ ¬(last(#j))) )
     case case_1
     solve( !Key( key ) ▶₀ #i )
       case Setup_Key
-      solve( !KU( senc(<sec, k.1>, ~k) ) @ #vk )
+      solve( !KU( senc(<sec, pub>, ~k.1) ) @ #vk )
         case Initiator
         by contradiction /* from formulas */
       next
@@ -103,13 +103,13 @@ guarded formula characterizing all counter-examples:
   ∀ #r. (Rev( key ) @ #r) ⇒ ⊥"
 */
 simplify
-solve( !Key( key ) ▶₀ #i )
+solve( !Key( key.1 ) ▶₀ #i )
   case Setup_Key
-  solve( !KU( senc(<sec, pub>, ~k) ) @ #vk )
+  solve( !KU( senc(<x, pub>, ~k) ) @ #vk )
     case Initiator
-    solve( !KU( ~sec ) @ #vk.1 )
+    solve( !KU( ~sec.2 ) @ #vk.1 )
       case Initiator
-      solve( !KU( ~k ) @ #vk.2 )
+      solve( !KU( ~k.1 ) @ #vk.2 )
         case Reveal_Key
         by contradiction /* from formulas */
       qed
@@ -135,9 +135,9 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( !Key( k ) ▶₀ #i )
   case Setup_Key
-  solve( !KU( ~pub ) @ #vk )
+  solve( !KU( ~pub.1 ) @ #vk )
     case Responder
-    solve( !KU( senc(<~sec, ~pub>, ~k) ) @ #vk.1 )
+    solve( !KU( senc(<~sec.1, ~pub.1>, ~k.2) ) @ #vk.1 )
       case Initiator
       SOLVED // trace found
     qed
@@ -162,8 +162,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -175,7 +175,7 @@ summary of summaries:
 analyzed: examples/loops/Minimal_Typing_Example.spthy
 
   output:          examples/loops/Minimal_Typing_Example.spthy.tmp
-  processing time: 0.17s
+  processing time: 0.14s
   
   sources_assertion (all-traces): verified (12 steps)
   Responder_secrecy (all-traces): verified (8 steps)

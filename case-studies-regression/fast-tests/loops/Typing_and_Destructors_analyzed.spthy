@@ -47,20 +47,20 @@ rule (modulo E) Responder:
     --[ In_Responder( msg, z ), Secret( z.1, key ), NoFailureTerm( z ) ]->
      [ Out( z ) ]
     variants (modulo AC)
-    1. key   = key.5
-       msg   = msg.5
-       z     = snd(sdec(msg.5, key.5))
-       z.1   = fst(sdec(msg.5, key.5))
+    1. key   = x
+       msg   = senc(<x.1, x.2>, x)
+       z     = x.2
+       z.1   = x.1
     
-    2. key   = x.5
-       msg   = senc(x.6, x.5)
-       z     = snd(x.6)
-       z.1   = fst(x.6)
+    2. key   = x
+       msg   = senc(x.1, x)
+       z     = snd(x.1)
+       z.1   = fst(x.1)
     
-    3. key   = x.5
-       msg   = senc(<x.6, x.7>, x.5)
-       z     = x.7
-       z.1   = x.6
+    3. key   = key.2
+       msg   = msg.2
+       z     = snd(sdec(msg.2, key.2))
+       z.1   = fst(sdec(msg.2, key.2))
   */
 
 lemma type_assertion [sources]:
@@ -93,12 +93,12 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∃ #j. (!KU( pub ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
-         (∃ #j. (Out_Initiator( m ) @ #j) ∧ ¬(last(#j)))  ∥
+         (∃ #j. (!KU( z ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+         (∃ #j. (Out_Initiator( msg ) @ #j) ∧ ¬(last(#j)))  ∥
          (∃ body #j.
-           (!KU( body ) @ #j) ∧ (pub = snd(body)) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+           (!KU( body ) @ #j) ∧ (z = snd(body)) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
          (∃ body key #j #k.
-           (IsKey( key ) @ #k) ∧ (!KU( body ) @ #j) ∧ (pub = snd(sdec(body, key)))
+           (IsKey( key ) @ #k) ∧ (!KU( body ) @ #j) ∧ (z = snd(sdec(body, key)))
           ∧
            (¬(last(#k))) ∧ (¬(last(#j))) ∧ (#j < #i)) )
     case case_1
@@ -106,13 +106,16 @@ next
       case Setup_Key
       solve( splitEqs(0) )
         case split_case_1
-        solve( !KU( senc(x, ~k) ) @ #vk )
+        by contradiction /* from formulas */
+      next
+        case split_case_2
+        solve( !KU( senc(x, ~k.1) ) @ #vk )
           case Initiator
           by contradiction /* non-normal terms */
         next
           case Responder
           solve( (∃ #j. (!KU( t ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.1))  ∥
-                 (∃ #j. (Out_Initiator( senc(<z, t>, ~k.1) ) @ #j) ∧ ¬(last(#j)))  ∥
+                 (∃ #j. (Out_Initiator( senc(<z.2, t>, ~k.2) ) @ #j) ∧ ¬(last(#j)))  ∥
                  (∃ body #j.
                    (!KU( body ) @ #j) ∧ (t = snd(body)) ∧ (¬(last(#j))) ∧ (#j < #vr.1))  ∥
                  (∃ body key #j #k.
@@ -136,17 +139,14 @@ next
           by contradiction /* from formulas */
         qed
       next
-        case split_case_2
-        by contradiction /* from formulas */
-      next
         case split_case_3
-        solve( !KU( senc(<z, pub>, ~k) ) @ #vk )
+        solve( !KU( senc(<z.3, z.2>, ~k.1) ) @ #vk )
           case Initiator
           by contradiction /* from formulas */
         next
           case Responder
           solve( (∃ #j. (!KU( t ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.1))  ∥
-                 (∃ #j. (Out_Initiator( senc(<z.1, t>, ~k.1) ) @ #j) ∧ ¬(last(#j)))  ∥
+                 (∃ #j. (Out_Initiator( senc(<z.4, t>, ~k.2) ) @ #j) ∧ ¬(last(#j)))  ∥
                  (∃ body #j.
                    (!KU( body ) @ #j) ∧ (t = snd(body)) ∧ (¬(last(#j))) ∧ (#j < #vr.1))  ∥
                  (∃ body key #j #k.
@@ -198,15 +198,15 @@ guarded formula characterizing all counter-examples:
   ∀ #r. (Rev( key ) @ #r) ⇒ ⊥"
 */
 simplify
-solve( !Key( key ) ▶₀ #i )
+solve( !Key( key.1 ) ▶₀ #i )
   case Setup_Key
   solve( splitEqs(0) )
     case split_case_1
-    solve( !KU( fst(sdec(msg, ~k)) ) @ #vk.1 )
+    solve( !KU( fst(sdec(msg.1, ~k.1)) ) @ #vk.1 )
       case c_fst
-      solve( !KU( sdec(msg, ~k) ) @ #vk.2 )
+      solve( !KU( sdec(msg.1, ~k.1) ) @ #vk.2 )
         case c_sdec
-        solve( !KU( ~k ) @ #vk.3 )
+        solve( !KU( ~k.1 ) @ #vk.4 )
           case Reveal_Key
           by contradiction /* from formulas */
         qed
@@ -214,30 +214,30 @@ solve( !Key( key ) ▶₀ #i )
     qed
   next
     case split_case_2
-    solve( !KU( senc(<sec, z>, ~k) ) @ #vk )
+    solve( !KU( senc(x.1, ~k.1) ) @ #vk )
       case Initiator
-      solve( !KU( ~sec ) @ #vk.1 )
-        case Initiator
-        solve( !KU( ~k ) @ #vk.2 )
-          case Reveal_Key
-          by contradiction /* from formulas */
-        qed
-      qed
+      by contradiction /* non-normal terms */
     next
       case c_senc
-      solve( !KU( ~k ) @ #vk.3 )
+      solve( !KU( ~k.1 ) @ #vk.3 )
         case Reveal_Key
         by contradiction /* from formulas */
       qed
     qed
   next
     case split_case_3
-    solve( !KU( senc(x, ~k) ) @ #vk )
+    solve( !KU( senc(<x.1, z.2>, ~k.1) ) @ #vk )
       case Initiator
-      by contradiction /* non-normal terms */
+      solve( !KU( ~sec.1 ) @ #vk.1 )
+        case Initiator
+        solve( !KU( ~k.2 ) @ #vk.2 )
+          case Reveal_Key
+          by contradiction /* from formulas */
+        qed
+      qed
     next
       case c_senc
-      solve( !KU( ~k ) @ #vk.3 )
+      solve( !KU( ~k.1 ) @ #vk.3 )
         case Reveal_Key
         by contradiction /* from formulas */
       qed
@@ -257,9 +257,9 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( !Key( k ) ▶₀ #i )
   case Setup_Key
-  solve( !KU( ~pub ) @ #vk )
+  solve( !KU( ~pub.1 ) @ #vk )
     case Responder
-    solve( !KU( senc(<~sec, ~pub>, ~k) ) @ #vk.1 )
+    solve( !KU( senc(<~sec.1, ~pub.1>, ~k.2) ) @ #vk.1 )
       case Initiator
       SOLVED // trace found
     qed
@@ -298,8 +298,8 @@ Formula terms
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -311,7 +311,7 @@ summary of summaries:
 analyzed: examples/loops/Typing_and_Destructors.spthy
 
   output:          examples/loops/Typing_and_Destructors.spthy.tmp
-  processing time: 0.19s
+  processing time: 0.15s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

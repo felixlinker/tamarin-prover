@@ -75,33 +75,33 @@ rule (modulo E) I_2:
     ]->
      [ Out( aenc(<'3', z>, pkR) ), Secret( I, R, z ), Secret( I, R, ni ) ]
     variants (modulo AC)
-    1. R     = R.11
-       x     = R.11
+    1. R     = R.3
+       x     = x.3
+       z     = (R.3⊕x.3)
+    
+    2. R     = R.3
+       x     = zero
+       z     = R.3
+    
+    3. R     = x.3
+       x     = x.3
        z     = zero
     
-    2. R     = R.11
-       x     = zero
-       z     = R.11
-    
-    3. R     = R.15
-       x     = x.19
-       z     = (R.15⊕x.19)
-    
-    4. R     = R.18
-       x     = (R.18⊕z.25)
-       z     = z.25
-    
-    5. R     = zero
-       x     = x.11
+    4. R     = x.7
+       x     = (x.7⊕x.11)
        z     = x.11
     
-    6. R     = (x.14⊕z.17)
-       x     = x.14
-       z     = z.17
+    5. R     = zero
+       x     = x.3
+       z     = x.3
     
-    7. R     = (x.16⊕x.17)
-       x     = (x.16⊕x.21)
-       z     = (x.17⊕x.21)
+    6. R     = (x.4⊕x.5)
+       x     = x.5
+       z     = x.4
+    
+    7. R     = (x.8⊕x.9)
+       x     = (x.8⊕x.13)
+       z     = (x.9⊕x.13)
   */
 
 rule (modulo E) R_2:
@@ -153,22 +153,22 @@ induction
            (∀ #j. (OUT_R_1( m2 ) @ #j) ⇒ ⊥)) )
     case case_2
     solve( (last(#i))  ∥
-           (∃ #j. (!KU( nr ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+           (∃ #j. (!KU( z ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
            (∃ #j. (OUT_R_1( aenc(<'2', ni, x>, pk(ltkI)) ) @ #j) ∧ ¬(last(#j))) )
       case case_1
       solve( St_I_1( I, R, ni ) ▶₀ #i )
         case I_1
-        solve( !Ltk( $I, ltkI ) ▶₁ #i )
+        solve( !Ltk( $I.1, ltkI ) ▶₁ #i )
           case Register_pk
-          solve( !Pk( $R, pkR ) ▶₃ #i )
+          solve( !Pk( $R.1, pkR ) ▶₃ #i )
             case Register_pk
-            solve( !KU( aenc(<'2', ~ni, x>, pk(~ltkA)) ) @ #vk )
+            solve( !KU( aenc(<'2', ~ni.1, x>, pk(~ltkA.1)) ) @ #vk )
               case c_aenc
-              solve( !KU( ~ni ) @ #vk.5 )
+              solve( !KU( ~ni.1 ) @ #vk.5 )
                 case I_1
-                solve( !KU( ~ltkA.1 ) @ #vk.7 )
+                solve( !KU( ~ltkA.3 ) @ #vk.7 )
                   case Reveal_ltk
-                  solve( !KU( pk(~ltkA) ) @ #vk.5 )
+                  solve( !KU( pk(~ltkA.1) ) @ #vk.2 )
                     case Register_pk
                     solve( splitEqs(0) )
                       case split_case_1
@@ -206,23 +206,23 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (RevLtk( B ) @ #r) ⇒ ⊥)"
 */
 simplify
-solve( Secret( A, B, s ) ▶₀ #i )
+solve( Secret( A.1, B.1, x ) ▶₀ #i )
   case R_2_case_1
   solve( !KU( ~nr ) @ #vk )
     case I_2_case_1
-    solve( !KU( ~ltkA.2 ) @ #vk.4 )
+    solve( !KU( ~ltkA.4 ) @ #vk.4 )
       case Reveal_ltk
-      solve( !KU( aenc(<'3', ~nr>, pk(~ltkA)) ) @ #vk.2 )
+      solve( !KU( aenc(<'3', ~nr>, pk(~ltkA)) ) @ #vk.1 )
         case c_aenc
-        solve( !KU( aenc(<'1', ~ni, $A>, pk(~ltkA)) ) @ #vk.4 )
+        solve( !KU( aenc(<'1', ~ni.1, $A.2>, pk(~ltkA)) ) @ #vk.6 )
           case c_aenc
-          solve( !KU( ~ni ) @ #vk.12 )
+          solve( !KU( ~ni.1 ) @ #vk.15 )
             case I_1
-            solve( !KU( aenc(<'2', ~ni, ($R⊕~nr)>, pk(~ltkA.2)) ) @ #vk.6 )
+            solve( !KU( aenc(<'2', ~ni.1, ($R⊕~nr)>, pk(~ltkA.1)) ) @ #vk.3 )
               case R_1
-              solve( !KU( ($R⊕$R.1) ) @ #vk.8 )
+              solve( !KU( ($R.3⊕$R.4) ) @ #vk.5 )
                 case c_xor
-                solve( !KU( pk(~ltkA) ) @ #vk.10 )
+                solve( !KU( pk(~ltkA.6) ) @ #vk.12 )
                   case Register_pk
                   SOLVED // trace found
                 qed
@@ -262,25 +262,25 @@ guarded formula characterizing all counter-examples:
 simplify
 solve( Commit( actor, peer, params ) @ #i )
   case R_2
-  solve( St_R_1( actor, peer, ni, nr ) ▶₀ #i )
+  solve( St_R_1( R, I, ni, nr ) ▶₀ #i )
     case R_1
-    solve( !Ltk( $R, ltkR ) ▶₁ #i )
+    solve( !Ltk( $R.1, ltkR ) ▶₁ #i )
       case Register_pk
-      solve( !KU( aenc(<'3', ~nr>, pk(~ltkA)) ) @ #vk )
+      solve( !KU( aenc(<'3', ~nr.1>, pk(~ltkA.2)) ) @ #vk )
         case c_aenc
-        solve( !KU( ~nr ) @ #vk.5 )
+        solve( !KU( ~nr.1 ) @ #vk.5 )
           case I_2_case_1
-          solve( !KU( ~ltkA.2 ) @ #vk.7 )
+          solve( !KU( ~ltkA.5 ) @ #vk.7 )
             case Reveal_ltk
-            solve( !KU( aenc(<'1', ~ni, $A>, pk(~ltkA)) ) @ #vk.4 )
+            solve( !KU( aenc(<'1', ~ni.1, $A>, pk(~ltkA.2)) ) @ #vk.9 )
               case c_aenc
-              solve( !KU( ~ni ) @ #vk.12 )
+              solve( !KU( ~ni.1 ) @ #vk.14 )
                 case I_1
-                solve( !KU( pk(~ltkA) ) @ #vk.6 )
+                solve( !KU( pk(~ltkA.2) ) @ #vk.11 )
                   case Register_pk
-                  solve( !KU( aenc(<'2', ~ni, ($R⊕~nr)>, pk(~ltkA.2)) ) @ #vk.9 )
+                  solve( !KU( aenc(<'2', ~ni.1, (~nr.1⊕$A.3)>, pk(~ltkA.1)) ) @ #vk.6 )
                     case R_1
-                    solve( !KU( ($R⊕$R.1) ) @ #vk.11 )
+                    solve( !KU( ($R.4⊕$R.5) ) @ #vk.8 )
                       case c_xor
                       SOLVED // trace found
                     qed
@@ -308,13 +308,13 @@ guarded formula characterizing all satisfying traces:
   (∀ #r. (RevLtk( A ) @ #r) ⇒ ⊥) ∧ (∀ #r. (RevLtk( B ) @ #r) ⇒ ⊥)"
 */
 simplify
-solve( Secret( A, B, s ) ▶₀ #i )
+solve( Secret( A.1, B.1, m ) ▶₀ #i )
   case I_2_case_1
   solve( !KU( aenc(<'2', ~ni, x>, pk(~ltkA)) ) @ #vk )
     case R_1
     solve( splitEqs(1) )
       case split_case_1
-      solve( !KU( aenc(<'1', ~ni, $I>, pk(~ltkA.1)) ) @ #vk.1 )
+      solve( !KU( aenc(<'1', ~ni, $A.2>, pk(~ltkA.2)) ) @ #vk.1 )
         case I_1
         SOLVED // trace found
       qed
@@ -340,8 +340,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -353,7 +353,7 @@ summary of summaries:
 analyzed: examples/csf18-xor/NSLPK3xor.spthy
 
   output:          examples/csf18-xor/NSLPK3xor.spthy.tmp
-  processing time: 1.84s
+  processing time: 1.48s
   
   types (all-traces): falsified - found trace (12 steps)
   nonce_secrecy (all-traces): falsified - found trace (11 steps)
