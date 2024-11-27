@@ -40,6 +40,8 @@ import           Theory.Constraint.System.Graph.GraphRepr
 import           Theory.Constraint.System.Graph.Abbreviation
 import qualified Theory                   as Th
 import Theory.Constraint.System.Graph.Simplification (simplifySystem, compressSystem)
+import Theory.Constraint.System (getGoalNodeId)
+import Data.Bifunctor (Bifunctor(bimap))
 
 -- | The level of graph simplification.
 data SimplificationLevel = SL0 | SL1 | SL2 | SL3
@@ -113,8 +115,8 @@ systemLastActionNode se = maybe [] (\nid -> [GraphNode nid LastActionAtom]) (get
 
 -- | Get all nodes from a 'System' that are "missing", i.e. they are mentioned by an edge but don't exist elsewhere.
 -- a.d. This assumes that there is no edge where both the source and target are missing. But that situation should never happen.
-systemMissingNodes :: Sys.System -> [GraphNode]
-systemMissingNodes se = filter isMissing graphNodes
+systemMissingNodes :: S.Set Th.NodeId -> Sys.System -> [GraphNode]
+systemMissingNodes rendered se = filter (not . (`S.member` rendered) . get nNodeId) graphNodes
   where
     -- Call snub (set-nub) on less atoms because a missing node could be
     -- included in multiple lists.
@@ -122,8 +124,6 @@ systemMissingNodes se = filter isMissing graphNodes
       ++ concatMap edgeToList (S.toList $ get Sys.sEdges se)
     edgeToList (Sys.Edge (nid, idx) (nid', idx')) = [ GraphNode nid (MissingEdgeNode (Left idx)), GraphNode nid' (MissingEdgeNode (Right idx')) ]
     lessAtomToList (Sys.LessAtom nid nid' _) = [ GraphNode nid MissingLessAtomNode, GraphNode nid' MissingLessAtomNode]
-    isMissing (GraphNode n _) = not $ M.member n nodes
-    nodes = get Sys.sNodes se
 
     snub :: Ord a => [a] -> [a]
     snub = S.toList . S.fromList
@@ -149,12 +149,12 @@ computeBasicGraphRepr se =
   let nodes = systemNodes se
         ++ systemUnsolvedActionNodes se
         ++ systemLastActionNode se
-        ++ systemMissingNodes se
+      rendered = S.fromList $ map (get nNodeId) nodes
       edges =  systemEdges se 
         ++ map LessEdge (S.toList $ get Sys.sLessAtoms se)
         ++ map UnsolvedChain (Sys.unsolvedChains se)
   in 
-    GraphRepr [] nodes edges
+    GraphRepr [] (nodes ++ systemMissingNodes rendered se) edges
 
 -- | Compute clusters, nodes & edges from a Graph instance according to the Graph's options.
 systemToGraph :: Sys.System -> GraphOptions -> Graph
