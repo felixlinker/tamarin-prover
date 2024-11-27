@@ -422,7 +422,7 @@ dotEdge edge =
 dotLessEdge :: (NodeId, NodeId, String) -> SeDot ()
 dotLessEdge (src, tgt, color) = do
   srcId <- getState dsNodes src ("Source node of less edge not found: " ++ show src)
-  tgtId <- getState dsNodes tgt ("Target node of less edge not found: " ++ show src)
+  tgtId <- getState dsNodes tgt ("Target node of less edge not found: " ++ show tgt)
   liftDot $ D.edge srcId tgtId [("color",color),("style","dashed")]
 
 -- | Dot a legend listing all abbreviations by adding a sink node with a suitable HTML table label.
