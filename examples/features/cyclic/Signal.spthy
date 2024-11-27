@@ -42,7 +42,7 @@ rule Send:
       mk = kdf(<'mk', new_ck>)
   in
   [ Fr(~m)
-  , Session(~id, $A, 'S', ~x, $B, pc, rk, ck)[no_precomp] ]
+  , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
   --[ Send(~m) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
   , Out(senc(~m, mk)) ]
@@ -70,7 +70,7 @@ rule Receive:
       mk = kdf(<'mk', new_ck>)
   in
   [ In(enc)
-  , Session(~id, $A, 'R', ~x, $B, pc, rk, ck)[no_precomp] ]
+  , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
   --[ Receive(sdec(enc, mk))
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
@@ -82,7 +82,7 @@ rule OuterRatchetToSender:
       mk = kdf(<'mk', ck>)
   in
   [ Fr(~x), Fr(~m)
-  , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck)[no_precomp] ]
+  , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
   --[ Send(~m) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
@@ -94,7 +94,7 @@ rule OuterRatchetToReceiver:
       mk = kdf(<'mk', ck>)
   in
   [ In(<pc, enc>)
-  , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck)[no_precomp] ]
+  , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
   --[ Receive(sdec(enc, mk))
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
