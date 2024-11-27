@@ -220,122 +220,124 @@ next
               case PCR_CertKey
               step( solve( PCR( h(<'pcr0', ~n>) ) ▶₀ #vr.4 ) )
                 case Alice1
-                step( solve( PCR( 'pcr0' ) ▶₁ #vr.1 ) )
+                step( solve( PCR( 'pcr0' ) ▶₁ #vr.1 ) ) /* unannotated */
                   case CreateLockedKey
-                  by sorry
+                  by sorry /* unannotated */
                 next
                   case PCR_Init
-                  step( solve( PCR_Write( 'pcr0' ) ▶₂ #vr.1 ) )
+                  step( solve( PCR_Write( 'pcr0' ) ▶₂ #vr.1 ) ) /* unannotated */
                     case PCR_Init
-                    step( solve( !KU( aenc(~s, pk(~sk)) ) @ #vk.1 ) )
+                    step( solve( !KU( aenc(~s, pk(~sk)) ) @ #vk.1 ) ) /* unannotated */
                       case Alice2
-                      by sorry
+                      by sorry /* unannotated */
                     next
                       case c_aenc
-                      step( solve( !KU( ~s ) @ #vk.3 ) )
+                      step( solve( !KU( ~s ) @ #vk.3 ) ) /* unannotated */
                         case Alice2
-                        by sorry
+                        by sorry /* unannotated */
                       next
                         case Challenge
-                        step( solve( Alice2( n.1, ~s ) ▶₀ #k ) )
+                        step( solve( Alice2( n.1, ~s ) ▶₀ #k ) ) /* unannotated */
                           case Alice2
-                          step( solve( !AIK( aik ) ▶₁ #k ) )
+                          step( solve( !AIK( aik ) ▶₁ #k ) ) /* unannotated */
                             case PCR_Init
-                            step( solve( !KU( pk(~sk) ) @ #vk.4 ) )
+                            step( solve( !KU( pk(~sk) ) @ #vk.4 ) ) /* unannotated */
                               case CreateLockedKey
-                              step( solve( !KU( 'obtain' ) @ #vk.4 ) )
+                              step( solve( !KU( 'obtain' ) @ #vk.4 ) ) /* unannotated */
                                 case coerce
-                                by sorry
+                                by sorry /* unannotated */
                               next
                                 case pub
                                 step( solve( !KU( sign(<'certpcr', h(<h(<'pcr0', ~n>), 'deny'>)>, ~aik)
                                              ) @ #vk.5 ) )
+                                /* unannotated */
                                   case PCR_Quote
                                   step( solve( PCR( h(<h(<'pcr0', ~n>), 'deny'>) ) ▶₀ #vr.6 ) )
+                                  /* unannotated */
                                     case CreateLockedKey
-                                    by sorry
+                                    by sorry /* unannotated */
                                   next
                                     case PCR_Extend
-                                    step( solve( PCR( h(<'pcr0', ~n>) ) ▶₁ #vr.7 ) )
+                                    step( solve( PCR( h(<'pcr0', ~n>) ) ▶₁ #vr.7 ) ) /* unannotated */
                                       case CreateLockedKey
-                                      step( solve( PCR_Write( h(<'pcr0', ~n>) ) ▶₀ #vr.7 ) )
+                                      step( solve( PCR_Write( h(<'pcr0', ~n>) ) ▶₀ #vr.7 ) ) /* unannotated */
                                         case Alice1
-                                        step( solve( PCR( h(<'pcr0', ~n>) ) ▶₀ #vr.8 ) )
+                                        step( solve( PCR( h(<'pcr0', ~n>) ) ▶₀ #vr.8 ) ) /* unannotated */
                                           case Alice1
-                                          step( solve( !KU( 'deny' ) @ #vk.6 ) )
+                                          step( solve( !KU( 'deny' ) @ #vk.6 ) ) /* unannotated */
                                             case coerce
-                                            by sorry
+                                            by sorry /* unannotated */
                                           next
                                             case pub
-                                            by ATTACK // trace found
+                                            by ATTACK // trace found /* unannotated */
                                           qed
                                         next
                                           case CreateLockedKey
-                                          by sorry
+                                          by sorry /* unannotated */
                                         next
                                           case PCR_Extend
-                                          by sorry
+                                          by sorry /* unannotated */
                                         next
                                           case PCR_Quote
-                                          by sorry
+                                          by sorry /* unannotated */
                                         next
                                           case PCR_Unbind
-                                          by sorry
+                                          by sorry /* unannotated */
                                         qed
                                       next
                                         case PCR_Extend
-                                        by sorry
+                                        by sorry /* unannotated */
                                       qed
                                     next
                                       case PCR_Extend
-                                      by sorry
+                                      by sorry /* unannotated */
                                     next
                                       case PCR_Quote
-                                      by sorry
+                                      by sorry /* unannotated */
                                     next
                                       case PCR_Unbind
-                                      by sorry
+                                      by sorry /* unannotated */
                                     qed
                                   next
                                     case PCR_Quote
-                                    by sorry
+                                    by sorry /* unannotated */
                                   next
                                     case PCR_Unbind
-                                    by sorry
+                                    by sorry /* unannotated */
                                   qed
                                 next
                                   case c_sign
-                                  by sorry
+                                  by sorry /* unannotated */
                                 qed
                               qed
                             next
                               case c_pk
-                              by sorry
+                              by sorry /* unannotated */
                             qed
                           qed
                         qed
                       next
                         case PCR_Unbind
-                        by sorry
+                        by sorry /* unannotated */
                       qed
                     qed
                   qed
                 next
                   case PCR_Quote
-                  by sorry
+                  by sorry /* unannotated */
                 qed
               next
                 case CreateLockedKey
-                by sorry
+                by sorry /* unannotated */
               next
                 case PCR_Extend
-                by sorry
+                by sorry /* unannotated */
               next
                 case PCR_Quote
-                by sorry
+                by sorry /* unannotated */
               next
                 case PCR_Unbind
-                by sorry
+                by sorry /* unannotated */
               qed
             next
               case c_sign
@@ -410,8 +412,8 @@ Failed to derive Variable(s): pk
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -423,7 +425,7 @@ summary of summaries:
 analyzed: examples/ccs15/Attack_TPM_Envelope.spthy
 
   output:          examples/ccs15/Attack_TPM_Envelope.spthy.tmp
-  processing time: 0.36s
+  processing time: 0.29s
   
   WARNING: 1 wellformedness check failed!
   
@@ -435,7 +437,7 @@ analyzed: examples/ccs15/Attack_TPM_Envelope.spthy
   LHS :  executable (exists-trace): analysis incomplete (1 steps)
   RHS :  Secret_and_Denied_exclusive (all-traces): analysis incomplete (1 steps)
   LHS :  Secret_and_Denied_exclusive (all-traces): analysis incomplete (1 steps)
-  DiffLemma:  Observational_equivalence : falsified - found trace (75 steps)
+  DiffLemma:  Observational_equivalence : analysis incomplete (75 steps)
 
 ==============================================================================
 */

@@ -66,33 +66,33 @@ rule (modulo E) Serv_1:
     ]->
      [ Out( aenc(<'2', z.1>, pkC) ) ]
     variants (modulo AC)
-    1. ~ltkS = ~ltkS.12
+    1. ~ltkS = ~x.5
        request
-             = request.14
-       z     = fst(snd(adec(request.14, ~ltkS.12)))
-       z.1   = snd(snd(adec(request.14, ~ltkS.12)))
-       z.2   = fst(adec(request.14, ~ltkS.12))
+             = aenc(<x.7, x.8, x.9>, pk(~x.5))
+       z     = x.8
+       z.1   = x.9
+       z.2   = x.7
     
-    2. ~ltkS = ~ltkS.16
+    2. ~ltkS = ~x.4
        request
-             = aenc(<z.22, z.19, z.21>, pk(~ltkS.16))
-       z     = z.19
-       z.1   = z.21
-       z.2   = z.22
+             = aenc(<x.6, x.7>, pk(~x.4))
+       z     = fst(x.7)
+       z.1   = snd(x.7)
+       z.2   = x.6
     
-    3. ~ltkS = ~ltkS.20
+    3. ~ltkS = ~x.3
        request
-             = aenc(x.37, pk(~ltkS.20))
-       z     = fst(snd(x.37))
-       z.1   = snd(snd(x.37))
-       z.2   = fst(x.37)
+             = aenc(x.5, pk(~x.3))
+       z     = fst(snd(x.5))
+       z.1   = snd(snd(x.5))
+       z.2   = fst(x.5)
     
-    4. ~ltkS = ~ltkS.21
+    4. ~ltkS = ~ltkS.3
        request
-             = aenc(<z.27, x.39>, pk(~ltkS.21))
-       z     = fst(x.39)
-       z.1   = snd(x.39)
-       z.2   = z.27
+             = request.3
+       z     = fst(snd(adec(request.3, ~ltkS.3)))
+       z.1   = snd(snd(adec(request.3, ~ltkS.3)))
+       z.2   = fst(adec(request.3, ~ltkS.3))
   */
 
 lemma typing_assertion [sources]:
@@ -114,31 +114,32 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∃ #j. (!KU( v ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
-         (∃ #j. (Out_Client_1( m ) @ #j) ∧ ¬(last(#j))) )
+         (∃ #j. (!KU( z.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+         (∃ #j. (Out_Client_1( request ) @ #j) ∧ ¬(last(#j))) )
     case case_1
     solve( !Ltk( $S, ~ltkS ) ▶₀ #i )
       case Register_pk
       solve( !Pk( z, pkC ) ▶₂ #i )
         case Register_pk
-        solve( !KU( aenc(<z, $A, v>, pk(~ltkS)) ) @ #vk )
+        solve( !KU( aenc(<z.4, $A.1, z.3>, pk(~ltkS.1)) ) @ #vk )
           case Client_1
           by contradiction /* from formulas */
         next
           case Serv_1_case_1
-          solve( (∃ #j. (!KU( <$A, v> ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
+          solve( (∃ #j.
+                   (!KU( <$A.1, z.3> ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
                  (∃ #j.
-                   (Out_Client_1( aenc(<z, $S, $A, v>, pk(~ltkS.1)) ) @ #j) ∧ ¬(last(#j))) )
+                   (Out_Client_1( aenc(<z.5, $A.2, $A.1, z.3>, pk(~ltkS.2)) ) @ #j)
+                  ∧
+                   ¬(last(#j))) )
             case case_1
             by contradiction /* from formulas */
           qed
         next
           case Serv_1_case_2
-          solve( (∃ #j. (!KU( z.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
+          solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
                  (∃ #j.
-                   (Out_Client_1( aenc(<z.2, $A.1, z.1>, pk(~ltkS.1)) ) @ #j)
-                  ∧
-                   ¬(last(#j))) )
+                   (Out_Client_1( aenc(<z.5, $A.2, x>, pk(~ltkS.2)) ) @ #j) ∧ ¬(last(#j))) )
             case case_1
             by contradiction /* cyclic */
           next
@@ -175,13 +176,13 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (LtkReveal( C ) @ #r) ⇒ ¬(#r < #j))"
 */
 simplify
-solve( Client_1( C, S, k ) ▶₀ #i )
+solve( Client_1( C.1, S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !Ltk( $C, ltkC ) ▶₂ #i )
+  solve( !Ltk( $C.2, ltkC ) ▶₂ #i )
     case Register_pk
-    solve( !KU( ~k ) @ #j )
+    solve( !KU( ~k.2 ) @ #j )
       case Client_1
-      solve( !KU( ~ltk.1 ) @ #vk.1 )
+      solve( !KU( ~ltk.2 ) @ #vk.1 )
         case Reveal_ltk
         by contradiction /* from formulas */
       qed
@@ -210,8 +211,8 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (LtkReveal( C ) @ #r) ⇒ ¬(#r < #j))"
 */
 simplify
-solve( (∃ #r. (LtkReveal( S ) @ #r) ∧ #r < #vk.1)  ∥
-       (∃ #r. (LtkReveal( C ) @ #r) ∧ #r < #vk.1) )
+solve( (∃ #r. (LtkReveal( S.1 ) @ #r) ∧ #r < #vk.1)  ∥
+       (∃ #r. (LtkReveal( C.1 ) @ #r) ∧ #r < #vk.1) )
   case case_1
   by contradiction /* from formulas */
 next
@@ -238,19 +239,19 @@ guarded formula characterizing all counter-examples:
    (∀ #r. (LtkReveal( C ) @ #r) ⇒ ¬(#r < #i)))"
 */
 simplify
-solve( Client_1( C, S, k ) ▶₀ #i )
+solve( Client_1( C.1, S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !Ltk( $C, ltkC ) ▶₂ #i )
+  solve( !Ltk( $C.2, ltkC ) ▶₂ #i )
     case Register_pk
-    solve( !KU( aenc(<'2', ~k>, pk(~ltk)) ) @ #vk )
+    solve( !KU( aenc(<'2', ~k.2>, pk(~ltk.1)) ) @ #vk )
       case Serv_1
-      solve( !KU( aenc(<'1', $C, ~k>, pk(~ltkS)) ) @ #vk.1 )
+      solve( !KU( aenc(<'1', $A, ~k.2>, pk(~ltkS)) ) @ #vk.1 )
         case Client_1
         by contradiction /* from formulas */
       next
         case c_aenc
-        solve( (∃ #r. (LtkReveal( $S ) @ #r) ∧ #r < #vk.7)  ∥
-               (∃ #r. (LtkReveal( $C ) @ #r) ∧ #r < #vk.7) )
+        solve( (∃ #r. (LtkReveal( $S.2 ) @ #r) ∧ #r < #vk.7)  ∥
+               (∃ #r. (LtkReveal( $A ) @ #r) ∧ #r < #vk.7) )
           case case_1
           by contradiction /* from formulas */
         next
@@ -260,8 +261,8 @@ solve( Client_1( C, S, k ) ▶₀ #i )
       qed
     next
       case c_aenc
-      solve( (∃ #r. (LtkReveal( $S ) @ #r) ∧ #r < #vk.4)  ∥
-             (∃ #r. (LtkReveal( $C ) @ #r) ∧ #r < #vk.4) )
+      solve( (∃ #r. (LtkReveal( $S.2 ) @ #r) ∧ #r < #vk.4)  ∥
+             (∃ #r. (LtkReveal( $C.2 ) @ #r) ∧ #r < #vk.4) )
         case case_1
         by contradiction /* from formulas */
       next
@@ -292,8 +293,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -305,7 +306,7 @@ summary of summaries:
 analyzed: examples/loops/JCS12_Typing_Example.spthy
 
   output:          examples/loops/JCS12_Typing_Example.spthy.tmp
-  processing time: 0.23s
+  processing time: 0.22s
   
   typing_assertion (all-traces): verified (15 steps)
   Client_session_key_secrecy_raw (all-traces): verified (8 steps)

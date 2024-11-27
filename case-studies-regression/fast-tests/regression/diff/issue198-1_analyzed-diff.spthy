@@ -134,18 +134,18 @@ next
         by step( contradiction /* from formulas */ )
       next
         case shuffleVoters_case_2
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H2, vote ) ▶₂ #i ) )
           case H_vote
-          by step( contradiction /* from formulas */ )
+          by sorry // Cannot prove
         qed
       qed
     next
       case shuffleVoters_case_2
       step( solve( AgSt_S0( <$Dempty, $Hempty> ) ▶₁ #i ) )
         case shuffleVoters_case_1
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H1, vote ) ▶₂ #i ) )
           case H_vote
-          by sorry // Cannot prove
+          by step( contradiction /* from formulas */ )
         qed
       next
         case shuffleVoters_case_2
@@ -158,18 +158,18 @@ next
         by step( contradiction /* from formulas */ )
       next
         case shuffleVoters_case_2
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H2, vote ) ▶₂ #i ) )
           case H_vote
-          by step( contradiction /* from formulas */ )
+          by sorry // Cannot prove
         qed
       qed
     next
       case shuffleVoters_case_4
       step( solve( AgSt_S0( <$Dempty, $Hempty> ) ▶₁ #i ) )
         case shuffleVoters_case_1
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H1, vote ) ▶₂ #i ) )
           case H_vote
-          by sorry // Cannot prove
+          by step( contradiction /* from formulas */ )
         qed
       next
         case shuffleVoters_case_2
@@ -186,18 +186,18 @@ next
         by step( contradiction /* from formulas */ )
       next
         case shuffleVoters_case_2
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H2, vote ) ▶₂ #i ) )
           case H_vote
-          by sorry // Cannot prove
+          by step( contradiction /* from formulas */ )
         qed
       qed
     next
       case shuffleVoters_case_2
       step( solve( AgSt_S0( <$Dempty, $Hempty> ) ▶₁ #i ) )
         case shuffleVoters_case_1
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H1, vote ) ▶₂ #i ) )
           case H_vote
-          by step( contradiction /* from formulas */ )
+          by sorry // Cannot prove
         qed
       next
         case shuffleVoters_case_2
@@ -210,18 +210,18 @@ next
         by step( contradiction /* from formulas */ )
       next
         case shuffleVoters_case_2
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H2, vote ) ▶₂ #i ) )
           case H_vote
-          by sorry // Cannot prove
+          by step( contradiction /* from formulas */ )
         qed
       qed
     next
       case shuffleVoters_case_4
       step( solve( AgSt_S0( <$Dempty, $Hempty> ) ▶₁ #i ) )
         case shuffleVoters_case_1
-        step( solve( Channel( $Hvoter, vote ) ▶₂ #i ) )
+        step( solve( Channel( $H1, vote ) ▶₂ #i ) )
           case H_vote
-          by step( contradiction /* from formulas */ )
+          by sorry // Cannot prove
         qed
       next
         case shuffleVoters_case_2
@@ -282,8 +282,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end

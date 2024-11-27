@@ -205,33 +205,33 @@ rule-equivalence
           case reader1
           step( solve( ReaderRun( ~k, ~id ) ▶₁ #vr ) )
             case select_reader
-            step( solve( !KU( lh((h(z)⊕rot(~id, h(z)))) ) @ #vk.3 ) )
+            step( solve( !KU( lh((h(z.1)⊕rot(~id, h(z.1)))) ) @ #vk.3 ) )
               case tag1
-              step( solve( Reader( (z.1++<~k, ~id>) ) ▶₀ #vr.2 ) )
+              step( solve( Reader( (z.2++<~k, ~id.1>) ) ▶₀ #vr.2 ) )
                 case Setup
-                step( solve( Tag( (z.1++<~k.1, ~id>) ) ▶₀ #vr.5 ) )
+                step( solve( Tag( (z.4++<~k.1, ~id1>) ) ▶₀ #vr.5 ) )
                   case Setup
-                  step( solve( !KU( rh((h(z)⊕rot(~id, h(z)))) ) @ #vk.2 ) )
+                  step( solve( !KU( rh((h(z.3)⊕rot(~id1.1, h(z.3)))) ) @ #vk ) )
                     case reader2
-                    step( solve( Reader( (z.1++<~k.1, ~id>) ) ▶₀ #vr.9 ) )
+                    step( solve( Reader( (z.6++<~k.3, ~id.2>) ) ▶₀ #vr.10 ) )
                       case select_reader
-                      step( solve( Reader( (z.1++<~k.1, ~id>++<~k.2, ~id.1>) ) ▶₀ #vr.10 ) )
+                      step( solve( Reader( (z.6++<~k.3, ~id.2>++<~k.4, ~id.3>) ) ▶₀ #vr.11 ) )
                         case Setup
                         step( solve( splitEqs(0) ) )
                           case split_case_3
                           step( solve( splitEqs(1) ) )
                             case split_case_1
-                            step( solve( !KU( ~r2 ) @ #vk.4 ) )
+                            step( solve( !KU( ~r2.4 ) @ #vk.2 ) )
                               case tag1
-                              step( solve( !KU( ~r1 ) @ #vk.5 ) )
+                              step( solve( !KU( ~r1.4 ) @ #vk.8 ) )
                                 case reader1
                                 step( solve( splitEqs(2) ) )
                                   case split
-                                  step( solve( !KU( (~r1⊕~r2⊕~r1.1) ) @ #vk.6 ) )
+                                  step( solve( !KU( (~r2.5⊕~r1.6⊕~r1.7) ) @ #vk.6 ) )
                                     case c_xor_case_1
-                                    step( solve( !KU( (~r1⊕~r1.1) ) @ #vk.7 ) )
+                                    step( solve( !KU( (~r2.5⊕~r1.7) ) @ #vk.9 ) )
                                       case c_xor
-                                      step( solve( !KU( ~r1.1 ) @ #vk.8 ) )
+                                      step( solve( !KU( ~r1.6 ) @ #vk.10 ) )
                                         case reader1
                                         by ATTACK // trace found
                                       qed
@@ -276,8 +276,8 @@ Failed to derive Variable(s): hash
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -289,7 +289,7 @@ summary of summaries:
 analyzed: examples/csf18-xor/diff-models/CH07-UK3.spthy
 
   output:          examples/csf18-xor/diff-models/CH07-UK3.spthy.tmp
-  processing time: 65.01s
+  processing time: 55.06s
   
   WARNING: 2 wellformedness check failed!
            The analysis results might be wrong!

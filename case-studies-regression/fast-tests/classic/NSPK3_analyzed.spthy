@@ -111,21 +111,21 @@ next
            (∀ #j. (OUT_R_1( m2 ) @ #j) ⇒ ⊥)) )
     case case_1
     solve( (last(#i))  ∥
-           (∃ #j. (!KU( ni ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
-           (∃ #j. (OUT_I_1( aenc(<'1', ni, I>, pk(ltkR)) ) @ #j) ∧ ¬(last(#j))) )
+           (∃ #j. (!KU( ni.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+           (∃ #j. (OUT_I_1( aenc(<'1', ni.1, I>, pk(ltkR)) ) @ #j) ∧ ¬(last(#j))) )
       case case_1
       solve( !Ltk( $R, ltkR ) ▶₀ #i )
         case Register_pk
         solve( !Pk( I, pkI ) ▶₂ #i )
           case Register_pk
-          solve( !KU( aenc(<'1', ni, $A>, pk(~ltkA)) ) @ #vk )
+          solve( !KU( aenc(<'1', ni.1, $A>, pk(~ltkA)) ) @ #vk )
             case I_1
             by contradiction /* from formulas */
           next
             case I_2
-            solve( (∃ #j. (!KU( nr.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
+            solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
                    (∃ #j.
-                     (OUT_R_1( aenc(<'2', ~ni.1, nr.1>, pk(~ltkA.3)) ) @ #j) ∧ ¬(last(#j))) )
+                     (OUT_R_1( aenc(<'2', ~ni.2, x>, pk(~ltkA.2)) ) @ #j) ∧ ¬(last(#j))) )
               case case_1
               by contradiction /* cyclic */
             next
@@ -134,9 +134,9 @@ next
             qed
           next
             case R_1
-            solve( (∃ #j. (!KU( ni.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
+            solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
                    (∃ #j.
-                     (OUT_I_1( aenc(<'1', ni.1, $A.1>, pk(~ltkA.3)) ) @ #j) ∧ ¬(last(#j))) )
+                     (OUT_I_1( aenc(<'1', x, $A.1>, pk(~ltkA.2)) ) @ #j) ∧ ¬(last(#j))) )
               case case_1
               by contradiction /* cyclic */
             next
@@ -159,20 +159,20 @@ next
   next
     case case_2
     solve( (last(#i))  ∥
-           (∃ #j. (!KU( nr ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
-           (∃ #j. (OUT_R_1( aenc(<'2', ni, nr>, pk(ltkI)) ) @ #j) ∧ ¬(last(#j))) )
+           (∃ #j. (!KU( nr.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+           (∃ #j. (OUT_R_1( aenc(<'2', ni, nr.1>, pk(ltkI)) ) @ #j) ∧ ¬(last(#j))) )
       case case_1
       solve( St_I_1( I, R, ni ) ▶₀ #i )
         case I_1
-        solve( !Ltk( $I, ltkI ) ▶₁ #i )
+        solve( !Ltk( $I.1, ltkI ) ▶₁ #i )
           case Register_pk
-          solve( !Pk( $R, pkR ) ▶₃ #i )
+          solve( !Pk( $R.1, pkR ) ▶₃ #i )
             case Register_pk
-            solve( !KU( aenc(<'2', ~ni, nr>, pk(~ltkA)) ) @ #vk )
+            solve( !KU( aenc(<'2', ~ni.1, nr.1>, pk(~ltkA.1)) ) @ #vk )
               case I_2
-              solve( (∃ #j. (!KU( nr.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
+              solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
                      (∃ #j.
-                       (OUT_R_1( aenc(<'2', ~ni.1, nr.1>, pk(~ltkA.4)) ) @ #j) ∧ ¬(last(#j))) )
+                       (OUT_R_1( aenc(<'2', ~ni.2, x>, pk(~ltkA.3)) ) @ #j) ∧ ¬(last(#j))) )
                 case case_1
                 by contradiction /* cyclic */
               next
@@ -184,9 +184,8 @@ next
               by contradiction /* from formulas */
             next
               case R_1_case_2
-              solve( (∃ #j. (!KU( ni.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
-                     (∃ #j.
-                       (OUT_I_1( aenc(<'1', ni.1, $A>, pk(~ltkA.4)) ) @ #j) ∧ ¬(last(#j))) )
+              solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
+                     (∃ #j. (OUT_I_1( aenc(<'1', x, $A>, pk(~ltkA.3)) ) @ #j) ∧ ¬(last(#j))) )
                 case case_1
                 by contradiction /* cyclic */
               next
@@ -226,33 +225,33 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (RevLtk( B ) @ #r) ⇒ ⊥)"
 */
 simplify
-solve( Secret( A, B, s ) ▶₀ #i )
+solve( Secret( A.1, B.1, x ) ▶₀ #i )
   case R_2_case_1
   solve( !KU( ~nr ) @ #vk )
     case I_2
-    solve( !KU( ~ltkA.3 ) @ #vk.4 )
+    solve( !KU( ~ltkA.5 ) @ #vk.4 )
       case Reveal_ltk
-      solve( !KU( aenc(<'3', ~nr>, pk(~ltkA)) ) @ #vk.2 )
+      solve( !KU( aenc(<'3', ~nr>, pk(~ltkA)) ) @ #vk.1 )
         case I_2
-        solve( !KU( aenc(<'1', ~ni, $A>, pk(~ltkA.2)) ) @ #vk.3 )
+        solve( !KU( aenc(<'1', ~ni.1, $A.2>, pk(~ltkA.1)) ) @ #vk.5 )
           case c_aenc
-          solve( !KU( ~ni ) @ #vk.10 )
+          solve( !KU( ~ni.1 ) @ #vk.11 )
             case I_1
-            solve( !KU( ~ltkA.4 ) @ #vk.12 )
+            solve( !KU( ~ltkA.9 ) @ #vk.13 )
               case Reveal_ltk
-              solve( !KU( aenc(<'2', ~ni.1, ~nr>, pk(~ltkA.5)) ) @ #vk.8 )
+              solve( !KU( aenc(<'2', ~ni.2, ~nr>, pk(~ltkA.7)) ) @ #vk.6 )
                 case c_aenc
-                solve( !KU( ~ni.1 ) @ #vk.17 )
+                solve( !KU( ~ni.2 ) @ #vk.18 )
                   case R_1
-                  solve( !KU( ~ltkA.7 ) @ #vk.19 )
+                  solve( !KU( ~ltkA.11 ) @ #vk.21 )
                     case Reveal_ltk
-                    solve( !KU( aenc(<'2', ~ni, ~nr>, pk(~ltkA.3)) ) @ #vk.13 )
+                    solve( !KU( aenc(<'2', ~ni.1, ~nr>, pk(~ltkA.2)) ) @ #vk.3 )
                       case R_1
-                      solve( !KU( pk(~ltkA.2) ) @ #vk.14 )
+                      solve( !KU( pk(~ltkA.12) ) @ #vk.8 )
                         case Register_pk
-                        solve( !KU( pk(~ltkA.6) ) @ #vk.17 )
+                        solve( !KU( pk(~ltkA.7) ) @ #vk.15 )
                           case Register_pk
-                          solve( !KU( aenc(<'1', ~ni.1, $I>, pk(~ltkA.7)) ) @ #vk.19 )
+                          solve( !KU( aenc(<'1', ~ni.2, $A.9>, pk(~ltkA.8)) ) @ #vk.20 )
                             case I_1
                             SOLVED // trace found
                           qed
@@ -297,27 +296,27 @@ guarded formula characterizing all counter-examples:
 simplify
 solve( Commit( actor, peer, params ) @ #i )
   case R_2
-  solve( St_R_1( actor, peer, ni, nr ) ▶₀ #i )
+  solve( St_R_1( R, I, ni, nr ) ▶₀ #i )
     case R_1
-    solve( !Ltk( $R, ltkR ) ▶₁ #i )
+    solve( !Ltk( $R.1, ltkR ) ▶₁ #i )
       case Register_pk
-      solve( !KU( aenc(<'3', ~nr>, pk(~ltkA)) ) @ #vk )
+      solve( !KU( aenc(<'3', ~nr.1>, pk(~ltkA.2)) ) @ #vk )
         case c_aenc
-        solve( !KU( ~nr ) @ #vk.5 )
+        solve( !KU( ~nr.1 ) @ #vk.5 )
           case I_2
-          solve( !KU( ~ltkA.3 ) @ #vk.7 )
+          solve( !KU( ~ltkA.5 ) @ #vk.7 )
             case Reveal_ltk
-            solve( !KU( aenc(<'1', ~ni, $A>, pk(~ltkA.2)) ) @ #vk.4 )
+            solve( !KU( aenc(<'1', ~ni.1, $A>, pk(~ltkA)) ) @ #vk.8 )
               case c_aenc
-              solve( !KU( ~ni ) @ #vk.12 )
+              solve( !KU( ~ni.1 ) @ #vk.13 )
                 case I_1
-                solve( !KU( ~ltkA.4 ) @ #vk.14 )
+                solve( !KU( ~ltkA.7 ) @ #vk.15 )
                   case Reveal_ltk
-                  solve( !KU( pk(~ltkA) ) @ #vk.8 )
+                  solve( !KU( pk(~ltkA.2) ) @ #vk.3 )
                     case Register_pk
-                    solve( !KU( aenc(<'2', ~ni, ~nr>, pk(~ltkA.3)) ) @ #vk.11 )
+                    solve( !KU( aenc(<'2', ~ni.1, ~nr.1>, pk(~ltkA.1)) ) @ #vk.6 )
                       case R_1
-                      solve( !KU( pk(~ltkA.2) ) @ #vk.12 )
+                      solve( !KU( pk(~ltkA.8) ) @ #vk.10 )
                         case Register_pk
                         SOLVED // trace found
                       qed
@@ -346,11 +345,11 @@ guarded formula characterizing all satisfying traces:
   (∀ #r. (RevLtk( A ) @ #r) ⇒ ⊥) ∧ (∀ #r. (RevLtk( B ) @ #r) ⇒ ⊥)"
 */
 simplify
-solve( Secret( A, B, s ) ▶₀ #i )
+solve( Secret( A.1, B.1, m ) ▶₀ #i )
   case I_2_case_1
-  solve( !KU( aenc(<'2', ~ni, s>, pk(~ltkA)) ) @ #vk )
+  solve( !KU( aenc(<'2', ~ni, m>, pk(~ltkA)) ) @ #vk )
     case R_1
-    solve( !KU( aenc(<'1', ~ni, $I>, pk(~ltkA.3)) ) @ #vk.1 )
+    solve( !KU( aenc(<'1', ~ni, $A.2>, pk(~ltkA.3)) ) @ #vk.1 )
       case I_1
       SOLVED // trace found
     qed
@@ -375,8 +374,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -388,7 +387,7 @@ summary of summaries:
 analyzed: examples/classic/NSPK3.spthy
 
   output:          examples/classic/NSPK3.spthy.tmp
-  processing time: 1.42s
+  processing time: 1.06s
   
   types (all-traces): verified (32 steps)
   nonce_secrecy (all-traces): falsified - found trace (16 steps)

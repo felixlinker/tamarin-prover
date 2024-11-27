@@ -184,10 +184,10 @@ next
           case commit
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
-            by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
           qed
         next
           case d_0_open
@@ -201,10 +201,10 @@ next
             case commit
             step( solve( !KU( ~ni1 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.7 ) )
             next
               case Attack3_case_2
-              by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
             qed
           next
             case d_0_open
@@ -218,10 +218,10 @@ next
               case commit
               step( solve( !KU( ~ni1 ) @ #vk.2 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.10 ) )
               next
                 case Attack3_case_2
-                by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
               qed
             next
               case d_0_open
@@ -235,10 +235,10 @@ next
                 case commit
                 step( solve( !KU( ~ni1 ) @ #vk.2 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.13 ) )
                 next
                   case Attack3_case_2
-                  by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
                 qed
               next
                 case d_0_open
@@ -284,10 +284,10 @@ next
           case commit
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
-            by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
           qed
         next
           case d_0_open
@@ -301,10 +301,10 @@ next
             case commit
             step( solve( !KU( ~ni1 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.7 ) )
             next
               case Attack3_case_2
-              by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
             qed
           next
             case d_0_open
@@ -318,10 +318,10 @@ next
               case commit
               step( solve( !KU( ~ni1 ) @ #vk.2 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.10 ) )
               next
                 case Attack3_case_2
-                by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
               qed
             next
               case d_0_open
@@ -335,10 +335,10 @@ next
                 case commit
                 step( solve( !KU( ~ni1 ) @ #vk.2 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.13 ) )
                 next
                   case Attack3_case_2
-                  by step( solve( !KU( ~rnd1 ) @ #vk.1 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk ) )
                 qed
               next
                 case d_0_open
@@ -538,16 +538,16 @@ next
               by step( contradiction /* forbidden chain */ )
             next
               case fake
-              step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.11 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+                step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
                   case c_pk
-                  step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                  step( solve( !KU( ~ltkV1.1 ) @ #vk.13 ) )
                     case Attack3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.11 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -575,16 +575,16 @@ next
             by step( contradiction /* forbidden chain */ )
           next
             case fake
-            step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.8 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+              step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
                 case c_pk
-                step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.10 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.8 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -612,16 +612,16 @@ next
           by step( contradiction /* forbidden chain */ )
         next
           case fake
-          step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+          step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+            step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
               case c_pk
-              step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.5 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -649,16 +649,16 @@ next
         by step( solve( (#vr.1, 0) ~~> (#i, 0) ) )
       next
         case fake
-        step( solve( !KU( ~ni1 ) @ #vk ) )
+        step( solve( !KU( ~ni1.1 ) @ #vk ) )
           case Attack3_case_1
-          by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+          by step( solve( !KU( ~rnd1.1 ) @ #vk.2 ) )
         next
           case Attack3_case_2
-          step( solve( !KU( pk(~ltkV1) ) @ #vk.1 ) )
+          step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
             case c_pk
-            step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.4 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+              step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.2 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -731,16 +731,16 @@ next
               by step( contradiction /* forbidden chain */ )
             next
               case fake
-              step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.11 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+                step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
                   case c_pk
-                  step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                  step( solve( !KU( ~ltkV1.1 ) @ #vk.13 ) )
                     case Attack3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.11 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -768,16 +768,16 @@ next
             by step( contradiction /* forbidden chain */ )
           next
             case fake
-            step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.8 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+              step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
                 case c_pk
-                step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.10 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.8 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -805,16 +805,16 @@ next
           by step( contradiction /* forbidden chain */ )
         next
           case fake
-          step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+          step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+            step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
               case c_pk
-              step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.5 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -842,16 +842,16 @@ next
         by step( solve( (#vr.1, 0) ~~> (#i, 0) ) )
       next
         case fake
-        step( solve( !KU( ~ni1 ) @ #vk ) )
+        step( solve( !KU( ~ni1.1 ) @ #vk ) )
           case Attack3_case_1
-          by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+          by step( solve( !KU( ~rnd1.1 ) @ #vk.2 ) )
         next
           case Attack3_case_2
-          step( solve( !KU( pk(~ltkV1) ) @ #vk.1 ) )
+          step( solve( !KU( pk(~ltkV1.1) ) @ #vk.1 ) )
             case c_pk
-            step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.4 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+              step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.2 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -931,14 +931,14 @@ next
             by step( contradiction /* forbidden chain */ )
           next
             case fake
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.1 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.10 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.9 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -965,14 +965,14 @@ next
           by step( contradiction /* forbidden chain */ )
         next
           case fake
-          step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+          step( solve( !KU( ~ni1.1 ) @ #vk.3 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+              step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -999,14 +999,14 @@ next
         by step( solve( (#vr.1, 0) ~~> (#i, 0) ) )
       next
         case fake
-        step( solve( !KU( ~ni1 ) @ #vk ) )
+        step( solve( !KU( ~ni1.1 ) @ #vk ) )
           case Attack3_case_1
-          by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+          by step( solve( !KU( ~rnd1.1 ) @ #vk.3 ) )
         next
           case Attack3_case_2
-          step( solve( !KU( ~ltkV1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ltkV1.1 ) @ #vk.4 ) )
             case Attack3
-            step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+            step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.3 ) )
               case Attack3_case_1
               MIRRORED
             next
@@ -1082,14 +1082,14 @@ next
             by step( contradiction /* forbidden chain */ )
           next
             case fake
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.1 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.10 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.9 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -1116,14 +1116,14 @@ next
           by step( contradiction /* forbidden chain */ )
         next
           case fake
-          step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+          step( solve( !KU( ~ni1.1 ) @ #vk.3 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+              step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -1150,14 +1150,14 @@ next
         by step( solve( (#vr.1, 0) ~~> (#i, 0) ) )
       next
         case fake
-        step( solve( !KU( ~ni1 ) @ #vk ) )
+        step( solve( !KU( ~ni1.1 ) @ #vk ) )
           case Attack3_case_1
-          by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+          by step( solve( !KU( ~rnd1.1 ) @ #vk.3 ) )
         next
           case Attack3_case_2
-          step( solve( !KU( ~ltkV1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ltkV1.1 ) @ #vk.4 ) )
             case Attack3
-            step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+            step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.3 ) )
               case Attack3_case_1
               MIRRORED
             next
@@ -1232,14 +1232,14 @@ next
               by step( contradiction /* forbidden chain */ )
             next
               case fake
-              step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.11 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.12 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+                  step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.11 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -1266,14 +1266,14 @@ next
             by step( contradiction /* forbidden chain */ )
           next
             case fake
-            step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.8 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.9 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+                step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.8 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -1300,14 +1300,14 @@ next
           by step( contradiction /* forbidden chain */ )
         next
           case fake
-          step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+          step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.6 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+              step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.5 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -1336,50 +1336,50 @@ next
         case fake
         step( solve( !KU( ~ltkV1 ) @ #vk.1 ) )
           case Attack3
-          step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.1 ) )
+          step( solve( !KU( commit(~ni1.2, ~rnd1.1, pk(~ltkV1)) ) @ #vk ) )
             case Attack3_case_1
             MIRRORED
           next
             case Attack3_case_2
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.5 ) )
             next
               case Attack3_case_2
               MIRRORED
             qed
           next
             case Attack3_case_3
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.6 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
             qed
           next
             case Attack3_case_4
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.7 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
             qed
           next
             case Attack3_case_5
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.8 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
             qed
           next
             case c_commit
-            step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.5 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
@@ -1437,14 +1437,14 @@ next
               by step( contradiction /* forbidden chain */ )
             next
               case fake
-              step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.11 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.12 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+                  step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.11 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -1471,14 +1471,14 @@ next
             by step( contradiction /* forbidden chain */ )
           next
             case fake
-            step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.8 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.9 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+                step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.8 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -1505,14 +1505,14 @@ next
           by step( contradiction /* forbidden chain */ )
         next
           case fake
-          step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+          step( solve( !KU( ~ni1.1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.6 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+              step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.5 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -1541,50 +1541,50 @@ next
         case fake
         step( solve( !KU( ~ltkV1 ) @ #vk.1 ) )
           case Attack3
-          step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.1 ) )
+          step( solve( !KU( commit(~ni1.2, ~rnd1.1, pk(~ltkV1)) ) @ #vk ) )
             case Attack3_case_1
             MIRRORED
           next
             case Attack3_case_2
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.5 ) )
             next
               case Attack3_case_2
               MIRRORED
             qed
           next
             case Attack3_case_3
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.6 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
             qed
           next
             case Attack3_case_4
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.7 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
             qed
           next
             case Attack3_case_5
-            step( solve( !KU( ~ni1 ) @ #vk.3 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.3 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.8 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
             qed
           next
             case c_commit
-            step( solve( !KU( ~ni1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk.2 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.5 ) )
             next
               case Attack3_case_2
               by step( contradiction /* cyclic */ )
@@ -1613,7 +1613,7 @@ next
           case Attack3_case_2
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -1622,7 +1622,7 @@ next
           case Attack3_case_3
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -1631,7 +1631,7 @@ next
           case Attack3_case_4
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -1640,7 +1640,7 @@ next
           case Attack3_case_5
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.7 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -1649,7 +1649,7 @@ next
           case c_commit
           step( solve( !KU( ~ni1 ) @ #vk.1 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -1670,14 +1670,14 @@ next
           case commit
           step( solve( !KU( ~ni1 ) @ #vk.1 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.3 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+            step( solve( !KU( pk(~ltkV1.1) ) @ #vk.2 ) )
               case c_pk
-              step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.5 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.3 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -1703,12 +1703,12 @@ next
           case d_0_open
           step( solve( (#vr.2, 0) ~~> (#i, 1) ) )
             case Var_fresh_ni1
-            step( solve( !KU( ~ni1 ) @ #vk ) )
+            step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
             next
               case Attack3_case_2
-              by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.3 ) )
             qed
           qed
         qed
@@ -1720,14 +1720,14 @@ next
             case commit
             step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( pk(~ltkV1) ) @ #vk.4 ) )
+              step( solve( !KU( pk(~ltkV1.1) ) @ #vk.5 ) )
                 case c_pk
-                step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.8 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -1753,12 +1753,12 @@ next
             case d_0_open
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case Var_fresh_ni1
-              step( solve( !KU( ~ni1 ) @ #vk ) )
+              step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.8 ) )
               next
                 case Attack3_case_2
-                by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
               qed
             qed
           qed
@@ -1770,14 +1770,14 @@ next
               case commit
               step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( pk(~ltkV1) ) @ #vk.5 ) )
+                step( solve( !KU( pk(~ltkV1.1) ) @ #vk.8 ) )
                   case c_pk
-                  step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                  step( solve( !KU( ~ltkV1.1 ) @ #vk.11 ) )
                     case Attack3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.9 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -1803,12 +1803,12 @@ next
               case d_0_open
               step( solve( (#vr.4, 0) ~~> (#i, 1) ) )
                 case Var_fresh_ni1
-                step( solve( !KU( ~ni1 ) @ #vk ) )
+                step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.11 ) )
                 next
                   case Attack3_case_2
-                  by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
                 qed
               qed
             qed
@@ -1820,14 +1820,14 @@ next
                 case commit
                 step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.12 ) )
                 next
                   case Attack3_case_2
-                  step( solve( !KU( pk(~ltkV1) ) @ #vk.6 ) )
+                  step( solve( !KU( pk(~ltkV1.1) ) @ #vk.11 ) )
                     case c_pk
-                    step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                    step( solve( !KU( ~ltkV1.1 ) @ #vk.14 ) )
                       case Attack3
-                      step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                      step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.12 ) )
                         case Attack3_case_1
                         MIRRORED
                       next
@@ -1853,27 +1853,27 @@ next
                 case d_0_open
                 step( solve( (#vr.5, 0) ~~> (#i, 1) ) )
                   case Var_fresh_ni1
-                  step( solve( !KU( ~ni1 ) @ #vk ) )
+                  step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                     case Attack3_case_1
-                    by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                    by step( solve( !KU( ~rnd1.1 ) @ #vk.14 ) )
                   next
                     case Attack3_case_2
-                    by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                    by step( solve( !KU( ~rnd1.1 ) @ #vk.12 ) )
                   qed
                 qed
               qed
             next
               case d_1_open
               step( solve( (#vr.4, 0) ~~> (#i, 1) ) )
-                case Var_msg_2_ni3
+                case Var_msg_3_ni2
                 step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.12 ) )
                 next
                   case Attack3_case_2
-                  step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                  step( solve( !KU( ~ltkV1.1 ) @ #vk.13 ) )
                     case Attack3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                    step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.12 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -1899,14 +1899,14 @@ next
               case fake
               step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.10 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.11 ) )
                   case Attack3
-                  step( solve( !KU( fake(~ni1, ~rnd1, ~ltkV1, ni3) ) @ #vk.2 ) )
+                  step( solve( !KU( fake(~ni1.4, ~rnd1.2, ~ltkV1.1, ni3.2) ) @ #vk ) )
                     case Attack3_case_1
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -1927,7 +1927,7 @@ next
                     qed
                   next
                     case Attack3_case_2
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -1948,7 +1948,7 @@ next
                     qed
                   next
                     case Attack3_case_3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -1969,7 +1969,7 @@ next
                     qed
                   next
                     case Attack3_case_4
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -1990,7 +1990,7 @@ next
                     qed
                   next
                     case c_fake
-                    by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+                    by step( solve( !KU( ~rnd1.2 ) @ #vk.13 ) )
                   qed
                 qed
               qed
@@ -1998,15 +1998,15 @@ next
           next
             case d_1_open
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
-              case Var_msg_1_ni3
+              case Var_msg_2_ni2
               step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.10 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                  step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.9 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2032,14 +2032,14 @@ next
             case fake
             step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.7 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.8 ) )
                 case Attack3
-                step( solve( !KU( fake(~ni1, ~rnd1, ~ltkV1, ni3) ) @ #vk.2 ) )
+                step( solve( !KU( fake(~ni1.3, ~rnd1.2, ~ltkV1.1, ni3.1) ) @ #vk ) )
                   case Attack3_case_1
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2060,7 +2060,7 @@ next
                   qed
                 next
                   case Attack3_case_2
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2081,7 +2081,7 @@ next
                   qed
                 next
                   case Attack3_case_3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2102,7 +2102,7 @@ next
                   qed
                 next
                   case Attack3_case_4
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2123,7 +2123,7 @@ next
                   qed
                 next
                   case c_fake
-                  by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                  by step( solve( !KU( ~rnd1.2 ) @ #vk.10 ) )
                 qed
               qed
             qed
@@ -2131,15 +2131,15 @@ next
         next
           case d_1_open
           step( solve( (#vr.2, 0) ~~> (#i, 1) ) )
-            case Var_msg_ni3
+            case Var_msg_1_ni2
             step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -2165,14 +2165,14 @@ next
           case fake
           step( solve( !KU( ~ni1 ) @ #vk.1 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.5 ) )
               case Attack3
-              step( solve( !KU( fake(~ni1, ~rnd1, ~ltkV1, ni3) ) @ #vk.2 ) )
+              step( solve( !KU( fake(~ni1.2, ~rnd1.2, ~ltkV1.1, ni3) ) @ #vk ) )
                 case Attack3_case_1
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -2193,7 +2193,7 @@ next
                 qed
               next
                 case Attack3_case_2
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -2214,7 +2214,7 @@ next
                 qed
               next
                 case Attack3_case_3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -2235,7 +2235,7 @@ next
                 qed
               next
                 case Attack3_case_4
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -2256,7 +2256,7 @@ next
                 qed
               next
                 case c_fake
-                by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                by step( solve( !KU( ~rnd1.2 ) @ #vk.7 ) )
               qed
             qed
           qed
@@ -2267,12 +2267,12 @@ next
           case Var_fresh_ni1
           step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
             case Attack3
-            step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.3 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+              step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.3 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -2301,14 +2301,14 @@ next
           MIRRORED
         next
           case Attack3_case_2
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.3 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.5 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+              step( solve( !KU( commit(~ni1.1, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -2331,14 +2331,14 @@ next
           qed
         next
           case Attack3_case_3
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.4 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.6 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+              step( solve( !KU( commit(~ni1.1, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.5 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -2361,14 +2361,14 @@ next
           qed
         next
           case Attack3_case_4
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.5 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+              step( solve( !KU( commit(~ni1.1, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -2391,12 +2391,12 @@ next
           qed
         next
           case c_fake
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.4 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.2 ) )
           qed
         qed
       qed
@@ -2424,7 +2424,7 @@ next
           case Attack3_case_2
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -2433,7 +2433,7 @@ next
           case Attack3_case_3
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -2442,7 +2442,7 @@ next
           case Attack3_case_4
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -2451,7 +2451,7 @@ next
           case Attack3_case_5
           step( solve( !KU( ~ni1 ) @ #vk.2 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.7 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -2460,7 +2460,7 @@ next
           case c_commit
           step( solve( !KU( ~ni1 ) @ #vk.1 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
             by step( contradiction /* cyclic */ )
@@ -2481,14 +2481,14 @@ next
           case commit
           step( solve( !KU( ~ni1 ) @ #vk.1 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.3 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( pk(~ltkV1) ) @ #vk.2 ) )
+            step( solve( !KU( pk(~ltkV1.1) ) @ #vk.2 ) )
               case c_pk
-              step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.5 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.3 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -2514,12 +2514,12 @@ next
           case d_0_open
           step( solve( (#vr.2, 0) ~~> (#i, 1) ) )
             case Var_fresh_ni1
-            step( solve( !KU( ~ni1 ) @ #vk ) )
+            step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
             next
               case Attack3_case_2
-              by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.3 ) )
             qed
           qed
         qed
@@ -2531,14 +2531,14 @@ next
             case commit
             step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( pk(~ltkV1) ) @ #vk.4 ) )
+              step( solve( !KU( pk(~ltkV1.1) ) @ #vk.5 ) )
                 case c_pk
-                step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.8 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2564,12 +2564,12 @@ next
             case d_0_open
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
               case Var_fresh_ni1
-              step( solve( !KU( ~ni1 ) @ #vk ) )
+              step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.8 ) )
               next
                 case Attack3_case_2
-                by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
               qed
             qed
           qed
@@ -2581,14 +2581,14 @@ next
               case commit
               step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( pk(~ltkV1) ) @ #vk.5 ) )
+                step( solve( !KU( pk(~ltkV1.1) ) @ #vk.8 ) )
                   case c_pk
-                  step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                  step( solve( !KU( ~ltkV1.1 ) @ #vk.11 ) )
                     case Attack3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.9 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -2614,12 +2614,12 @@ next
               case d_0_open
               step( solve( (#vr.4, 0) ~~> (#i, 1) ) )
                 case Var_fresh_ni1
-                step( solve( !KU( ~ni1 ) @ #vk ) )
+                step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.11 ) )
                 next
                   case Attack3_case_2
-                  by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
                 qed
               qed
             qed
@@ -2631,14 +2631,14 @@ next
                 case commit
                 step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.12 ) )
                 next
                   case Attack3_case_2
-                  step( solve( !KU( pk(~ltkV1) ) @ #vk.6 ) )
+                  step( solve( !KU( pk(~ltkV1.1) ) @ #vk.11 ) )
                     case c_pk
-                    step( solve( !KU( ~ltkV1 ) @ #vk.3 ) )
+                    step( solve( !KU( ~ltkV1.1 ) @ #vk.14 ) )
                       case Attack3
-                      step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                      step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.12 ) )
                         case Attack3_case_1
                         MIRRORED
                       next
@@ -2664,27 +2664,27 @@ next
                 case d_0_open
                 step( solve( (#vr.5, 0) ~~> (#i, 1) ) )
                   case Var_fresh_ni1
-                  step( solve( !KU( ~ni1 ) @ #vk ) )
+                  step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                     case Attack3_case_1
-                    by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                    by step( solve( !KU( ~rnd1.1 ) @ #vk.14 ) )
                   next
                     case Attack3_case_2
-                    by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                    by step( solve( !KU( ~rnd1.1 ) @ #vk.12 ) )
                   qed
                 qed
               qed
             next
               case d_1_open
               step( solve( (#vr.4, 0) ~~> (#i, 1) ) )
-                case Var_msg_2_ni3
+                case Var_msg_3_ni2
                 step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                   case Attack3_case_1
-                  by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                  by step( solve( !KU( ~rnd1.1 ) @ #vk.12 ) )
                 next
                   case Attack3_case_2
-                  step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                  step( solve( !KU( ~ltkV1.1 ) @ #vk.13 ) )
                     case Attack3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                    step( solve( !KU( commit(~ni1.5, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.12 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -2710,14 +2710,14 @@ next
               case fake
               step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.10 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.11 ) )
                   case Attack3
-                  step( solve( !KU( fake(~ni1, ~rnd1, ~ltkV1, ni3) ) @ #vk.2 ) )
+                  step( solve( !KU( fake(~ni1.4, ~rnd1.2, ~ltkV1.1, ni3.2) ) @ #vk ) )
                     case Attack3_case_1
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -2738,7 +2738,7 @@ next
                     qed
                   next
                     case Attack3_case_2
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -2759,7 +2759,7 @@ next
                     qed
                   next
                     case Attack3_case_3
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -2780,7 +2780,7 @@ next
                     qed
                   next
                     case Attack3_case_4
-                    step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.6 ) )
+                    step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.10 ) )
                       case Attack3_case_1
                       MIRRORED
                     next
@@ -2801,7 +2801,7 @@ next
                     qed
                   next
                     case c_fake
-                    by step( solve( !KU( ~rnd1 ) @ #vk.7 ) )
+                    by step( solve( !KU( ~rnd1.2 ) @ #vk.13 ) )
                   qed
                 qed
               qed
@@ -2809,15 +2809,15 @@ next
           next
             case d_1_open
             step( solve( (#vr.3, 0) ~~> (#i, 1) ) )
-              case Var_msg_1_ni3
+              case Var_msg_2_ni2
               step( solve( !KU( ~ni1 ) @ #vk.1 ) )
                 case Attack3_case_1
-                by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                by step( solve( !KU( ~rnd1.1 ) @ #vk.9 ) )
               next
                 case Attack3_case_2
-                step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+                step( solve( !KU( ~ltkV1.1 ) @ #vk.10 ) )
                   case Attack3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                  step( solve( !KU( commit(~ni1.4, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.9 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2843,14 +2843,14 @@ next
             case fake
             step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.7 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.8 ) )
                 case Attack3
-                step( solve( !KU( fake(~ni1, ~rnd1, ~ltkV1, ni3) ) @ #vk.2 ) )
+                step( solve( !KU( fake(~ni1.3, ~rnd1.2, ~ltkV1.1, ni3.1) ) @ #vk ) )
                   case Attack3_case_1
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2871,7 +2871,7 @@ next
                   qed
                 next
                   case Attack3_case_2
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2892,7 +2892,7 @@ next
                   qed
                 next
                   case Attack3_case_3
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2913,7 +2913,7 @@ next
                   qed
                 next
                   case Attack3_case_4
-                  step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+                  step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.7 ) )
                     case Attack3_case_1
                     MIRRORED
                   next
@@ -2934,7 +2934,7 @@ next
                   qed
                 next
                   case c_fake
-                  by step( solve( !KU( ~rnd1 ) @ #vk.6 ) )
+                  by step( solve( !KU( ~rnd1.2 ) @ #vk.10 ) )
                 qed
               qed
             qed
@@ -2942,15 +2942,15 @@ next
         next
           case d_1_open
           step( solve( (#vr.2, 0) ~~> (#i, 1) ) )
-            case Var_msg_ni3
+            case Var_msg_1_ni2
             step( solve( !KU( ~ni1 ) @ #vk.1 ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+              by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+              step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
                 case Attack3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                step( solve( !KU( commit(~ni1.3, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -2976,14 +2976,14 @@ next
           case fake
           step( solve( !KU( ~ni1 ) @ #vk.1 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.5 ) )
               case Attack3
-              step( solve( !KU( fake(~ni1, ~rnd1, ~ltkV1, ni3) ) @ #vk.2 ) )
+              step( solve( !KU( fake(~ni1.2, ~rnd1.2, ~ltkV1.1, ni3) ) @ #vk ) )
                 case Attack3_case_1
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -3004,7 +3004,7 @@ next
                 qed
               next
                 case Attack3_case_2
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -3025,7 +3025,7 @@ next
                 qed
               next
                 case Attack3_case_3
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -3046,7 +3046,7 @@ next
                 qed
               next
                 case Attack3_case_4
-                step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+                step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                   case Attack3_case_1
                   MIRRORED
                 next
@@ -3067,7 +3067,7 @@ next
                 qed
               next
                 case c_fake
-                by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+                by step( solve( !KU( ~rnd1.2 ) @ #vk.7 ) )
               qed
             qed
           qed
@@ -3078,12 +3078,12 @@ next
           case Var_fresh_ni1
           step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
             case Attack3
-            step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+            step( solve( !KU( ~ni1.2 ) @ #vk ) )
               case Attack3_case_1
-              by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+              by step( solve( !KU( ~rnd1.2 ) @ #vk.3 ) )
             next
               case Attack3_case_2
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.2 ) )
+              step( solve( !KU( commit(~ni1.2, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.3 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -3112,14 +3112,14 @@ next
           MIRRORED
         next
           case Attack3_case_2
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.3 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.3 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.4 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.5 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.3 ) )
+              step( solve( !KU( commit(~ni1.1, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.4 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -3142,14 +3142,14 @@ next
           qed
         next
           case Attack3_case_3
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.4 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.4 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.6 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.4 ) )
+              step( solve( !KU( commit(~ni1.1, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.5 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -3172,14 +3172,14 @@ next
           qed
         next
           case Attack3_case_4
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.5 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.5 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.6 ) )
           next
             case Attack3_case_2
-            step( solve( !KU( ~ltkV1 ) @ #vk.2 ) )
+            step( solve( !KU( ~ltkV1.1 ) @ #vk.7 ) )
               case Attack3
-              step( solve( !KU( commit(~ni1, ~rnd1, pk(~ltkV1)) ) @ #vk.5 ) )
+              step( solve( !KU( commit(~ni1.1, ~rnd1.2, pk(~ltkV1.1)) ) @ #vk.6 ) )
                 case Attack3_case_1
                 MIRRORED
               next
@@ -3202,12 +3202,12 @@ next
           qed
         next
           case c_fake
-          step( solve( !KU( ~ni1 ) @ #vk.1 ) )
+          step( solve( !KU( ~ni1 ) @ #vk.4 ) )
             case Attack3_case_1
-            by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.5 ) )
           next
             case Attack3_case_2
-            by step( solve( !KU( ~rnd1 ) @ #vk.2 ) )
+            by step( solve( !KU( ~rnd1.1 ) @ #vk.2 ) )
           qed
         qed
       qed
@@ -3241,8 +3241,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -3254,7 +3254,7 @@ summary of summaries:
 analyzed: examples/regression/diff/issue223.spthy
 
   output:          examples/regression/diff/issue223.spthy.tmp
-  processing time: 1.79s
+  processing time: 1.56s
   
   DiffLemma:  Observational_equivalence : verified (1082 steps)
 

@@ -118,15 +118,15 @@ next
            (Out_C_2( v ) @ #i) ∧ ∀ #j. (Created_vote_V_1( v ) @ #j) ⇒ ¬(#j < #i)) )
     case case_1
     solve( (last(#i))  ∥
-           (∃ #j. (Created_commit_V_1( e ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+           (∃ #j. (Created_commit_V_1( e.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
       case case_1
       solve( !AdminLtk( A, ~ltkA ) ▶₁ #i )
         case Register_Admin_pk
         solve( !Ltk( V, ~ltkV ) ▶₂ #i )
           case Register_Voter_pk
-          solve( !KU( sign(e, ~ltkV) ) @ #vk.2 )
+          solve( !KU( sign(e.1, ~ltkV) ) @ #vk.2 )
             case A_1
-            solve( (#vr.7, 0) ~~> (#vk, 0) )
+            solve( (#vr.7, 0) ~~> (#vk.2, 0) )
               case d_0_open
               by contradiction /* forbidden KD-fact */
             qed
@@ -137,7 +137,7 @@ next
             case V_1_case_1
             solve( !KU( ~b ) @ #vk.3 )
               case A_1
-              solve( (#vr.11, 0) ~~> (#vk.1, 0) )
+              solve( (#vr.11, 0) ~~> (#vk.3, 0) )
                 case d_0_open
                 by contradiction /* forbidden KD-fact */
               qed
@@ -152,7 +152,7 @@ next
             case V_1_case_3
             solve( !KU( ~b ) @ #vk.4 )
               case A_1
-              solve( (#vr.12, 0) ~~> (#vk.1, 0) )
+              solve( (#vr.12, 0) ~~> (#vk.4, 0) )
                 case d_0_open
                 by contradiction /* forbidden KD-fact */
               qed
@@ -164,7 +164,7 @@ next
             case V_1_case_4
             solve( !KU( ~b ) @ #vk.3 )
               case A_1
-              solve( (#vr.10, 0) ~~> (#vk.1, 0) )
+              solve( (#vr.11, 0) ~~> (#vk.3, 0) )
                 case d_0_open
                 by contradiction /* forbidden KD-fact */
               qed
@@ -174,9 +174,9 @@ next
             qed
           next
             case c_sign
-            solve( !KU( ~ltkV ) @ #vk.3 )
+            solve( !KU( ~ltkV ) @ #vk.4 )
               case A_1
-              solve( (#vr.7, 0) ~~> (#vk.1, 0) )
+              solve( (#vr.7, 0) ~~> (#vk.4, 0) )
                 case d_0_open
                 by contradiction /* forbidden KD-fact */
               qed
@@ -204,7 +204,7 @@ next
           by contradiction /* from formulas */
         next
           case A_1_case_2
-          solve( (#vr.7, 0) ~~> (#vk, 0) )
+          solve( (#vr.7, 0) ~~> (#vk.3, 0) )
             case d_0_open
             by contradiction /* forbidden KD-fact */
           qed
@@ -222,9 +222,9 @@ next
           by contradiction /* from formulas */
         next
           case c_sign
-          solve( !KU( ~ltkA ) @ #vk.4 )
+          solve( !KU( ~ltkA ) @ #vk.5 )
             case A_1
-            solve( (#vr.7, 0) ~~> (#vk.1, 0) )
+            solve( (#vr.7, 0) ~~> (#vk.5, 0) )
               case d_0_open
               by contradiction /* forbidden KD-fact */
             qed
@@ -248,19 +248,21 @@ guarded formula characterizing all satisfying traces:
 "∃ v #i. (VotePublished( v ) @ #i)"
 */
 simplify
-solve( St_C_1( A, commit(v, r) ) ▶₁ #i )
+solve( St_C_1( A, commit(z, r) ) ▶₁ #i )
   case C_1
-  solve( !KU( sign(commit(v, r), ~ltkA) ) @ #vk.3 )
+  solve( !KU( sign(commit(z, r), ~ltkA) ) @ #vk.3 )
     case V_2
-    solve( !KU( ~r ) @ #vk.1 )
+    solve( !KU( ~r.1 ) @ #vk )
       case V_3
-      solve( !KU( sign(blind(commit($vote, ~r), ~b), ~ltkA) ) @ #vk.6 )
+      solve( !KU( sign(blind(commit($vote.1, ~r.1), ~b.1), ~ltkA.1)
+             ) @ #vk.10 )
         case A_1
-        solve( !KU( sign(blind(commit($vote, ~r), ~b), ~ltkV.1) ) @ #vk.8 )
+        solve( !KU( sign(blind(commit($vote.1, ~r.1), ~b.1), ~ltkV.3)
+               ) @ #vk.13 )
           case V_1
-          solve( !KU( commit($vote, ~r) ) @ #vk.6 )
+          solve( !KU( commit($vote.1, ~r.1) ) @ #vk.7 )
             case V_2_case_1
-            solve( !KU( blind(commit($vote, ~r), ~b) ) @ #vk.8 )
+            solve( !KU( blind(commit($vote.1, ~r.1), ~b.2) ) @ #vk.15 )
               case V_1_case_1
               SOLVED // trace found
             qed
@@ -284,9 +286,9 @@ guarded formula characterizing all counter-examples:
   ∀ r b #i. (Registered( blind(commit(vote, r), b) ) @ #i) ⇒ ¬(#i < #j)"
 */
 simplify
-solve( St_C_1( A, commit(vote, r) ) ▶₁ #j )
+solve( St_C_1( A, commit(z, r) ) ▶₁ #j )
   case C_1
-  solve( !KU( sign(commit(vote, r), ~ltkA) ) @ #vk.3 )
+  solve( !KU( sign(commit(z, r), ~ltkA) ) @ #vk.3 )
     case A_1
     by contradiction /* from formulas */
   next
@@ -297,19 +299,20 @@ solve( St_C_1( A, commit(vote, r) ) ▶₁ #j )
     by solve( !KU( ~b ) @ #vk.5 )
   next
     case V_2
-    solve( !KU( ~r ) @ #vk.1 )
+    solve( !KU( ~r.1 ) @ #vk )
       case V_3
-      solve( !KU( sign(blind(commit($vote, ~r), ~b), ~ltkA) ) @ #vk.6 )
+      solve( !KU( sign(blind(commit($vote.2, ~r.1), ~b.1), ~ltkA.1)
+             ) @ #vk.10 )
         case A_1
         by contradiction /* from formulas */
       next
         case c_sign
-        by solve( !KU( ~ltkA ) @ #vk.7 )
+        by solve( !KU( ~ltkA.1 ) @ #vk.12 )
       qed
     qed
   next
     case c_sign
-    by solve( !KU( ~ltkA ) @ #vk.4 )
+    by solve( !KU( ~ltkA ) @ #vk.5 )
   qed
 qed
 
@@ -349,8 +352,8 @@ Failed to derive Variable(s): x
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -362,7 +365,7 @@ summary of summaries:
 analyzed: examples/post17/foo_eligibility.spthy
 
   output:          examples/post17/foo_eligibility.spthy.tmp
-  processing time: 0.95s
+  processing time: 0.93s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

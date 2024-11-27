@@ -53,23 +53,23 @@ rule (modulo E) Serv_1:
     --[ Eq( z.1, '1' ), AnswerRequest( $S, z ) ]->
      [ Out( h(z) ) ]
     variants (modulo AC)
-    1. ~ltkS = ~ltkS.7
+    1. ~ltkS = ~x.3
        request
-             = request.8
-       z     = snd(adec(request.8, ~ltkS.7))
-       z.1   = fst(adec(request.8, ~ltkS.7))
+             = aenc(<x.4, x.5>, pk(~x.3))
+       z     = x.5
+       z.1   = x.4
     
-    2. ~ltkS = ~ltkS.8
+    2. ~ltkS = ~x.2
        request
-             = aenc(x.13, pk(~ltkS.8))
-       z     = snd(x.13)
-       z.1   = fst(x.13)
+             = aenc(x.3, pk(~x.2))
+       z     = snd(x.3)
+       z.1   = fst(x.3)
     
-    3. ~ltkS = ~ltkS.9
+    3. ~ltkS = ~ltkS.3
        request
-             = aenc(<z.12, z.11>, pk(~ltkS.9))
-       z     = z.11
-       z.1   = z.12
+             = request.3
+       z     = snd(adec(request.3, ~ltkS.3))
+       z.1   = fst(adec(request.3, ~ltkS.3))
   */
 
 restriction Equality_Checks_Succeed:
@@ -89,11 +89,11 @@ guarded formula characterizing all counter-examples:
   ∀ #r. (LtkReveal( S ) @ #r) ⇒ ⊥"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, x ) ▶₀ #i )
   case Client_1
-  solve( !KU( ~k ) @ #vk.1 )
+  solve( !KU( ~k.2 ) @ #vk.1 )
     case Client_1
-    solve( !KU( ~ltk ) @ #vk.2 )
+    solve( !KU( ~ltk.1 ) @ #vk.2 )
       case Reveal_ltk
       by contradiction /* from formulas */
     qed
@@ -115,18 +115,18 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (LtkReveal( S ) @ #r) ⇒ ¬(#r < #i))"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !KU( h(~k) ) @ #vk )
+  solve( !KU( h(~k.2) ) @ #vk )
     case Serv_1
-    solve( !KU( aenc(<'1', ~k>, pk(~ltkS)) ) @ #vk.1 )
+    solve( !KU( aenc(<'1', ~k.2>, pk(~ltkS)) ) @ #vk.1 )
       case Client_1
       by contradiction /* from formulas */
     next
       case c_aenc
-      solve( !KU( ~k ) @ #vk.5 )
+      solve( !KU( ~k.2 ) @ #vk.5 )
         case Client_1
-        solve( !KU( ~ltk ) @ #vk.6 )
+        solve( !KU( ~ltk.1 ) @ #vk.6 )
           case Reveal_ltk
           by contradiction /* from formulas */
         qed
@@ -134,9 +134,9 @@ solve( Client_1( S, k ) ▶₀ #i )
     qed
   next
     case c_h
-    solve( !KU( ~k ) @ #vk.1 )
+    solve( !KU( ~k.2 ) @ #vk.1 )
       case Client_1
-      solve( !KU( ~ltk ) @ #vk.2 )
+      solve( !KU( ~ltk.1 ) @ #vk.2 )
         case Reveal_ltk
         by contradiction /* from formulas */
       qed
@@ -164,30 +164,30 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (LtkReveal( S ) @ #r) ⇒ ¬(#r < #i))"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !KU( h(~k) ) @ #vk )
+  solve( !KU( h(~k.2) ) @ #vk )
     case Serv_1
-    solve( !KU( aenc(<'1', ~k>, pk(~ltkS)) ) @ #vk.1 )
+    solve( !KU( aenc(<'1', ~k.2>, pk(~ltkS)) ) @ #vk.1 )
       case Client_1
       solve( (#i < #j)  ∥ (#j < #i) )
         case case_1
-        solve( Client_1( $S, ~k ) ▶₀ #j )
+        solve( Client_1( $S.4, ~k.2 ) ▶₀ #j )
           case Client_1
           by contradiction /* cyclic */
         qed
       next
         case case_2
-        solve( Client_1( $S, ~k ) ▶₀ #j )
+        solve( Client_1( $S.4, ~k.2 ) ▶₀ #j )
           case Client_1
           by contradiction /* cyclic */
         qed
       qed
     next
       case c_aenc
-      solve( !KU( ~k ) @ #vk.5 )
+      solve( !KU( ~k.2 ) @ #vk.5 )
         case Client_1
-        solve( !KU( ~ltk ) @ #vk.6 )
+        solve( !KU( ~ltk.1 ) @ #vk.6 )
           case Reveal_ltk
           by contradiction /* from formulas */
         qed
@@ -195,9 +195,9 @@ solve( Client_1( S, k ) ▶₀ #i )
     qed
   next
     case c_h
-    solve( !KU( ~k ) @ #vk.1 )
+    solve( !KU( ~k.2 ) @ #vk.1 )
       case Client_1
-      solve( !KU( ~ltk ) @ #vk.2 )
+      solve( !KU( ~ltk.1 ) @ #vk.2 )
         case Reveal_ltk
         by contradiction /* from formulas */
       qed
@@ -213,11 +213,11 @@ guarded formula characterizing all satisfying traces:
 "∃ S k #i. (SessKeyC( S, k ) @ #i) ∧ ∀ #r. (LtkReveal( S ) @ #r) ⇒ ⊥"
 */
 simplify
-solve( Client_1( S, k ) ▶₀ #i )
+solve( Client_1( S.1, k.1 ) ▶₀ #i )
   case Client_1
-  solve( !KU( h(~k) ) @ #vk )
+  solve( !KU( h(~k.2) ) @ #vk )
     case Serv_1
-    solve( !KU( aenc(<'1', ~k>, pk(~ltkS)) ) @ #vk.1 )
+    solve( !KU( aenc(<'1', ~k.2>, pk(~ltkS)) ) @ #vk.1 )
       case Client_1
       SOLVED // trace found
     qed
@@ -244,8 +244,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -257,7 +257,7 @@ summary of summaries:
 analyzed: examples/Tutorial.spthy
 
   output:          examples/Tutorial.spthy.tmp
-  processing time: 0.18s
+  processing time: 0.17s
   
   Client_session_key_secrecy (all-traces): verified (5 steps)
   Client_auth (all-traces): verified (11 steps)

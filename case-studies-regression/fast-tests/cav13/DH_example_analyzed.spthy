@@ -30,32 +30,32 @@ rule (modulo E) Step2:
     --[ Accept( tid, z ) ]->
      [ ]
     variants (modulo AC)
-    1. ~x    = ~x.7
-       Y     = Y.7
-       z     = Y.7^~x.7
+    1. ~x    = ~x.2
+       Y     = x.5^inv(~x.2)
+       z     = x.5
     
-    2. ~x    = ~x.7
-       Y     = x.10^inv(~x.7)
-       z     = x.10
-    
-    3. ~x    = ~x.7
-       Y     = x.10^inv((~x.7*x.11))
-       z     = x.10^inv(x.11)
-    
-    4. ~x    = ~x.7
-       Y     = x.10^(x.11*inv(~x.7))
-       z     = x.10^x.11
-    
-    5. ~x    = ~x.7
-       Y     = x.10^(x.11*inv((~x.7*x.12)))
-       z     = x.10^(x.11*inv(x.12))
-    
-    6. ~x    = ~x.9
-       Y     = x.7^x.8
-       z     = x.7^(x.8*~x.9)
-    
-    7. Y     = DH_neutral
+    2. Y     = DH_neutral
        z     = DH_neutral
+    
+    3. ~x    = ~x.2
+       Y     = Y.2
+       z     = Y.2^~x.2
+    
+    4. ~x    = ~x.4
+       Y     = x.2^x.3
+       z     = x.2^(x.3*~x.4)
+    
+    5. ~x    = ~x.2
+       Y     = x.5^(x.6*inv(~x.2))
+       z     = x.5^x.6
+    
+    6. ~x    = ~x.2
+       Y     = x.5^inv((~x.2*x.6))
+       z     = x.5^inv(x.6)
+    
+    7. ~x    = ~x.2
+       Y     = x.5^(x.6*inv((~x.2*x.7)))
+       z     = x.5^(x.6*inv(x.7))
   */
 
 rule (modulo E) RevealKey:
@@ -76,23 +76,23 @@ guarded formula characterizing all counter-examples:
   ∀ #l. (Reveal( ) @ #l) ⇒ ¬(#l < #i)"
 */
 simplify
-solve( Step1( tid, A, B, ~x ) ▶₀ #i )
+solve( Step1( tid.1, A, B, ~x ) ▶₀ #i )
   case Step1
-  solve( !KU( mac(shk, <Y, $B, $A>) ) @ #vk.2 )
+  solve( !KU( mac(shk, <Y, $B.1, $A.1>) ) @ #vk.2 )
     case Step1
-    solve( !KU( g^(~x*~x.1) ) @ #vk.3 )
+    solve( !KU( g^(~x.3*~x.4) ) @ #vk.3 )
       case Step1_case_1
-      by solve( !KU( ~x ) @ #vk.4 )
+      by solve( !KU( ~x.6 ) @ #vk.4 )
     next
       case Step1_case_2
-      by solve( !KU( ~x.1 ) @ #vk.4 )
+      by solve( !KU( ~x.6 ) @ #vk.4 )
     next
       case c_exp
-      by solve( !KU( ~x ) @ #vk.6 )
+      by solve( !KU( ~x.3 ) @ #vk.6 )
     qed
   next
     case c_mac
-    solve( !KU( shk ) @ #vk.5 )
+    solve( !KU( shk ) @ #vk.4 )
       case RevealKey
       by contradiction /* from formulas */
     qed
@@ -107,15 +107,15 @@ guarded formula characterizing all counter-examples:
 "∃ #i #j tid key. (Accept( tid, key ) @ #i) ∧ (K( key ) @ #j)"
 */
 simplify
-solve( Step1( tid, A, B, ~x ) ▶₀ #i )
+solve( Step1( tid.1, A, B, ~x ) ▶₀ #i )
   case Step1
-  solve( !KU( mac(shk, <Y, $B, $A>) ) @ #vk.2 )
+  solve( !KU( mac(shk, <Y, $B.1, $A.1>) ) @ #vk.2 )
     case c_mac
-    solve( !KU( shk ) @ #vk.5 )
+    solve( !KU( shk ) @ #vk.4 )
       case RevealKey
       solve( splitEqs(0) )
         case split_case_1
-        solve( !KU( Y^~x ) @ #vk.5 )
+        solve( !KU( Y.1^~x.2 ) @ #vk.3 )
           case Step1
           SOLVED // trace found
         qed
@@ -142,8 +142,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end

@@ -92,17 +92,17 @@ guarded formula characterizing all counter-examples:
   (∀ #j. (Reveal( A ) @ #j) ⇒ ⊥)"
 */
 simplify
-solve( ResponderWaitConfirm( $B, $A, ~k, ~nb ) ▶₀ #i )
+solve( ResponderWaitConfirm( $B.1, $A.1, ~k.1, ~nb ) ▶₀ #i )
   case ResponderKeyConfirm
-  solve( !KU( ~k ) @ #vk.1 )
+  solve( !KU( ~k.1 ) @ #vk.1 )
     case Initiator1Request
-    solve( !KU( enc(succ(~nb), ~k) ) @ #vk.1 )
+    solve( !KU( enc(succ(~nb), ~k.1) ) @ #vk )
       case c_enc
-      solve( !KU( enc(<~k, $A>, ~k.1) ) @ #vk.2 )
+      solve( !KU( enc(<~k.1, $A.1>, ~k.2) ) @ #vk.2 )
         case Server_case_5
-        solve( !KU( succ(~nb) ) @ #vk.4 )
+        solve( !KU( succ(~nb) ) @ #vk.3 )
           case c_succ
-          solve( !KU( ~nb ) @ #vk.8 )
+          solve( !KU( ~nb ) @ #vk.10 )
             case ResponderKeyConfirm
             SOLVED // trace found
           qed
@@ -132,8 +132,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -145,7 +145,7 @@ summary of summaries:
 analyzed: examples/post17/needham_schroeder_symmetric_cbc.spthy
 
   output:          examples/post17/needham_schroeder_symmetric_cbc.spthy.tmp
-  processing time: 7.18s
+  processing time: 5.86s
   
   secrecy (all-traces): falsified - found trace (8 steps)
 

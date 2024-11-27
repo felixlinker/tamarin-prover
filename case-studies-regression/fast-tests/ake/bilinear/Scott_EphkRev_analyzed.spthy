@@ -79,32 +79,32 @@ rule (modulo E) Init_2:
     ]->
      [ !Sessk( ~ex, kdf(<z, $A, $B, X, Y>) ) ]
     variants (modulo AC)
-    1. ~ex   = ~ex.10
-       Y     = Y.12
-       z     = Y.12^~ex.10
+    1. ~ex   = ~x.3
+       Y     = x.5^inv(~x.3)
+       z     = x.5
     
-    2. ~ex   = ~ex.11
-       Y     = z.14^inv(~ex.11)
-       z     = z.14
-    
-    3. ~ex   = ~ex.15
-       Y     = x.25^x.26
-       z     = x.25^(~ex.15*x.26)
-    
-    4. ~ex   = ~ex.17
-       Y     = x.29^inv((~ex.17*x.30))
-       z     = x.29^inv(x.30)
-    
-    5. ~ex   = ~ex.17
-       Y     = x.29^(x.30*inv(~ex.17))
-       z     = x.29^x.30
-    
-    6. ~ex   = ~ex.18
-       Y     = x.30^(x.31*inv((~ex.18*x.32)))
-       z     = x.30^(x.31*inv(x.32))
-    
-    7. Y     = DH_neutral
+    2. Y     = DH_neutral
        z     = DH_neutral
+    
+    3. ~ex   = ~ex.3
+       Y     = x.2^x.3
+       z     = x.2^(~ex.3*x.3)
+    
+    4. ~ex   = ~ex.3
+       Y     = Y.3
+       z     = Y.3^~ex.3
+    
+    5. ~ex   = ~x.4
+       Y     = x.6^(x.7*inv(~x.4))
+       z     = x.6^x.7
+    
+    6. ~ex   = ~x.4
+       Y     = x.6^inv((~x.4*x.7))
+       z     = x.6^inv(x.7)
+    
+    7. ~ex   = ~x.5
+       Y     = x.7^(x.8*inv((~x.5*x.9)))
+       z     = x.7^(x.8*inv(x.9))
   */
 
 rule (modulo E) Resp_1:
@@ -137,29 +137,29 @@ rule (modulo E) Resp_1:
      !Ephk( ~ey )
      ]
     variants (modulo AC)
-    1. ~ey   = ~ey.36
-       X     = X.38
-       z     = X.38^~ey.36
+    1. ~ey   = ~ey.3
+       X     = X.3
+       z     = X.3^~ey.3
     
-    2. ~ey   = ~ey.36
-       X     = z.41^inv(~ey.36)
-       z     = z.41
+    2. ~ey   = ~ey.3
+       X     = x.14^x.15
+       z     = x.14^(~ey.3*x.15)
     
-    3. ~ey   = ~ey.372
-       X     = x.739^x.740
-       z     = x.739^(~ey.372*x.740)
+    3. ~ey   = ~x.15
+       X     = x.17^inv(~x.15)
+       z     = x.17
     
-    4. ~ey   = ~ey.374
-       X     = x.743^inv((~ey.374*x.744))
-       z     = x.743^inv(x.744)
+    4. ~ey   = ~x.16
+       X     = x.18^inv((~x.16*x.19))
+       z     = x.18^inv(x.19)
     
-    5. ~ey   = ~ey.374
-       X     = x.743^(x.744*inv(~ey.374))
-       z     = x.743^x.744
+    5. ~ey   = ~x.16
+       X     = x.18^(x.19*inv(~x.16))
+       z     = x.18^x.19
     
-    6. ~ey   = ~ey.375
-       X     = x.744^(x.745*inv((~ey.375*x.746)))
-       z     = x.744^(x.745*inv(x.746))
+    6. ~ey   = ~x.17
+       X     = x.19^(x.20*inv((~x.17*x.21)))
+       z     = x.19^(x.20*inv(x.21))
     
     7. X     = DH_neutral
        z     = DH_neutral
@@ -182,28 +182,28 @@ guarded formula characterizing all satisfying traces:
 simplify
 solve( Accept( t1, A, B, k ) @ #i )
   case Init_2
-  solve( Init( ~ex, $A, $B, X ) ▶₀ #i )
+  solve( Init( ~ex, $A.1, $B.1, X ) ▶₀ #i )
     case Init_1
     solve( Match( ~ex, SID ) @ #i )
       case Init_2
-      solve( Accept( t2, $B, $A,
-                     kdf(<z, $A, $B, em(hp($A), hp($B))^(~ex*~s), Y>)
+      solve( Accept( t2, $B.1, $A.1,
+                     kdf(<z, $A.1, $B.1, em(hp($A.1), hp($B.1))^(~ex*~s), Y>)
              ) @ #j )
         case Resp_1
-        solve( !LTK( $B, pmult(~x, hp($B)) ) ▶₁ #j )
+        solve( !LTK( $B.3, pmult(~x, hp($B.3)) ) ▶₁ #j )
           case KGC_request
-          solve( Sid( ~ey,
-                      <'Resp', $B, $A, em(hp($A), hp($B))^(~ex*~x), em(hp($A), hp($B))^(~ey*~x)
-                      >
+          solve( Sid( ~ey.1,
+                      <'Resp', $B.3, $A.3, em(hp($A.3), hp($B.3))^(~x*~ex.1), 
+                       em(hp($A.3), hp($B.3))^(~x*~ey.1)>
                  ) @ #j )
             case Resp_1
-            solve( !KU( em(hp($A), hp($B))^(~ey*~x) ) @ #vk )
+            solve( !KU( em(hp($A.3), hp($B.3))^(~x*~ey.1) ) @ #vk )
               case Init_1_case_1
-              solve( !KU( ~ey ) @ #vk.3 )
+              solve( !KU( ~ey.2 ) @ #vk.6 )
                 case Reveal_ephmeral_key
-                solve( !KU( ~ex.1 ) @ #vk.5 )
+                solve( !KU( ~ex.2 ) @ #vk.8 )
                   case Reveal_ephmeral_key
-                  solve( !KU( em(hp($A), hp($B))^(~ex*~x) ) @ #vk.4 )
+                  solve( !KU( em(hp($A.6), hp($B.6))^(~ex.1*~s.2) ) @ #vk.9 )
                     case Init_1_case_1
                     SOLVED // trace found
                   qed
@@ -259,15 +259,16 @@ solve( (∃ matching #i3 #i4 sid.
         (∀ #i3. (LtkRev( A ) @ #i3) ⇒ ⊥) ∧
         (∀ #i3. (MskRev( ) @ #i3) ⇒ ⊥)) )
   case case_2
-  solve( Accept( test, A, B, k ) @ #i1 )
+  solve( Accept( test, A, B, x ) @ #i1 )
     case Init_2
-    solve( Init( ~ex, $A, $B, X ) ▶₀ #i1 )
+    solve( Init( ~ex, $A.1, $B.1, X ) ▶₀ #i1 )
       case Init_1
-      solve( !KU( kdf(<z, $A, $B, em(hp($A), hp($B))^(~ex*~s), Y>) ) @ #vk )
+      solve( !KU( kdf(<z, $A.1, $B.1, em(hp($A.1), hp($B.1))^(~ex*~s), Y>)
+             ) @ #vk )
         case c_kdf
         solve( splitEqs(0) )
           case split_case_7
-          solve( !KU( em(hp($A), hp($B))^(~ex*~s) ) @ #vk.8 )
+          solve( !KU( em(hp($A.1), hp($B.1))^(~ex*~s) ) @ #vk.9 )
             case Init_1_case_1
             SOLVED // trace found
           qed
@@ -306,8 +307,8 @@ Failed to derive Variable(s): ~s
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -319,7 +320,7 @@ summary of summaries:
 analyzed: examples/ake/bilinear/Scott_EphkRev.spthy
 
   output:          examples/ake/bilinear/Scott_EphkRev.spthy.tmp
-  processing time: 6.09s
+  processing time: 5.89s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

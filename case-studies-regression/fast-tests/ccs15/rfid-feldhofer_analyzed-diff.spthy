@@ -62,27 +62,27 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∃ #j. (!KU( n ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
-         (∃ #j. (OUT_T_1( n, senc(<~nr, n>, ~k) ) @ #j) ∧ ¬(last(#j))) )
+         (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+         (∃ #j. (OUT_T_1( hnt, senc(<~nr, hnt>, ~k) ) @ #j) ∧ ¬(last(#j))) )
     case case_1
     solve( Reader_Sent( ~nr ) ▶₀ #i )
       case Reader_Start
       solve( !Reader( <~k2, ~k> ) ▶₁ #i )
         case Setup_Shared_Key
-        solve( !KU( senc(<~nr, n>, ~k) ) @ #vk )
+        solve( !KU( senc(<~nr, hnt>, ~k) ) @ #vk )
           case Reader_Finish_case_1
           solve( (∃ #j. (!KU( ~nr ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
                  (∃ #j. (OUT_T_1( ~nr, senc(<~nr.1, ~nr>, ~k) ) @ #j) ∧ ¬(last(#j))) )
             case case_1
             solve( !KU( ~nr ) @ #j )
               case Reader_Finish_case_1
-              solve( (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
-                     (∃ #j. (OUT_T_1( hnt, senc(<~nr.2, hnt>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
+              solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.5))  ∥
+                     (∃ #j. (OUT_T_1( x, senc(<~nr.2, x>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
                 case case_1
                 by contradiction /* cyclic */
               next
                 case case_2
-                by solve( (#vr.6, 0) ~~> (#j, 0) )
+                by solve( (#vr.7, 0) ~~> (#j, 0) )
               qed
             next
               case Reader_Finish_case_2
@@ -94,8 +94,8 @@ next
                 by contradiction /* cyclic */
               next
                 case Reader_Finish_case_2
-                solve( (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
-                       (∃ #j. (OUT_T_1( hnt, senc(<~nr.2, hnt>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
+                solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.6))  ∥
+                       (∃ #j. (OUT_T_1( x, senc(<~nr.2, x>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
                   case case_1
                   by contradiction /* cyclic */
                 next
@@ -110,8 +110,8 @@ next
           qed
         next
           case Reader_Finish_case_2
-          solve( (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
-                 (∃ #j. (OUT_T_1( hnt, senc(<~nr.1, hnt>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
+          solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
+                 (∃ #j. (OUT_T_1( x, senc(<~nr.1, x>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
             case case_1
             by contradiction /* cyclic */
           next
@@ -155,27 +155,27 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∃ #j. (!KU( n ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
-         (∃ #j. (OUT_T_1( n, senc(<~nr, n>, ~k) ) @ #j) ∧ ¬(last(#j))) )
+         (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i))  ∥
+         (∃ #j. (OUT_T_1( hnt, senc(<~nr, hnt>, ~k) ) @ #j) ∧ ¬(last(#j))) )
     case case_1
     solve( Reader_Sent( ~nr ) ▶₀ #i )
       case Reader_Start
       solve( !Reader( <~k, ~k2> ) ▶₁ #i )
         case Setup_Shared_Key
-        solve( !KU( senc(<~nr, n>, ~k) ) @ #vk )
+        solve( !KU( senc(<~nr, hnt>, ~k) ) @ #vk )
           case Reader_Finish_case_1
           solve( (∃ #j. (!KU( ~nr ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
                  (∃ #j. (OUT_T_1( ~nr, senc(<~nr.1, ~nr>, ~k) ) @ #j) ∧ ¬(last(#j))) )
             case case_1
             solve( !KU( ~nr ) @ #j )
               case Reader_Finish_case_1
-              solve( (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
-                     (∃ #j. (OUT_T_1( hnt, senc(<~nr.2, hnt>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
+              solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.5))  ∥
+                     (∃ #j. (OUT_T_1( x, senc(<~nr.2, x>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
                 case case_1
                 by contradiction /* cyclic */
               next
                 case case_2
-                by solve( (#vr.6, 0) ~~> (#j, 0) )
+                by solve( (#vr.7, 0) ~~> (#j, 0) )
               qed
             next
               case Reader_Finish_case_2
@@ -187,8 +187,8 @@ next
                 by contradiction /* cyclic */
               next
                 case Reader_Finish_case_2
-                solve( (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.4))  ∥
-                       (∃ #j. (OUT_T_1( hnt, senc(<~nr.2, hnt>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
+                solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.6))  ∥
+                       (∃ #j. (OUT_T_1( x, senc(<~nr.2, x>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
                   case case_1
                   by contradiction /* cyclic */
                 next
@@ -203,8 +203,8 @@ next
           qed
         next
           case Reader_Finish_case_2
-          solve( (∃ #j. (!KU( hnt ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
-                 (∃ #j. (OUT_T_1( hnt, senc(<~nr.1, hnt>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
+          solve( (∃ #j. (!KU( x ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #vr.2))  ∥
+                 (∃ #j. (OUT_T_1( x, senc(<~nr.1, x>, ~k.1) ) @ #j) ∧ ¬(last(#j))) )
             case case_1
             by contradiction /* cyclic */
           next
@@ -240,7 +240,7 @@ solve( Trun( ~k, ~nr, ~nt ) ▶₀ #i )
   case Tag_Start
   solve( !KU( ~nr ) @ #vk.1 )
     case Reader_Start
-    solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 )
+    solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk )
       case Reader_Finish
       solve( !KU( senc(<~nr, ~nt>, ~k) ) @ #vk.2 )
         case Tag_Start
@@ -261,7 +261,7 @@ solve( Trun( ~k, ~nr, ~nt ) ▶₀ #i )
   case Tag_Start
   solve( !KU( ~nr ) @ #vk.1 )
     case Reader_Start
-    solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 )
+    solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk )
       case Reader_Finish
       solve( !KU( senc(<~nr, ~nt>, ~k) ) @ #vk.2 )
         case Tag_Start
@@ -279,13 +279,13 @@ guarded formula characterizing all satisfying traces:
 "∃ n k1 #i #j. (Secret( n, k1 ) @ #i) ∧ (StartLeft( k1 ) @ #j)"
 */
 simplify
-solve( Trun( ~k, ~nr, ~nt ) ▶₀ #i )
+solve( Trun( ~k1.1, ~nr, ~nt ) ▶₀ #i )
   case Tag_Start
   solve( !KU( ~nr ) @ #vk.1 )
     case Reader_Start
-    solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 )
+    solve( !KU( senc(<~nt, ~nr>, ~k1.1) ) @ #vk )
       case Reader_Finish
-      solve( !KU( senc(<~nr, ~nt>, ~k) ) @ #vk.2 )
+      solve( !KU( senc(<~nr, ~nt>, ~k1.1) ) @ #vk.2 )
         case Tag_Start
         SOLVED // trace found
       qed
@@ -301,13 +301,13 @@ guarded formula characterizing all satisfying traces:
 "∃ n k1 #i #j. (Secret( n, k1 ) @ #i) ∧ (StartRight( k1 ) @ #j)"
 */
 simplify
-solve( Trun( ~k, ~nr, ~nt ) ▶₀ #i )
+solve( Trun( ~k2, ~nr, ~nt ) ▶₀ #i )
   case Tag_Start
   solve( !KU( ~nr ) @ #vk.1 )
     case Reader_Start
-    solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 )
+    solve( !KU( senc(<~nt, ~nr>, ~k2) ) @ #vk )
       case Reader_Finish
-      solve( !KU( senc(<~nr, ~nt>, ~k) ) @ #vk.2 )
+      solve( !KU( senc(<~nr, ~nt>, ~k2) ) @ #vk.2 )
         case Tag_Start
         SOLVED // trace found
       qed
@@ -322,28 +322,28 @@ guarded formula characterizing all counter-examples:
 "∃ s k #i #i2. (Secret( s, k ) @ #i) ∧ (K( s ) @ #i2)"
 */
 simplify
-solve( Trun( ~k, ~nr, ~nt ) ▶₀ #i )
+solve( Trun( ~k.1, ~nr, ~nt ) ▶₀ #i )
   case Tag_Start
   solve( !KU( ~nt ) @ #vk.1 )
     case Reader_Finish
-    by solve( !KU( ~k ) @ #vk.4 )
+    by solve( !KU( ~k.1 ) @ #vk.4 )
   next
     case Tag_Start
-    solve( !KU( ~nr ) @ #vk.2 )
+    solve( !KU( ~nr.1 ) @ #vk.3 )
       case Reader_Finish_case_1
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k2 ) @ #vk.4 )
     next
       case Reader_Finish_case_2
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k2 ) @ #vk.4 )
     next
       case Reader_Start
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k2 ) @ #vk.4 )
     next
       case Tag_Start
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k2 ) @ #vk.4 )
     next
       case fresh
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k2 ) @ #vk.4 )
     qed
   qed
 qed
@@ -355,28 +355,28 @@ guarded formula characterizing all counter-examples:
 "∃ s k #i #i2. (Secret( s, k ) @ #i) ∧ (K( s ) @ #i2)"
 */
 simplify
-solve( Trun( ~k, ~nr, ~nt ) ▶₀ #i )
+solve( Trun( ~k.1, ~nr, ~nt ) ▶₀ #i )
   case Tag_Start
   solve( !KU( ~nt ) @ #vk.1 )
     case Reader_Finish
-    by solve( !KU( ~k ) @ #vk.4 )
+    by solve( !KU( ~k.1 ) @ #vk.4 )
   next
     case Tag_Start
-    solve( !KU( ~nr ) @ #vk.2 )
+    solve( !KU( ~nr.1 ) @ #vk.3 )
       case Reader_Finish_case_1
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k1 ) @ #vk.4 )
     next
       case Reader_Finish_case_2
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k1 ) @ #vk.4 )
     next
       case Reader_Start
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k1 ) @ #vk.4 )
     next
       case Tag_Start
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k1 ) @ #vk.4 )
     next
       case fresh
-      by solve( !KU( ~k ) @ #vk.3 )
+      by solve( !KU( ~k1 ) @ #vk.4 )
     qed
   qed
 qed
@@ -565,19 +565,19 @@ next
           case Setup_Shared_Key
           step( solve( !KU( ~nr ) @ #vk.1 ) )
             case Reader_Finish_case_1
-            by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k1 ) @ #vk ) )
           next
             case Reader_Finish_case_2
-            by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k1 ) @ #vk ) )
           next
             case Reader_Start
-            by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k1 ) @ #vk ) )
           next
             case Tag_Start
-            by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k1 ) @ #vk ) )
           next
             case fresh
-            by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k1 ) @ #vk ) )
           qed
         qed
       qed
@@ -626,19 +626,19 @@ next
           case Setup_Shared_Key
           step( solve( !KU( ~nr ) @ #vk.1 ) )
             case Reader_Finish_case_1
-            by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k2 ) @ #vk ) )
           next
             case Reader_Finish_case_2
-            by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k2 ) @ #vk ) )
           next
             case Reader_Start
-            by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k2 ) @ #vk ) )
           next
             case Tag_Start
-            by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k2 ) @ #vk ) )
           next
             case fresh
-            by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+            by step( solve( !KU( ~k2 ) @ #vk ) )
           qed
         qed
       qed
@@ -829,12 +829,12 @@ next
             case Setup_Shared_Key
             step( solve( !KU( senc(<~nr, hnt>, ~k) ) @ #vk.1 ) )
               case Reader_Finish
-              step( solve( !KU( senc(<~nr, ~nr.1>, ~k) ) @ #vk.1 ) )
+              step( solve( !KU( senc(<~nr.1, ~nr>, ~k) ) @ #vk.2 ) )
                 case Reader_Finish
                 MIRRORED
               next
                 case c_senc
-                by step( solve( !KU( ~k ) @ #vk.3 ) )
+                by step( solve( !KU( ~k ) @ #vk.4 ) )
               qed
             next
               case Tag_Start
@@ -843,7 +843,7 @@ next
                 by step( contradiction /* cyclic */ )
               next
                 case Reader_Start
-                step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.2 ) )
+                step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk ) )
                   case Reader_Finish
                   MIRRORED
                 next
@@ -880,21 +880,21 @@ next
             case Var_fresh_nr
             step( solve( !Tag( <~k1, ~k2> ) ▶₀ #vr ) )
               case Setup_Shared_Key
-              step( solve( !KU( ~nr ) @ #vk ) )
+              step( solve( !KU( ~nr ) @ #vk.1 ) )
                 case Reader_Finish_case_1
-                by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k1 ) @ #vk.2 ) )
               next
                 case Reader_Finish_case_2
-                by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k1 ) @ #vk.2 ) )
               next
                 case Reader_Start
-                by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k1 ) @ #vk.2 ) )
               next
                 case Tag_Start
-                by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k1 ) @ #vk.2 ) )
               next
                 case fresh
-                by step( solve( !KU( ~k1 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k1 ) @ #vk.2 ) )
               qed
             qed
           qed
@@ -926,7 +926,7 @@ next
           case pair
           step( solve( !Tag( <~k1, ~k2> ) ▶₀ #vr ) )
             case Setup_Shared_Key
-            step( solve( !KU( ~nr ) @ #vk.1 ) )
+            step( solve( !KU( ~nr ) @ #vk.3 ) )
               case Reader_Finish_case_1
               by step( solve( !KU( ~k1 ) @ #vk.2 ) )
             next
@@ -950,13 +950,13 @@ next
           case Setup_Shared_Key
           step( solve( !KU( ~nr ) @ #vk.1 ) )
             case Reader_Finish_case_1
-            by step( solve( !KU( ~k ) @ #vk.3 ) )
+            by step( solve( !KU( ~k1.1 ) @ #vk.3 ) )
           next
             case Reader_Finish_case_2
             by step( solve( !KU( ~k ) @ #vk.3 ) )
           next
             case Reader_Start
-            step( solve( !KU( senc(<~nr, ~nt>, ~k1) ) @ #vk.1 ) )
+            step( solve( !KU( senc(<~nr, ~nt>, ~k1) ) @ #vk ) )
               case Tag_Start
               MIRRORED
             next
@@ -983,7 +983,7 @@ next
             qed
           next
             case fresh
-            step( solve( !KU( senc(<~nr, ~nt>, ~k1) ) @ #vk.1 ) )
+            step( solve( !KU( senc(<~nr, ~nt>, ~k1) ) @ #vk ) )
               case Tag_Start
               MIRRORED
             next
@@ -1040,12 +1040,12 @@ next
             case Setup_Shared_Key
             step( solve( !KU( senc(<~nr, hnt>, ~k) ) @ #vk.1 ) )
               case Reader_Finish
-              step( solve( !KU( senc(<~nr, ~nr.1>, ~k) ) @ #vk.1 ) )
+              step( solve( !KU( senc(<~nr.1, ~nr>, ~k) ) @ #vk.2 ) )
                 case Reader_Finish
                 MIRRORED
               next
                 case c_senc
-                by step( solve( !KU( ~k ) @ #vk.3 ) )
+                by step( solve( !KU( ~k ) @ #vk.4 ) )
               qed
             next
               case Tag_Start
@@ -1054,7 +1054,7 @@ next
                 by step( contradiction /* cyclic */ )
               next
                 case Reader_Start
-                step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.2 ) )
+                step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk ) )
                   case Reader_Finish
                   MIRRORED
                 next
@@ -1091,21 +1091,21 @@ next
             case Var_fresh_nr
             step( solve( !Tag( <~k1, ~k2> ) ▶₀ #vr ) )
               case Setup_Shared_Key
-              step( solve( !KU( ~nr ) @ #vk ) )
+              step( solve( !KU( ~nr ) @ #vk.1 ) )
                 case Reader_Finish_case_1
-                by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k2 ) @ #vk.2 ) )
               next
                 case Reader_Finish_case_2
-                by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k2 ) @ #vk.2 ) )
               next
                 case Reader_Start
-                by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k2 ) @ #vk.2 ) )
               next
                 case Tag_Start
-                by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k2 ) @ #vk.2 ) )
               next
                 case fresh
-                by step( solve( !KU( ~k2 ) @ #vk.1 ) )
+                by step( solve( !KU( ~k2 ) @ #vk.2 ) )
               qed
             qed
           qed
@@ -1137,7 +1137,7 @@ next
           case pair
           step( solve( !Tag( <~k1, ~k2> ) ▶₀ #vr ) )
             case Setup_Shared_Key
-            step( solve( !KU( ~nr ) @ #vk.1 ) )
+            step( solve( !KU( ~nr ) @ #vk.3 ) )
               case Reader_Finish_case_1
               by step( solve( !KU( ~k2 ) @ #vk.2 ) )
             next
@@ -1161,13 +1161,13 @@ next
           case Setup_Shared_Key
           step( solve( !KU( ~nr ) @ #vk.1 ) )
             case Reader_Finish_case_1
-            by step( solve( !KU( ~k ) @ #vk.3 ) )
+            by step( solve( !KU( ~k2.1 ) @ #vk.3 ) )
           next
             case Reader_Finish_case_2
             by step( solve( !KU( ~k ) @ #vk.3 ) )
           next
             case Reader_Start
-            step( solve( !KU( senc(<~nr, ~nt>, ~k2) ) @ #vk.1 ) )
+            step( solve( !KU( senc(<~nr, ~nt>, ~k2) ) @ #vk ) )
               case Tag_Start
               MIRRORED
             next
@@ -1194,7 +1194,7 @@ next
             qed
           next
             case fresh
-            step( solve( !KU( senc(<~nr, ~nt>, ~k2) ) @ #vk.1 ) )
+            step( solve( !KU( senc(<~nr, ~nt>, ~k2) ) @ #vk ) )
               case Tag_Start
               MIRRORED
             next
@@ -1313,13 +1313,13 @@ next
       case Tag_Start
       step( solve( !KU( ~nr ) @ #vk.1 ) )
         case Reader_Finish_case_1
-        by step( solve( !KU( ~k.1 ) @ #vk.3 ) )
+        by step( solve( !KU( ~k1 ) @ #vk.3 ) )
       next
         case Reader_Finish_case_2
         by step( solve( !KU( ~k.1 ) @ #vk.3 ) )
       next
         case Reader_Start
-        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 ) )
+        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk ) )
           case Reader_Finish
           step( solve( !KU( senc(<~nr, ~nt>, ~k) ) @ #vk.2 ) )
             case Tag_Start
@@ -1352,7 +1352,7 @@ next
         qed
       next
         case fresh
-        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 ) )
+        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk ) )
           case c_senc
           by step( solve( !KU( ~k ) @ #vk.3 ) )
         qed
@@ -1365,13 +1365,13 @@ next
       case Tag_Start
       step( solve( !KU( ~nr ) @ #vk.1 ) )
         case Reader_Finish_case_1
-        by step( solve( !KU( ~k.1 ) @ #vk.3 ) )
+        by step( solve( !KU( ~k2 ) @ #vk.3 ) )
       next
         case Reader_Finish_case_2
         by step( solve( !KU( ~k.1 ) @ #vk.3 ) )
       next
         case Reader_Start
-        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 ) )
+        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk ) )
           case Reader_Finish
           step( solve( !KU( senc(<~nr, ~nt>, ~k) ) @ #vk.2 ) )
             case Tag_Start
@@ -1404,7 +1404,7 @@ next
         qed
       next
         case fresh
-        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk.1 ) )
+        step( solve( !KU( senc(<~nt, ~nr>, ~k) ) @ #vk ) )
           case c_senc
           by step( solve( !KU( ~k ) @ #vk.3 ) )
         qed
@@ -1420,7 +1420,7 @@ next
       case Setup_Shared_Key
       step( solve( !KU( ~nr ) @ #vk ) )
         case Reader_Finish_case_1
-        by step( solve( !KU( ~k ) @ #vk.2 ) )
+        by step( solve( !KU( ~k1.1 ) @ #vk.2 ) )
       next
         case Reader_Finish_case_2
         by step( solve( !KU( ~k ) @ #vk.2 ) )
@@ -1457,7 +1457,7 @@ next
       case Setup_Shared_Key
       step( solve( !KU( ~nr ) @ #vk ) )
         case Reader_Finish_case_1
-        by step( solve( !KU( ~k ) @ #vk.2 ) )
+        by step( solve( !KU( ~k2.1 ) @ #vk.2 ) )
       next
         case Reader_Finish_case_2
         by step( solve( !KU( ~k ) @ #vk.2 ) )
@@ -1496,8 +1496,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -1509,7 +1509,7 @@ summary of summaries:
 analyzed: examples/ccs15/rfid-feldhofer.spthy
 
   output:          examples/ccs15/rfid-feldhofer.spthy.tmp
-  processing time: 1.19s
+  processing time: 0.96s
   
   RHS :  types (all-traces): verified (25 steps)
   LHS :  types (all-traces): verified (25 steps)

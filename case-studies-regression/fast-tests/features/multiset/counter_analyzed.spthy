@@ -51,12 +51,12 @@ induction
   by contradiction /* from formulas */
 next
   case non_empty_trace
-  solve( (last(#j))  ∥ (last(#i))  ∥ (∃ z. ((x++z) = y))  ∥
-         (∃ z. ((y++z) = x))  ∥ (y = x) )
+  solve( (last(#j))  ∥ (last(#i))  ∥ (∃ z. ((z++x.1) = x.2))  ∥
+         (∃ z. ((z++x.2) = x.1))  ∥ (x.2 = x.1) )
     case case_1
-    solve( Counter( ~s, x ) ▶₀ #i )
+    solve( Counter( ~s.2, x.1 ) ▶₀ #i )
       case Create
-      solve( Counter( ~s, y ) ▶₀ #j )
+      solve( Counter( ~s.2, x.2 ) ▶₀ #j )
         case Create
         by contradiction /* cyclic */
       next
@@ -65,39 +65,39 @@ next
       qed
     next
       case Inc
-      solve( (last(#i))  ∥ (∃ z. ((x++z) = ('1'++x)))  ∥
-             (∃ z. (('1'++x++z) = x)) )
+      solve( (last(#i))  ∥ (∃ z. ((z++x.3) = ('1'++x.3)))  ∥
+             (∃ z. (('1'++z++x.3) = x.3)) )
         case case_1
         by contradiction /* from formulas */
       next
         case case_2
-        solve( (last(#i))  ∥ (∃ z. (('1'++x++z) = x))  ∥
-               (∃ z. ((x++z) = ('1'++x))) )
+        solve( (last(#i))  ∥ (∃ z. (('1'++z++x.3) = x.3))  ∥
+               (∃ z. ((z++x.3) = ('1'++x.3))) )
           case case_1
           by contradiction /* from formulas */
         next
           case case_3
-          solve( Counter( ~s, y ) ▶₀ #j )
+          solve( Counter( ~s.2, x.2 ) ▶₀ #j )
             case Create
             by contradiction /* from formulas */
           next
             case Inc
-            solve( (last(#i))  ∥ (∃ z. ((z++x.1) = ('1'++x)))  ∥
-                   (∃ z. (('1'++x++z) = x.1))  ∥ (('1'++x) = x.1) )
+            solve( (last(#i))  ∥ (∃ z. ((z++x.4) = ('1'++x.3)))  ∥
+                   (∃ z. (('1'++z++x.3) = x.4))  ∥ (('1'++x.3) = x.4) )
               case case_1
               by contradiction /* from formulas */
             next
               case case_2_case_1
-              by contradiction /* non-injective facts (#vr.1,#i,#j) */
-            next
-              case case_2_case_2
               by contradiction /* cyclic */
             next
+              case case_2_case_2
+              by contradiction /* non-injective facts (#vr.1,#i,#j) */
+            next
               case case_2_case_3
-              by contradiction /* from formulas */
+              by contradiction /* non-injective facts (#vr.1,#i,#j) */
             next
               case case_2_case_4
-              by contradiction /* non-injective facts (#vr.1,#i,#j) */
+              by contradiction /* from formulas */
             next
               case case_3
               by contradiction /* from formulas */
@@ -111,13 +111,13 @@ next
     qed
   next
     case case_2
-    solve( Counter( ~s, x ) ▶₀ #i )
+    solve( Counter( ~s.2, x.1 ) ▶₀ #i )
       case Create
       by contradiction /* non-injective facts (#vr,#j,#i) */
     next
       case Inc
-      solve( (last(#j))  ∥ (∃ z. ((x++z) = y))  ∥ (∃ z. ((y++z) = x))  ∥
-             (y = x) )
+      solve( (last(#j))  ∥ (∃ z. ((z++x.3) = x.2))  ∥
+             (∃ z. ((z++x.2) = x.3))  ∥ (x.2 = x.3) )
         case case_1
         by contradiction /* from formulas */
       next
@@ -157,9 +157,9 @@ induction
 next
   case non_empty_trace
   solve( (last(#i))  ∥
-         (∃ #j. (Start( ~s ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
+         (∃ #j. (Start( ~s.1 ) @ #j) ∧ (¬(last(#j))) ∧ (#j < #i)) )
     case case_1
-    solve( Counter( ~s, x ) ▶₀ #i )
+    solve( Counter( ~s.1, x.1 ) ▶₀ #i )
       case Create
       by contradiction /* from formulas */
     next
@@ -189,7 +189,8 @@ induction
   by contradiction /* from formulas */
 next
   case non_empty_trace
-  solve( (∃ z. ((x++z) = y))  ∥ (∃ z. ((y++z) = x))  ∥ (y = x) )
+  solve( (∃ z. ((z++x.1) = x.2))  ∥ (∃ z. ((z++x.2) = x.1))  ∥
+         (x.2 = x.1) )
     case case_1
     by contradiction /* from formulas */
   next
@@ -215,9 +216,9 @@ induction
   by contradiction /* from formulas */
 next
   case non_empty_trace
-  solve( (last(#i))  ∥ (∃ z. ((y++z) = x)) )
+  solve( (last(#i))  ∥ (∃ z. ((y++z) = x.1)) )
     case case_1
-    solve( !KU( senc(h(y), ~s) ) @ #vk.1 )
+    solve( !KU( senc(h(y), ~s.3) ) @ #vk.1 )
       case Inc
       solve( (∃ z.1. ((z++z.1++h(y)) = h(y)))  ∥
              (∃ z.1. ((z.1++h(y)) = (z++h(y)))) )
@@ -225,24 +226,26 @@ next
         solve( (∃ z.1. ((z.1++h(y)) = (z++h(y))))  ∥
                (∃ z.1. ((z++z.1++h(y)) = h(y))) )
           case case_1
-          solve( Counter( ~s, (z++h(y)) ) ▶₀ #i )
+          solve( Counter( ~s.4, (z++h(y)) ) ▶₀ #i )
             case Inc_case_1
-            by solve( Counter( ~s, h(y) ) ▶₀ #vr )
+            by solve( Counter( ~s.5, h(y.1) ) ▶₀ #vr.1 )
           next
             case Inc_case_2
-            solve( (#vr.1 < #j)  ∥ (∃ z. ((y++z) = (x++h(y)))) )
+            solve( (#vr.1 < #j)  ∥ (∃ z.3. ((y.1++z.3) = (z.2++h(y.1)))) )
               case case_1
-              solve( (∃ z. (('1'++x++z++h(y)) = (x++h(y))))  ∥
-                     (∃ z. ((x++z++h(y)) = ('1'++x++h(y)))) )
+              solve( (∃ z.3. (('1'++z.2++z.3++h(y.1)) = (z.2++h(y.1))))  ∥
+                     (∃ z.3. ((z.2++z.3++h(y.1)) = ('1'++z.2++h(y.1)))) )
                 case case_2
-                solve( (∃ z. ((x++z++h(y)) = h(y)))  ∥ (∃ z. ((z++h(y)) = (x++h(y)))) )
+                solve( (∃ z.3. ((z.2++z.3++h(y.1)) = h(y.1)))  ∥
+                       (∃ z.3. ((z.3++h(y.1)) = (z.2++h(y.1)))) )
                   case case_2
-                  solve( (∃ z. ((x++z++h(y)) = ('1'++x++h(y))))  ∥
-                         (∃ z. (('1'++x++z++h(y)) = (x++h(y)))) )
+                  solve( (∃ z.3. ((z.2++z.3++h(y.1)) = ('1'++z.2++h(y.1))))  ∥
+                         (∃ z.3. (('1'++z.2++z.3++h(y.1)) = (z.2++h(y.1)))) )
                     case case_1
-                    solve( (∃ z. ((z++h(y)) = (x++h(y))))  ∥ (∃ z. ((x++z++h(y)) = h(y))) )
+                    solve( (∃ z.3. ((z.3++h(y.1)) = (z.2++h(y.1))))  ∥
+                           (∃ z.3. ((z.2++z.3++h(y.1)) = h(y.1))) )
                       case case_1
-                      by solve( Counter( ~s, h(y) ) ▶₀ #vr )
+                      by solve( Counter( ~s.5, h(y.1) ) ▶₀ #vr )
                     qed
                   qed
                 qed
@@ -259,7 +262,7 @@ next
       qed
     next
       case c_senc
-      by solve( !KU( ~s ) @ #vk.3 )
+      by solve( !KU( ~s.3 ) @ #vk.3 )
     qed
   next
     case case_2
@@ -285,8 +288,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -298,7 +301,7 @@ summary of summaries:
 analyzed: examples/features//multiset/counter.spthy
 
   output:          examples/features//multiset/counter.spthy.tmp
-  processing time: 0.22s
+  processing time: 0.18s
   
   counters_linear_order (all-traces): verified (31 steps)
   counter_start (all-traces): verified (7 steps)

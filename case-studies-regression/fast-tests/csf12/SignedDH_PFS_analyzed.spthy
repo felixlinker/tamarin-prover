@@ -61,29 +61,29 @@ rule (modulo E) Init_2:
     --[ SessionKey( $I, $R, z ) ]->
      [ ]
     variants (modulo AC)
-    1. ~ekI  = ~ekI.9
-       Y     = Y.10
-       z     = Y.10^~ekI.9
+    1. ~ekI  = ~x.2
+       Y     = x.3^inv(~x.2)
+       z     = x.3
     
-    2. ~ekI  = ~ekI.10
-       Y     = z.14^inv(~ekI.10)
-       z     = z.14
+    2. ~ekI  = ~ekI.3
+       Y     = Y.3
+       z     = Y.3^~ekI.3
     
-    3. ~ekI  = ~ekI.11
-       Y     = x.16^x.17
-       z     = x.16^(~ekI.11*x.17)
+    3. ~ekI  = ~ekI.3
+       Y     = x.2^x.3
+       z     = x.2^(~ekI.3*x.3)
     
-    4. ~ekI  = ~ekI.11
-       Y     = x.17^inv((~ekI.11*x.18))
-       z     = x.17^inv(x.18)
+    4. ~ekI  = ~x.3
+       Y     = x.4^inv((~x.3*x.5))
+       z     = x.4^inv(x.5)
     
-    5. ~ekI  = ~ekI.11
-       Y     = x.17^(x.18*inv(~ekI.11))
-       z     = x.17^x.18
+    5. ~ekI  = ~x.3
+       Y     = x.4^(x.5*inv(~x.3))
+       z     = x.4^x.5
     
-    6. ~ekI  = ~ekI.12
-       Y     = x.18^(x.19*inv((~ekI.12*x.20)))
-       z     = x.18^(x.19*inv(x.20))
+    6. ~ekI  = ~x.4
+       Y     = x.5^(x.6*inv((~x.4*x.7)))
+       z     = x.5^(x.6*inv(x.7))
     
     7. Y     = DH_neutral
        z     = DH_neutral
@@ -106,29 +106,29 @@ rule (modulo E) Resp:
     --[ SessionKey( $I, $R, z ) ]->
      [ Out( <$R, $I, 'g'^~ekR, sign(<'2', $R, $I, 'g'^~ekR>, ltkR)> ) ]
     variants (modulo AC)
-    1. ~ekR  = ~ekR.13
-       X     = X.14
-       z     = X.14^~ekR.13
+    1. ~ekR  = ~x.2
+       X     = x.3^inv(~x.2)
+       z     = x.3
     
-    2. ~ekR  = ~ekR.19
-       X     = z.26^inv(~ekR.19)
-       z     = z.26
+    2. ~ekR  = ~ekR.3
+       X     = X.3
+       z     = X.3^~ekR.3
     
-    3. ~ekR  = ~ekR.64
-       X     = x.123^x.124
-       z     = x.123^(~ekR.64*x.124)
+    3. ~ekR  = ~ekR.3
+       X     = x.2^x.3
+       z     = x.2^(~ekR.3*x.3)
     
-    4. ~ekR  = ~ekR.65
-       X     = x.125^inv((~ekR.65*x.126))
-       z     = x.125^inv(x.126)
+    4. ~ekR  = ~x.3
+       X     = x.4^inv((~x.3*x.5))
+       z     = x.4^inv(x.5)
     
-    5. ~ekR  = ~ekR.65
-       X     = x.125^(x.126*inv(~ekR.65))
-       z     = x.125^x.126
+    5. ~ekR  = ~x.3
+       X     = x.4^(x.5*inv(~x.3))
+       z     = x.4^x.5
     
-    6. ~ekR  = ~ekR.66
-       X     = x.126^(x.127*inv((~ekR.66*x.128)))
-       z     = x.126^(x.127*inv(x.128))
+    6. ~ekR  = ~x.4
+       X     = x.5^(x.6*inv((~x.4*x.7)))
+       z     = x.5^(x.6*inv(x.7))
     
     7. X     = DH_neutral
        z     = DH_neutral
@@ -149,25 +149,25 @@ guarded formula characterizing all counter-examples:
   (∀ #r. (LtkReveal( R ) @ #r) ⇒ ¬(#r < #i))"
 */
 simplify
-solve( SessionKey( I, R, sessKey ) @ #i )
+solve( SessionKey( I, R, x ) @ #i )
   case Init_2
-  solve( Init_1( $I, $R, ~ekI ) ▶₀ #i )
+  solve( Init_1( $I.1, $R.1, ~ekI ) ▶₀ #i )
     case Init_1
-    solve( !Pk( $R, pk(ltkR) ) ▶₁ #i )
+    solve( !Pk( $R.1, pk(ltkR) ) ▶₁ #i )
       case Register_pk
-      solve( !KU( sign(<'2', $R, $I, Y>, ~ltk) ) @ #vk.7 )
+      solve( !KU( sign(<'2', $R.1, $I.1, Y>, ~ltk.1) ) @ #vk.7 )
         case Resp
-        solve( !KU( sign(<'1', $I, $R, X>, ~ltk.2) ) @ #vk.12 )
+        solve( !KU( sign(<'1', $I.1, $R.1, X>, ~ltk.2) ) @ #vk.14 )
           case Init_1
-          solve( !KU( 'g'^(~ekI*~ekR) ) @ #vk.4 )
+          solve( !KU( 'g'^(~ekI.1*~ekR.2) ) @ #vk )
             case Init_1
-            by solve( !KU( ~ekR ) @ #vk.13 )
+            by solve( !KU( ~ekR.3 ) @ #vk.15 )
           next
             case Resp
-            by solve( !KU( ~ekI ) @ #vk.13 )
+            by solve( !KU( ~ekI.4 ) @ #vk.22 )
           next
             case c_exp
-            by solve( !KU( ~ekI ) @ #vk.15 )
+            by solve( !KU( ~ekI.1 ) @ #vk.17 )
           qed
         next
           case c_sign
@@ -178,7 +178,7 @@ solve( SessionKey( I, R, sessKey ) @ #i )
         qed
       next
         case c_sign
-        solve( !KU( ~ltk ) @ #vk.11 )
+        solve( !KU( ~ltk.1 ) @ #vk.9 )
           case Reveal_ltk
           by contradiction /* from formulas */
         qed
@@ -187,25 +187,25 @@ solve( SessionKey( I, R, sessKey ) @ #i )
   qed
 next
   case Resp
-  solve( !Pk( $I, pk(ltkI) ) ▶₀ #i )
+  solve( !Pk( $I.1, pk(ltkI) ) ▶₀ #i )
     case Register_pk
-    solve( !Ltk( $R, ltkR ) ▶₁ #i )
+    solve( !Ltk( $R.1, ltkR ) ▶₁ #i )
       case Register_pk
-      solve( !KU( sign(<'1', $I, $R, X>, ~ltk) ) @ #vk.7 )
+      solve( !KU( sign(<'1', $I.1, $R.1, X>, ~ltk) ) @ #vk.7 )
         case Init_1
-        solve( !KU( 'g'^(~ekI*~ekR) ) @ #vk.1 )
+        solve( !KU( 'g'^(~ekI.1*~ekR.1) ) @ #vk )
           case Init_1
-          by solve( !KU( ~ekR ) @ #vk.8 )
+          by solve( !KU( ~ekR.2 ) @ #vk.8 )
         next
           case Resp
-          by solve( !KU( ~ekI ) @ #vk.8 )
+          by solve( !KU( ~ekI.2 ) @ #vk.15 )
         next
           case c_exp
-          by solve( !KU( ~ekI ) @ #vk.10 )
+          by solve( !KU( ~ekI.1 ) @ #vk.10 )
         qed
       next
         case c_sign
-        solve( !KU( ~ltk ) @ #vk.11 )
+        solve( !KU( ~ltk ) @ #vk.9 )
           case Reveal_ltk
           by contradiction /* from formulas */
         qed
@@ -247,8 +247,8 @@ Failed to derive Variable(s): ltkI
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -260,7 +260,7 @@ summary of summaries:
 analyzed: examples/csf12/SignedDH_PFS.spthy
 
   output:          examples/csf12/SignedDH_PFS.spthy.tmp
-  processing time: 0.34s
+  processing time: 0.33s
   
   WARNING: 1 wellformedness check failed!
            The analysis results might be wrong!

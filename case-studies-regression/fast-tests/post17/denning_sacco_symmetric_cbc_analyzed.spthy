@@ -72,17 +72,17 @@ guarded formula characterizing all satisfying traces:
   (KeySharedInit( A, B, k ) @ #i) ∧ (KeySharedResp( B, A, k ) @ #j)"
 */
 simplify
-solve( InitiatorRequested( $A, $B ) ▶₀ #i )
+solve( InitiatorRequested( $A.2, $B.2 ) ▶₀ #i )
   case Initiator1
-  solve( !SharedKeyWithServer( $A, kas ) ▶₁ #i )
+  solve( !SharedKeyWithServer( $A.2, kas ) ▶₁ #i )
     case setup
-    solve( !SharedKeyWithServer( $B, kbs ) ▶₃ #i )
+    solve( !SharedKeyWithServer( $B.2, kbs ) ▶₃ #i )
       case setup
-      solve( !SharedKeyWithServer( $B, kbs ) ▶₁ #j )
+      solve( !SharedKeyWithServer( $B.2, kbs.1 ) ▶₁ #j )
         case setup
-        solve( !KU( enc(<<$B, ~k.1>, enc(<$A, ~k.1>, ~k.2)>, ~k) ) @ #vk )
+        solve( !KU( enc(<<$B.2, ~k.2>, enc(<$A.2, ~k.2>, ~k.5)>, ~k.3) ) @ #vk )
           case Server
-          solve( !KU( enc(<$A, ~k.1>, ~k.2) ) @ #vk.1 )
+          solve( !KU( enc(<$A.2, ~k.2>, ~k.5) ) @ #vk.1 )
             case Initiator2
             SOLVED // trace found
           qed
@@ -108,9 +108,9 @@ guarded formula characterizing all counter-examples:
   (∀ #j. (Reveal( A ) @ #j) ⇒ ⊥)"
 */
 simplify
-solve( !SharedKeyWithServer( $B, kbs ) ▶₁ #i )
+solve( !SharedKeyWithServer( $B.1, kbs ) ▶₁ #i )
   case setup
-  solve( !KU( enc(<$A, ~k>, ~k.1) ) @ #vk )
+  solve( !KU( enc(<$A.1, ~k.1>, ~k.2) ) @ #vk )
     case Server_case_3
     SOLVED // trace found
   qed
@@ -134,8 +134,8 @@ qed
 Generated from:
 Tamarin version 1.11.0
 Maude version 3.2.1
-Git revision: 45ba0ade4124513bbb2cb67c0c31470af4edc4f8 (with uncommited changes), branch: HEAD
-Compiled at: 2024-11-25 14:27:26.931961 UTC
+Git revision: d8e8266fc8aa702ff3c4d08608a7fbbe124eea65, branch: cyclic-squashed
+Compiled at: 2024-11-27 09:37:37.786154 UTC
 */
 
 end
@@ -147,7 +147,7 @@ summary of summaries:
 analyzed: examples/post17/denning_sacco_symmetric_cbc.spthy
 
   output:          examples/post17/denning_sacco_symmetric_cbc.spthy.tmp
-  processing time: 0.33s
+  processing time: 0.34s
   
   executable (exists-trace): verified (8 steps)
   sessionsmatch (all-traces): falsified - found trace (4 steps)
