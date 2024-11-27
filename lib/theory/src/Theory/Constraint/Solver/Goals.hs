@@ -135,8 +135,12 @@ mayBeSolved ctxt doCyclic syss@(se:|_) = filter (uncurry p) (M.toList (get sGoal
 
     cyclicMinimization = do
       let loops = L.get sLoops se
-      guard (any (\l -> isLongLoop l || hasOutgoingEdge l) loops)
+      let rs = L.get sNodes se
+      guard (any canMinimizeLoop loops || any isISendRule rs)
       return (Weaken WeakenCyclic, GoalStatus False Contextual True)
+      where
+        canMinimizeLoop :: LoopInstance NodeId -> Bool
+        canMinimizeLoop l = isLongLoop l || hasOutgoingEdge l
 
     cutGoal = do
       PartialCyclicProof _ upTo _ <- getCycleRenamingOnPath ctxt syss
@@ -553,11 +557,12 @@ weaken el = do
         let backwd = fromJust mBackwd
         mapM_ (mapM_ (weakenNode Prune) . getLarger fwd . end) loops
         mapM_ (keepLoopShort backwd) loops
+        nodes <- M.toList <$> L.getM sNodes
+        -- Delete all K nodes
+        mapM_ (weakenNode Prune . fst) (filter (isISendRule . snd) nodes)
         nonLeafs <- gets (S.fromList . map fst . rawLessRel)
-        kLeafs <-
-            filter ((\r -> isConstrRule r || isISendRule r) . snd)
-          . filter (not . (`S.member` nonLeafs) . fst)
-          . M.toList <$> L.getM sNodes
+        let kLeafs = filter (isConstrRule . snd)
+              $ filter (not . (`S.member` nonLeafs) . fst) nodes
         mapM_ (keepKuChainShort backwd . fst) kLeafs
       where
         reachability :: (System -> [(NodeId, NodeId)]) -> Reduction (Maybe (TransClosedOrder NodeId))
