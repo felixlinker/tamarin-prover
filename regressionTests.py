@@ -405,6 +405,7 @@ def getArguments():
 			"5: show shell command output\n" +
 			"6: show diff output if the corresponding proofs changed"
 			, type=int, default=3)
+	parser.add_argument("-t", "--timeout", help="Set a timeout for regression test commands (-1 disables timeout; in seconds)", type=float, default=-1)
 	parser.add_argument("-p", "--parser-test", help = "Run the parser tests.", action="store_true")
 
 
@@ -484,8 +485,12 @@ Parser test results:
 			cases = "case-studies" if settings.slow else "fast-case-studies FAST=y"
 			command = f"make -j {settings.jobs} {cases} 2>/dev/null"
 			logging.warning(f"running '{command}' ...")
-			output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT).decode("utf-8")
-			logging.debug(output)
+			try:
+				timeout = settings.timeout if settings.timeout >= 0 else None
+				output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, timeout=timeout).decode("utf-8")
+				logging.debug(output)
+			except subprocess.TimeoutExpired:
+				logging.debug('Regression tests timed out')
 
 		## compare time and steps ##
 		successful = compare() & successful
