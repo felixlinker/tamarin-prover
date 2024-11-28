@@ -59,13 +59,6 @@ applyR (Renaming r _) = apply (Subst (M.map (LIT . Var) r) :: LNSubst)
 idRenaming :: Renaming
 idRenaming = Renaming M.empty S.empty
 
-termToVar :: LNTerm -> Maybe LVar
-termToVar (LIT (Var v)) = Just v
-termToVar _             = Nothing
-
-varToTerm :: LVar -> LNTerm
-varToTerm = LIT . Var
-
 renamedTimePoints :: Renaming -> M.Map LVar LVar
 renamedTimePoints (Renaming r _) = M.filterWithKey (\k _ -> lvarSort k == LSortNode) r
 
@@ -81,7 +74,7 @@ fromUnification a1 a2 = fmap toRenaming . M.foldrWithKey canonicalize (Just M.em
     rng2 = range a2
 
     canonicalize :: LVar -> VTerm Name LVar -> Maybe (M.Map LVar LVar) -> Maybe (M.Map LVar LVar)
-    canonicalize v (termToVar -> mtv) macc = do
+    canonicalize v (termVar -> mtv) macc = do
       tv <- mtv
       aux tv <$> macc
       where
