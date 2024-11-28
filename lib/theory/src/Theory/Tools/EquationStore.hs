@@ -21,6 +21,7 @@ module Theory.Tools.EquationStore (
     SplitId(..)
 
   , EqStore(..)
+  , eqStoreInlcusionModR
   , emptyEqStore
   , eqsSubst
   , eqsConj
@@ -76,6 +77,7 @@ import qualified Data.Foldable         as F
 import           Data.List          (delete,find,intersect,intersperse,nub,(\\))
 import           Data.Maybe
 import qualified Data.Set              as S
+import qualified Data.Map              as M
 import           Extension.Data.Label  hiding (for, get)
 import qualified Extension.Data.Label  as L
 
@@ -123,6 +125,28 @@ instance NFData EqStore
 instance Binary EqStore
 
 $(mkLabels [''EqStore])
+
+eqStoreInlcusionModR :: LNSubst -> EqStore -> EqStore -> WithMaude Bool
+eqStoreInlcusionModR r s1 s2 =
+    (&&) (hasEmptySubst s1 && hasEmptySubst s2)
+  . and <$> mapM (findMatchConj . snd) (L.get eqsConj (applyRenaming s1))
+  where
+    applyRenaming :: EqStore -> EqStore
+    -- First fmap is for Conj, second for tuple
+    applyRenaming = modify eqsConj (fmap (fmap (S.map applyR)))
+      where
+        applyR :: LNSubstVFresh -> LNSubstVFresh
+        applyR (SubstVFresh m) = SubstVFresh (M.mapKeys (apply r) m)
+
+    hasEmptySubst :: EqStore -> Bool
+    hasEmptySubst = M.null . sMap . L.get eqsSubst
+
+    findMatchConj :: S.Set LNSubstVFresh -> WithMaude Bool
+    findMatchConj s = or <$> mapM (substsMatch s . snd) (L.get eqsConj s2)
+
+    substsMatch :: S.Set LNSubstVFresh -> S.Set LNSubstVFresh -> WithMaude Bool
+    substsMatch (S.toAscList -> substs) (S.toAscList -> substs') =
+      and <$> zipWithM eqSubsts substs substs'
 
 -- | @emptyEqStore@ is the empty equation store.
 emptyEqStore :: EqStore

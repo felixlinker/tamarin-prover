@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -27,6 +28,7 @@ module Term.Substitution.SubstVFresh (
   , domVFresh
   , rangeVFresh
   , isRenaming
+  , couldBeRenaming
   , imageOfVFresh
 
   -- * views
@@ -52,7 +54,7 @@ module Term.Substitution.SubstVFresh (
 import           Term.LTerm
 import           Text.PrettyPrint.Highlight
 
--- import           Control.Applicative
+import Control.Applicative ( Alternative((<|>)) )
 import           Control.Monad.Fresh
 import           Control.DeepSeq
 
@@ -66,6 +68,7 @@ import qualified Data.Set as S
 import           Data.List
 -- import           Data.Traversable hiding ( mapM )
 import           Data.Binary
+import Data.Tuple (swap)
 -- import           Data.Monoid ( mempty )
 
 ----------------------------------------------------------------------
@@ -147,6 +150,30 @@ isRenamedVar lv subst =
 -- | Returns @True@ if the substitution is a renaming.
 isRenaming :: LSubstVFresh c -> Bool
 isRenaming subst = all (`isRenamedVar` subst) $ domVFresh subst
+
+couldBeRenaming :: S.Set LVar -> S.Set LVar -> LSubstVFresh c -> Maybe (M.Map LVar LVar)
+couldBeRenaming domFrom domTo subst = do
+  vm <- toVarMap subst  -- If this fails, the substitution cannot be a renaming
+  let (fromM, invert -> toM) = M.partitionWithKey (inDom domFrom) vm
+  guard (all (`S.member` domTo) (M.elems toM))
+  rest <- M.foldr
+    -- Either k already correctly maps into domTo - then do nothing
+    (\v acc ->  (guard (v `S.member` domTo) >> acc)
+              -- Or the value is present in the inverse map, thus, indirectly
+              -- maps into domTo. Then delete that key from the inverse map.
+              <|> (M.alterF (maybe Nothing (const (Just Nothing))) v =<< acc))
+    (Just toM) fromM
+  guard (M.null rest)
+  return (M.compose fromM toM)
+  where
+    toVarMap :: LSubstVFresh c -> Maybe (Map LVar LVar)
+    toVarMap = traverse termVar . svMap
+
+    inDom :: S.Set LVar -> LVar -> a -> Bool
+    inDom dom v _ = v `S.member` dom
+
+    invert :: Ord a => M.Map a a -> M.Map a a
+    invert = M.fromList . map swap . M.toList
 
 -- | Returns the image of @i@ under @subst@ if @i@ is in the domain of @subst@.
 imageOfVFresh :: IsVar v => SubstVFresh c v -> v -> Maybe (VTerm c v)

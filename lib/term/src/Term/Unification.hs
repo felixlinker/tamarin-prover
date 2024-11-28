@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Copyright   : (c) 2010-2012 Benedikt Schmidt & Simon Meier
 -- License     : GPL v3 (see LICENSE)
@@ -19,6 +20,8 @@ module Term.Unification (
   , unifyLTermNoAC
   , unifyLNTermNoAC
   , unifiableLNTermsNoAC
+  , eqLNTerms
+  , eqSubsts
 
   , unifyLTermFactoredNoAC
   , unifyLNTermFactoredNoAC
@@ -85,6 +88,7 @@ import           Control.Monad.RWS
 import           Control.Monad.Except
 import           Control.Monad.State
 import qualified Data.Map as M
+import qualified Data.Set as S
 import           Data.Map (Map)
 
 import           System.IO.Unsafe (unsafePerformIO)
@@ -98,6 +102,7 @@ import           Term.Maude.Process
                    (MaudeHandle, WithMaude, startMaude, getMaudeStats, mhMaudeSig, mhFilePath)
 import           Term.Maude.Signature
 import           Debug.Trace.Ignore
+import Data.Maybe (isJust)
 
 -- Unification modulo AC
 ----------------------------------------------------------------------
@@ -142,6 +147,28 @@ unifyLNTerms fa1 fa2 = unifyLNTerm [Equal fa1 fa2]
 -- | 'True' iff the terms are unifiable.
 unifiableLNTerms :: LNTerm -> LNTerm -> WithMaude Bool
 unifiableLNTerms t = fmap (not . null) . unifyLNTerms t
+
+eqLNTerms :: LNTerm -> LNTerm -> WithMaude Bool
+eqLNTerms t1 t2 = any (isJust . couldBeRenaming (termDom t1) (termDom t2)) <$> unifyLNTerms t1 t2
+  where
+    termDom :: LNTerm -> S.Set LVar
+    termDom = foldFrees S.singleton
+
+eqSubsts :: LNSubstVFresh -> LNSubstVFresh -> WithMaude Bool
+eqSubsts (svMap -> s1) (svMap -> s2) = zipMapping (M.toAscList s1) (M.toAscList s2)
+  where
+    zipMapping :: [(LVar, LNTerm)] -> [(LVar, LNTerm)] -> WithMaude Bool
+    zipMapping [] [] = return True
+    zipMapping [] _ = return False
+    zipMapping _ [] = return False
+    zipMapping ((v, term) : t) ((v', term') : t')
+      | v == v' = do
+        r <- zipMapping t t'
+        eq <- eqLNTerms term term'
+        -- Prioritize (by &&-laziness) recursion over term equivalance because
+        -- "easy" False's can come from pattern-matching (no need to call maude).
+        return (r && eq)
+      | otherwise = trace (show v ++ " and " ++ show v' ++ " don't match") $ return False
 
 -- | Flatten a factored substitution to a list of substitutions.
 flattenUnif :: IsConst c => (LSubst c, [LSubstVFresh c]) -> [LSubstVFresh c]

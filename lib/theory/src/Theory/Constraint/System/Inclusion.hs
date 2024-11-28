@@ -32,6 +32,7 @@ import Data.Bifunctor (Bifunctor(bimap, first))
 import Utils.Two (tuple, two, Two)
 import Utils.Misc (addAt)
 import Term.Substitution (Apply(apply))
+import Control.Monad.Trans.Reader (runReader)
 
 data BackLinkCandidate = PartialCyclicProof Renaming UpTo BackLink
   deriving ( Show )
@@ -47,8 +48,8 @@ type AGTuple = (LVar, LNFact)
 
 -- TODO: Handle last
 -- TODO: Document @System@ w.r.t. to how this functino works
-isProgressingAndSubSysUpTo :: System -> System -> Renaming -> RenamingUpToWithVars
-isProgressingAndSubSysUpTo smaller larger renaming = do
+isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> Renaming -> RenamingUpToWithVars
+isProgressingAndSubSysUpTo mh smaller larger renaming = do
   let r = toSubst renaming
   guard (apply r (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
   let lessAtomsSmaller = map lessAtomToEdge $ S.toList $ L.get sLessAtoms smaller
@@ -56,6 +57,7 @@ isProgressingAndSubSysUpTo smaller larger renaming = do
   -- Check that all elements in the smaller relation are contained in the larger
   -- relation.
   guard (all (uncurry (isSmaller lessRelLarger) . apply r) lessAtomsSmaller)
+  guard $ runReader (eqStoreInlcusionModR r (L.get sEqStore smaller) (L.get sEqStore larger)) mh
 
   let varsInSmaller =
             S.fromList (map fst lessAtomsSmaller) <> S.fromList (map snd lessAtomsSmaller)
@@ -96,7 +98,7 @@ allRenamings mh smallerSys largerSys
 
 isContainedInModRenamingUpTo :: MaudeHandle -> System -> System -> RenamingUpToWithVars
 isContainedInModRenamingUpTo mh smaller larger =
-  msum $ map (isProgressingAndSubSysUpTo smaller larger) (allRenamings mh smaller larger)
+  msum $ map (isProgressingAndSubSysUpTo mh smaller larger) (allRenamings mh smaller larger)
 
 getCycleRenamingsOnPath :: ProofContext -> NonEmpty System -> [BackLinkCandidate]
 getCycleRenamingsOnPath ctx (leaf:|candidates) = mapMaybe tryRenaming candidates

@@ -21,6 +21,7 @@ import Text.PrettyPrint.Class
 
 import Data.List
 import Data.Maybe
+import qualified Data.Set as S
 import Prelude
 import Test.HUnit
 import Control.Monad.Reader
@@ -117,6 +118,8 @@ testsSubst = TestLabel "Tests for Substitution" $
       , testTrue "n" ((<100) . size $ emptySubst)
       , testTrue "o" ((<10000) . size $ s1b)
       , testTrue "p" ((<100) . size $ emptySubstVFresh)
+      , testTrue  "q" (isJust $ couldBeRenaming (S.singleton lx1) (S.singleton lx2) (substFromListVFresh [(lx1,x3), (lx2,x3)]))
+      , testTrue  "r" (isNothing $ couldBeRenaming (S.fromList [lx1, lx2]) (S.singleton lx3) (substFromListVFresh [(lx1,x3), (lx2,x3), (lx3,x3)]))
       ]
   where
     s1b       = substFromListVFresh [(lx1, p1), (lx2, x6), (lx3, x6), (lx4, f1)]

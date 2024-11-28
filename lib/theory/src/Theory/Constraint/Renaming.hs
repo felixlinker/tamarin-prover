@@ -73,6 +73,7 @@ fromUnification a1 a2 = fmap toRenaming . M.foldrWithKey canonicalize (Just M.em
     rng1 = range a1
     rng2 = range a2
 
+    -- TODO: This function could be replaced with couldBeRenaming
     canonicalize :: LVar -> VTerm Name LVar -> Maybe (M.Map LVar LVar) -> Maybe (M.Map LVar LVar)
     canonicalize v (termVar -> mtv) macc = do
       tv <- mtv
