@@ -96,6 +96,7 @@ module Theory.Constraint.System (
   , dpcRestrictions
   , dpcReuseLemmas
   , eitherProofContext
+  , doCyclicInduction
 
   -- ** Classified rules
   , ClassifiedRules(..)
@@ -940,6 +941,10 @@ pcMaudeHandle = sigmMaudeHandle . pcSignature
 -- | Returns the LHS or RHS proof-context of a diff proof context.
 eitherProofContext :: DiffProofContext -> Side -> ProofContext
 eitherProofContext ctxt s = if s==LHS then L.get dpcPCLeft ctxt else L.get dpcPCRight ctxt
+
+doCyclicInduction :: ProofContext -> Bool
+doCyclicInduction ctxt = L.get pcUseInduction ctxt == UseCyclicInduction
+  && L.get pcTraceQuantifier ctxt == ExistsNoTrace
 
 -- Instances
 ------------

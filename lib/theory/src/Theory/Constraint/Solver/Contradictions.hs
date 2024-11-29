@@ -83,7 +83,7 @@ contradictions ctxt syss@(sys:|_) = F.asum
     -- CR-rules *S_⟂*, *S_{¬,last,1}*, *S_{¬,≐}*, *S_{¬,≈}*
     , guard (S.member gfalse $ L.get sFormulas sys) $> FormulasFalse
     -- TODO: This can slow down proving drastically
-    , maybe [] ((:[]) . Cyclic) $ guard (UseCyclicInduction == L.get pcUseInduction ctxt) >> canCloseCycle ctxt syss
+    , maybe [] ((:[]) . Cyclic) $ guard (doCyclicInduction ctxt) >> canCloseCycle ctxt syss
     ]
     ++
     -- This rule is not yet documented. It removes constraint systems that

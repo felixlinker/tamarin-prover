@@ -514,9 +514,8 @@ rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofCo
 rankProofMethods ranking tactics ctxt syss@(sys:|_) =
   let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals ctxt syss)
       insertInduction (simplify NE.:| gs) = case L.get pcUseInduction ctxt of
-        AvoidInduction -> simplify : (Induction, "") : gs
-        UseInduction   -> (Induction, "") : simplify : gs
-        UseCyclicInduction  -> simplify : gs
+        UseInduction -> (Induction, "") : simplify : gs
+        _ -> simplify : (Induction, "") : gs
       proofMethods = bool NE.toList insertInduction (isInitialSystem sys) ((Simplify, "") NE.:| goals)
       stoppingMethod = Sorry (Just "Oracle ranked no goals") <$ instr
   in execMethods $ maybe proofMethods ((:[]) . (,"")) stoppingMethod

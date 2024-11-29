@@ -151,8 +151,8 @@ isSolved :: System -> Bool
 isSolved sys = not (isInitialSystem sys) && null (mustBeSolved sys)
 
 annotateGoals :: ProofContext -> NonEmpty System -> [AnnotatedGoal]
-annotateGoals ctxt syss@(se NE.:| _) =
-  annotateGoals' (UseCyclicInduction == L.get pcUseInduction ctxt) ctxt syss
+annotateGoals ctxt syss =
+  annotateGoals' (doCyclicInduction ctxt) ctxt syss
 
 -- NOTE: Making the single System a singleton list only works because
 -- mayBeSolved only uses a full path of systems for cyclic proofs, which gets
