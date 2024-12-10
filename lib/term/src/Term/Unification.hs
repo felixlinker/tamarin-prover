@@ -101,7 +101,6 @@ import qualified Term.Maude.Process as UM
 import           Term.Maude.Process
                    (MaudeHandle, WithMaude, startMaude, getMaudeStats, mhMaudeSig, mhFilePath)
 import           Term.Maude.Signature
-import           Debug.Trace.Ignore
 import Data.Maybe (isJust)
 
 -- Unification modulo AC
@@ -112,7 +111,7 @@ unifyLTermFactored :: (IsConst c)
                    => (c -> LSort)
                    -> [Equal (LTerm c)]
                    -> WithMaude (LSubst c, [SubstVFresh c LVar])
-unifyLTermFactored sortOf eqs = reader $ \h -> (\res -> trace (unlines $ ["unifyLTerm: "++ show eqs, "result = "++  show res]) res) $ do
+unifyLTermFactored sortOf eqs = reader $ \h -> do
     solve h $ execRWST unif sortOf M.empty
   where
     unif = sequence [ unifyRaw t p | Equal t p <- eqs ]
@@ -168,12 +167,11 @@ eqSubsts (svMap -> s1) (svMap -> s2) = zipMapping (M.toAscList s1) (M.toAscList 
         -- Prioritize (by &&-laziness) recursion over term equivalance because
         -- "easy" False's can come from pattern-matching (no need to call maude).
         return (r && eq)
-      | otherwise = trace (show v ++ " and " ++ show v' ++ " don't match") $ return False
+      | otherwise = return False
 
 -- | Flatten a factored substitution to a list of substitutions.
 flattenUnif :: IsConst c => (LSubst c, [LSubstVFresh c]) -> [LSubstVFresh c]
-flattenUnif (subst, substs) =
-    (\res -> trace (show ("flattenUnif",subst, substs,res )) res) $ map (`composeVFresh` subst) substs
+flattenUnif (subst, substs) = map (`composeVFresh` subst) substs
 
 -- Unification without AC
 ----------------------------------------------------------------------
@@ -183,7 +181,7 @@ unifyLTermFactoredNoAC :: (IsConst c)
                    => (c -> LSort)
                    -> [Equal (LTerm c)]
                    -> [(SubstVFresh c LVar)]
-unifyLTermFactoredNoAC sortOf eqs = (\res -> trace (unlines $ ["unifyLTermFactoredNoAC: "++ show eqs, "result = "++  show res]) res) $ do
+unifyLTermFactoredNoAC sortOf eqs = do
     solve $ execRWST unif sortOf M.empty
   where
     unif = sequence [ unifyRaw t p | Equal t p <- eqs ]
@@ -231,12 +229,8 @@ solveMatchLTerm sortOf matchProblem =
       Nothing -> pure []
       Just ms -> reader $ matchTerms ms
   where
-    trace' res = trace
-      (unlines ["matchLTerm: "++ show matchProblem, "result = "++  show res])
-      res
-
     matchTerms ms hnd =
-        trace' $ case runState (runExceptT match) M.empty of
+        case runState (runExceptT match) M.empty of
           (Left NoMatcher, _)  -> []
           (Left ACProblem, _)  ->
               unsafePerformIO (UM.matchViaMaude hnd sortOf matchProblem)
@@ -258,11 +252,9 @@ type UnifyRaw c = RWST (c -> LSort) [Equal (LTerm c)] (Map LVar (VTerm c LVar)) 
 -- | Unify two 'LTerm's with delayed AC-unification.
 unifyRaw :: IsConst c => LTerm c -> LTerm c -> UnifyRaw c ()
 unifyRaw l0 r0 = do
-    mappings <- get
     sortOf <- ask
     l <- gets ((`applyVTerm` l0) . substFromMap)
     r <- gets ((`applyVTerm` r0) . substFromMap)
-    guard (trace (show ("unifyRaw", mappings, l ,r)) True)
     case (viewTerm l, viewTerm r) of
        (Lit (Var vl), Lit (Var vr))
          | vl == vr  -> return ()
@@ -325,7 +317,6 @@ matchRaw :: IsConst c
          -> ExceptT MatchFailure (State (Map LVar (VTerm c LVar))) ()
 matchRaw sortOf t p = do
     mappings <- get
-    guard (trace (show (mappings,t,p)) True)
     case (viewTerm t, viewTerm p) of
       (_, Lit (Var vp)) ->
           case M.lookup vp mappings of

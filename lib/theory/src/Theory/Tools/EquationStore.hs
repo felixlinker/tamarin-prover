@@ -65,8 +65,6 @@ import           Control.Monad.Reader
 import           Extension.Prelude
 import           Utils.Misc
 
-import           Debug.Trace.Ignore
-
 import           Control.Basics
 import           Control.DeepSeq
 import           Control.Monad.State   hiding (get, modify, put)
@@ -262,19 +260,13 @@ addEqs hnd eqs0 eqStore =
                         <$> simpDisjunction hnd (const False) (Disj substs)
             -}
   where
-    eqs = apply (L.get eqsSubst eqStore) $ trace (unlines ["addEqs: ", show eqs0]) $ eqs0
-    {-
-    addEqsAC eqSt (sfree, Nothing)   = [ applyEqStore hnd sfree eqSt ]
-    addEqsAC eqSt (sfree, Just disj) =
-      fromMaybe (error "addEqsSplit: impossible, splitAtPos failed")
-                (splitAtPos (applyEqStore hnd sfree (addDisj eqSt (S.fromList disj))) 0)
--}
+    eqs = apply (L.get eqsSubst eqStore) eqs0
 
 -- | Apply a substitution to an equation store and bring resulting equations into
 --   normal form again by using unification.
 applyEqStore :: MaudeHandle -> LNSubst -> EqStore -> EqStore
 applyEqStore hnd asubst eqStore
-    | dom asubst `intersect` varsRange asubst /= [] || trace (show ("applyEqStore", asubst, eqStore)) False
+    | dom asubst `intersect` varsRange asubst /= []
     = error $ "applyEqStore: dom and vrange not disjoint for `"++show asubst++"'"
     | otherwise
     = modify eqsConj (fmap (second (S.fromList . concatMap applyBound  . S.toList))) $
@@ -364,9 +356,7 @@ simpDisjunction hnd isContr disj0 = do
 
 -- | @simp eqStore@ simplifies the equation store.
 simp :: MonadFresh m => MaudeHandle -> (LNSubst -> LNSubstVFresh -> Bool) -> EqStore -> m EqStore
-simp hnd isContr eqStore =
-    execStateT (whileTrue (simp1 hnd isContr))
-               (trace (show ("eqStore", eqStore)) eqStore)
+simp hnd isContr = execStateT (whileTrue (simp1 hnd isContr))
 
 
 -- | @simp1@ tries to execute one simplification step
@@ -386,8 +376,7 @@ simp1 hnd isContr = do
           b6 <- foreachDisj hnd simpIdentify
           b7 <- foreachDisj hnd simpAbstractFun
           b8 <- foreachDisj hnd simpAbstractName
-          (trace (show ("simp:", [b1, b2, b3, b4, b5, b6, b7, b8]))) $
-              return $ (or [b1, b2, b3, b4, b5, b6, b7, b8])
+          return (or [b1, b2, b3, b4, b5, b6, b7, b8])
 
 
 -- | Remove variable renamings in fresh substitutions.
