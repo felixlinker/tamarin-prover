@@ -143,7 +143,7 @@ mayBeSolved ctxt doCyclic syss@(se:|_) = filter (uncurry p) (M.toList (get sGoal
         canMinimizeLoop l = isLongLoop l || hasOutgoingEdge l
 
     cutGoal = do
-      PartialCyclicProof _ upTo _ <- getCycleRenamingOnPath ctxt syss
+      PartialCyclicProof upTo _ <- getCycleRenamingOnPath ctxt syss
       guard (not $ S.null upTo)
       return (Cut upTo, GoalStatus False Contextual False)
 

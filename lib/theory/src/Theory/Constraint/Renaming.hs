@@ -29,6 +29,10 @@ module Theory.Constraint.Renaming
 
 import qualified Data.Map as M
 import qualified Data.Set as S
+
+import GHC.Generics (Generic)
+import Control.DeepSeq (NFData)
+import Data.Binary (Binary)
 import Term.LTerm
 import Control.Monad (guard)
 import Theory.Model.Rule (RuleACInst, getRuleRenaming, getRuleName)
@@ -43,13 +47,18 @@ import Text.PrettyPrint.Highlight (HighlightDocument, Document (vcat), operator_
 data Renaming = Renaming
   { rsubst :: M.Map LVar LVar
   , img :: S.Set LVar }
-  deriving Show
+  deriving ( Eq, Ord, Show, Generic, NFData, Binary )
+
+instance HasFrees Renaming where
+  foldFrees f (Renaming rsubst img) = foldFrees f rsubst <> foldFrees f img
+  foldFreesOcc _ _ _ = mempty
+  mapFrees f (Renaming rsubst img) = Renaming <$> mapFrees f rsubst <*> mapFrees f img
 
 toSubst :: Renaming -> LNSubst
 toSubst (Renaming r _) = Subst (M.map (LIT . Var) r)
 
-prettyRenaming :: HighlightDocument d => M.Map LVar LVar -> d
-prettyRenaming (M.toList -> elems) = vcat (map showMapping elems)
+prettyRenaming :: HighlightDocument d => Renaming -> d
+prettyRenaming (M.toList . rsubst -> elems) = vcat (map showMapping elems)
   where
     showMapping (from, to) = prettyNodeId from <> space <> operator_ "~>" <> space <> prettyNodeId to
 

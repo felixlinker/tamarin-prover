@@ -19,6 +19,7 @@ import Data.Binary (Binary)
 import qualified Data.Map as M
 import Control.Monad
 import Utils.PartialOrd (TransClosedOrder(..), PartialOrder (pempty, pinsert), PartialOrdering(..), unionDisjoint)
+import Theory.Constraint.Renaming (Renaming)
 
 data ProgressingVars = PVs
   { pvProgresses :: S.Set NodeId
@@ -65,7 +66,7 @@ defaultOrderWhenInSCS e@(es, et) e'@(es', et') = case checkRelation et et' of
 
 data BackLink = BackLink
   { edge :: BackLinkEdge
-  , renaming :: M.Map LVar LVar
+  , renaming :: Renaming
   , pvs :: ProgressingVars }
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 

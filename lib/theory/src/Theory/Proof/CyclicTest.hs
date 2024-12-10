@@ -30,6 +30,7 @@ import Theory.Proof (LTree (LNode))
 import Theory.Proof.Cyclic (CyclicProof, toProof, BackLink (BackLink), ProgressingVars (PVs), updateFinished)
 import Term.LTerm (NodeId, LVar (LVar), LSort (LSortNode))
 import Data.Maybe (fromMaybe)
+import Theory.Constraint.Renaming (idRenaming)
 
 t :: NodeId
 t = LVar "t" LSortNode 0
@@ -72,10 +73,10 @@ t0_b001_b00 :: CyclicProof
 t0_b0000_b00 :: CyclicProof
 t0_b0001_b000 :: CyclicProof
 [ t0_b01_b0, t0_b001_b00, t0_b0000_b00, t0_b0001_b000 ] = map toProof
-  [ BackLink (b01, b0) M.empty (PVs (S.fromList [t, vk, vk1]) (S.fromList [t, vk, vk1]))
-  , BackLink (b001, b00) M.empty (PVs (S.fromList [vr, vk1, vk2]) (S.fromList [vr, vk1, vk2, t]))
-  , BackLink (b0000, b00) M.empty (PVs (S.fromList [vr, vk1, vk2]) (S.fromList [vr, vk1, vk2, t]))
-  , BackLink (b0001, b000) M.empty (PVs (S.fromList [vr1]) (S.fromList [vr1, t, vr, vk1, vr1, vk2, vk3])) ]
+  [ BackLink (b01, b0) idRenaming (PVs (S.fromList [t, vk, vk1]) (S.fromList [t, vk, vk1]))
+  , BackLink (b001, b00) idRenaming (PVs (S.fromList [vr, vk1, vk2]) (S.fromList [vr, vk1, vk2, t]))
+  , BackLink (b0000, b00) idRenaming (PVs (S.fromList [vr, vk1, vk2]) (S.fromList [vr, vk1, vk2, t]))
+  , BackLink (b0001, b000) idRenaming (PVs (S.fromList [vr1]) (S.fromList [vr1, t, vr, vk1, vr1, vk2, vk3])) ]
 
 testTree0 :: LTree SystemID (SystemID, Maybe CyclicProof)
 testTree0 = LNode (b0, Nothing) $ M.fromList
@@ -90,9 +91,9 @@ t1_b01_b0 :: CyclicProof
 t1_b000_b00 :: CyclicProof
 t1_b001_b0 :: CyclicProof
 [ t1_b01_b0 ,t1_b000_b00 ,t1_b001_b0 ] = map toProof
-  [ BackLink (b01, b0) M.empty (PVs (S.singleton t) (S.singleton t))
-  , BackLink (b000, b00) M.empty (PVs (S.fromList [t, vr]) (S.fromList [t, vr]))
-  , BackLink (b001, b0) M.empty (PVs (S.singleton t) (S.singleton t)) ]
+  [ BackLink (b01, b0) idRenaming (PVs (S.singleton t) (S.singleton t))
+  , BackLink (b000, b00) idRenaming (PVs (S.fromList [t, vr]) (S.fromList [t, vr]))
+  , BackLink (b001, b0) idRenaming (PVs (S.singleton t) (S.singleton t)) ]
 
 testTree1 :: LTree SystemID (SystemID, Maybe CyclicProof)
 testTree1 = LNode (b0, Nothing) $ M.fromList
@@ -105,9 +106,9 @@ t2_b01_b0 :: CyclicProof
 t2_b000_b00 :: CyclicProof
 t2_b001_b0 :: CyclicProof
 [ t2_b01_b0 ,t2_b000_b00 ,t2_b001_b0 ] = map toProof
-  [ BackLink (b01, b0) M.empty (PVs (S.singleton t) (S.singleton t))
-  , BackLink (b000, b00) M.empty (PVs (S.fromList [vr]) (S.fromList [t, vr]))
-  , BackLink (b001, b0) M.empty (PVs (S.singleton t) (S.singleton t)) ]
+  [ BackLink (b01, b0) idRenaming (PVs (S.singleton t) (S.singleton t))
+  , BackLink (b000, b00) idRenaming (PVs (S.fromList [vr]) (S.fromList [t, vr]))
+  , BackLink (b001, b0) idRenaming (PVs (S.singleton t) (S.singleton t)) ]
 
 testTree2 :: LTree SystemID (SystemID, Maybe CyclicProof)
 testTree2 = LNode (b0, Nothing) $ M.fromList

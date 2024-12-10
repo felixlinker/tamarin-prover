@@ -34,11 +34,11 @@ import Utils.Misc (addAt)
 import Term.Substitution (Apply(apply))
 import Control.Monad.Trans.Reader (runReader)
 
-data BackLinkCandidate = PartialCyclicProof Renaming UpTo BackLink
+data BackLinkCandidate = PartialCyclicProof UpTo BackLink
   deriving ( Show )
 
 fromCandidate :: BackLinkCandidate -> Maybe BackLink
-fromCandidate (PartialCyclicProof _ upTo bl) = guard (S.null upTo) >> return bl
+fromCandidate (PartialCyclicProof upTo bl) = guard (S.null upTo) >> return bl
 
 -- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
 --    and everything else a potentially correct renaming.
@@ -109,7 +109,7 @@ getCycleRenamingsOnPath ctx (leaf:|candidates) = mapMaybe tryRenaming candidates
     tryRenaming :: System -> Maybe BackLinkCandidate
     tryRenaming inner = do
       (r, upTo, progressing) <- isContainedInModRenamingUpTo hnd inner leaf
-      return $ PartialCyclicProof r upTo (BackLink (L.get sId leaf, L.get sId inner) (rsubst r) progressing)
+      return $ PartialCyclicProof upTo (BackLink (L.get sId leaf, L.get sId inner) r progressing)
 
 getCycleRenamingOnPath :: ProofContext -> NonEmpty System -> Maybe BackLinkCandidate
 getCycleRenamingOnPath ctx = listToMaybe . getCycleRenamingsOnPath ctx
