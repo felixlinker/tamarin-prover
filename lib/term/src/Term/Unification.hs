@@ -153,9 +153,17 @@ eqLNTerms t1 t2 = any (isJust . couldBeRenaming (termDom t1) (termDom t2)) <$> u
     termDom :: LNTerm -> S.Set LVar
     termDom = foldFrees S.singleton
 
-eqSubsts :: LNSubstVFresh -> LNSubstVFresh -> WithMaude Bool
-eqSubsts (svMap -> s1) (svMap -> s2) = zipMapping (M.toAscList s1) (M.toAscList s2)
+-- | Check whether to substitutions are equal modulo renaming. NOTE: Relies on
+--   the invariant that the substitutions are disjoint or equal in their values,
+--   i.e., a ~> b*c and a ~> c*d will not be recognized as equal, but
+--   a ~> b*c and a ~> d*e will.
+eqSubsts :: LNSubst -> LNSubst -> WithMaude Bool
+eqSubsts (sMap -> s1) (sMap -> s2) = zipMapping (M.toAscList s1) (M.toAscList s2)
   where
+    -- This function should be called on the the sorted input maps' keys list.
+    -- The keys of the map must exactly match for the substitutions to be
+    -- equivalent. That's why we can simply zip them and recursively check
+    -- whether the list head matches.
     zipMapping :: [(LVar, LNTerm)] -> [(LVar, LNTerm)] -> WithMaude Bool
     zipMapping [] [] = return True
     zipMapping [] _ = return False

@@ -142,9 +142,17 @@ eqStoreInlcusionModR r s1 s2 =
     findMatchConj :: S.Set LNSubstVFresh -> WithMaude Bool
     findMatchConj s = or <$> mapM (substsMatch s . snd) (L.get eqsConj s2)
 
+    toFree :: LNSubstVFresh -> LNSubstVFresh -> (LNSubst, LNSubst)
+    toFree fresh1 fresh2 =
+      let free1 = freshToFreeAvoiding fresh1 nothingUsed
+      in (free1, freshToFreeAvoiding fresh2 (avoid free1))
+
     substsMatch :: S.Set LNSubstVFresh -> S.Set LNSubstVFresh -> WithMaude Bool
     substsMatch (S.toAscList -> substs) (S.toAscList -> substs') =
-      and <$> zipWithM eqSubsts substs substs'
+      -- TODO: This is an under-approximation. It could be that the order
+      -- differs. I never encountered such a case, so I keep the code simple for
+      -- now.
+      and <$> zipWithM (\s -> uncurry eqSubsts . toFree s) substs substs'
 
 -- | @emptyEqStore@ is the empty equation store.
 emptyEqStore :: EqStore
