@@ -547,6 +547,7 @@ markGoalAsSolved how goal =
                          modM sSolvedFormulas (S.insert $ GDisj disj) >>
                          updateStatus
       SubtermG _      -> updateStatus
+      SearchBacklink  -> return ()
       Weaken _        -> delete
       Cut _           -> delete
 

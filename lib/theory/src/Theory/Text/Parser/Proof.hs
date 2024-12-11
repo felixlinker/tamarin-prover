@@ -76,6 +76,7 @@ proofMethod = asum
   , symbol "weaken goal"        *> (SolveGoal . Weaken . WeakenGoal <$> parens goal)
   , symbol "weaken edge"        *> (SolveGoal . Weaken . WeakenEdge <$> parens edge)
   , symbol "minimize for cyclic proofs" $> SolveGoal (Weaken WeakenCyclic)
+  , symbol "search for cycle"   $> SolveGoal SearchBacklink
   , symbol "cut"                *> (SolveGoal . Cut . S.fromList <$> parens (commaSep guardedFormula))
   ]
 

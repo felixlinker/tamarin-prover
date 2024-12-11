@@ -540,8 +540,9 @@ subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf syss@(se
         ++
         -- TODO: It would be better if I wouldn't have to recompute contradictions
         -- here but pass them as an argument
-        maybe [] prettyCyclicContradiction (peak (contradictions ctxt syss))
-        ++
+        -- TODO: Re-implement
+        -- maybe [] prettyCyclicContradiction (peak (simpleContradictions ctxt syss))
+        -- ++
         [ preformatted (Just "sequent") (prettyNonGraphSystem se)
         , withTag "h3" [] (text $ nCases ++ " sub-case(s)")
         ] ++

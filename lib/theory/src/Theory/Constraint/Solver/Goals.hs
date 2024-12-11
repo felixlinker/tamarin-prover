@@ -18,7 +18,6 @@
 module Theory.Constraint.Solver.Goals
   ( isSolved
   , annotateGoals
-  , annotateGoalsSimple
   , solveGoal
   , plainOpenGoals
   ) where
@@ -50,7 +49,7 @@ import           Term.Builtin.Convenience
 
 
 import Utils.Misc (twoPartitions, peakTail, splitBetween)
-import Data.Maybe (isNothing, catMaybes, maybeToList, isJust, fromJust)
+import Data.Maybe (isNothing, catMaybes, isJust, fromJust, maybeToList)
 import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
@@ -123,15 +122,17 @@ mustBeSolved se = filter (uncurry p) $ M.toList $ get sGoals se
 -- NOTE: This function establishes an invariant for annotateGoalsSimple. Make
 -- sure to read the comments on annotateGoalsSimple before you edit this
 -- function.
-mayBeSolved :: ProofContext -> Bool -> NonEmpty System -> [(Goal, GoalStatus)]
-mayBeSolved ctxt doCyclic syss@(se:|_) = filter (uncurry p) (M.toList (get sGoals se))
-    ++ (guard doCyclic >> catMaybes [cyclicMinimization, cutGoal])
+mayBeSolved :: Bool -> System -> [(Goal, GoalStatus)]
+mayBeSolved doCyclic se = filter (uncurry p) (M.toList (get sGoals se))
+    ++ (guard doCyclic >> searchBl : maybeToList cyclicMinimization)
   where
     p :: Goal -> GoalStatus -> Bool
     p g gs = not (isRedundant se g) && not (get gsSolved gs)
 
     hasOutgoingEdge :: LoopInstance NodeId -> Bool
     hasOutgoingEdge li = any ((end li ==) . fst . eSrc) (L.get sEdges se)
+
+    searchBl = (SearchBacklink, GoalStatus False Contextual True)
 
     cyclicMinimization = do
       let loops = L.get sLoops se
@@ -142,30 +143,14 @@ mayBeSolved ctxt doCyclic syss@(se:|_) = filter (uncurry p) (M.toList (get sGoal
         canMinimizeLoop :: LoopInstance NodeId -> Bool
         canMinimizeLoop l = isLongLoop l || hasOutgoingEdge l
 
-    cutGoal = do
-      PartialCyclicProof upTo _ <- getCycleRenamingOnPath ctxt syss
-      guard (not $ S.null upTo)
-      return (Cut upTo, GoalStatus False Contextual False)
-
 isSolved :: System -> Bool
 isSolved sys = not (isInitialSystem sys) && null (mustBeSolved sys)
 
-annotateGoals :: ProofContext -> NonEmpty System -> [AnnotatedGoal]
-annotateGoals ctxt syss =
-  annotateGoals' (doCyclicInduction ctxt) ctxt syss
-
--- NOTE: Making the single System a singleton list only works because
--- mayBeSolved only uses a full path of systems for cyclic proofs, which gets
--- disabled here. Make sure to maintain this invariant whenever you edit the
--- respective functions.
-annotateGoalsSimple :: ProofContext -> System -> [AnnotatedGoal]
-annotateGoalsSimple ctxt = annotateGoals' False ctxt . NE.singleton
-
 -- | The list of goals that can be solved. Each goal is annotated with its age
 --   and an indicator for its usefulness.
-annotateGoals' :: Bool -> ProofContext -> NonEmpty System -> [AnnotatedGoal]
-annotateGoals' doCyclic ctxt syss@(sys:|_) = do
-    (goal, status) <- mayBeSolved ctxt doCyclic syss
+annotateGoals :: Bool -> System -> [AnnotatedGoal]
+annotateGoals doCyclic sys = do
+    (goal, status) <- mayBeSolved doCyclic sys
     let useful = case goal of
           (Cut _) -> Useful
           _ | get gsLoopBreaker status -> LoopBreaker
@@ -247,6 +232,7 @@ solveGoal goal = do
       SubtermG st   -> solveSubterm st
       Weaken el     -> weaken el >> return ""
       Cut el        -> cut el
+      SearchBacklink -> error "cannot solve SearchBacklink"
 
 -- The following functions are internal to 'solveGoal'. Use them with great
 -- care.

@@ -14,7 +14,7 @@
 -- "Theory.Constraint.Solver".
 module Theory.Constraint.Solver.Contradictions (
     substCreatesNonNormalTerms
-  , contradictions
+  , simpleContradictions
   , contradictorySystem
   ) where
 
@@ -39,7 +39,6 @@ import           Extension.Prelude
 
 import           Theory.Constraint.System
 import           Theory.Constraint.System.Results
-import           Theory.Constraint.System.Inclusion (canCloseCycle)
 import           Theory.Model
 import           Theory.Tools.IntruderRules
 
@@ -54,14 +53,14 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 
 -- | 'True' if the constraint system is contradictory.
 contradictorySystem :: ProofContext -> NonEmpty System -> Bool
-contradictorySystem ctxt = not . null . contradictions ctxt
+contradictorySystem ctxt = not . null . simpleContradictions ctxt
 
 -- | All CR-rules reducing a constraint system to *⟂* represented as a list of
 -- trivial contradictions. Note that some constraint systems are also removed
 -- because they have no unifier. This is part of unification. Note also that
 -- *S_{¬,\@}* is handled as part of *S_∀*.
-contradictions :: ProofContext -> NonEmpty System -> [Contradiction]
-contradictions ctxt syss@(sys:|_) = F.asum
+simpleContradictions :: ProofContext -> NonEmpty System -> [Contradiction]
+simpleContradictions ctxt (sys:|_) = F.asum
     -- CR-rule **
     [ guard (D.cyclic $ rawLessRel sys)             $> CyclicTimePoints
     -- CR-rule *S_Subterm-Chain-Fail*
@@ -82,8 +81,6 @@ contradictions ctxt syss@(sys:|_) = F.asum
     , guard (eqsIsFalse $ L.get sEqStore sys)       $> IncompatibleEqs
     -- CR-rules *S_⟂*, *S_{¬,last,1}*, *S_{¬,≐}*, *S_{¬,≈}*
     , guard (S.member gfalse $ L.get sFormulas sys) $> FormulasFalse
-    -- TODO: This can slow down proving drastically
-    , maybe [] ((:[]) . Cyclic) $ guard (doCyclicInduction ctxt) >> canCloseCycle ctxt syss
     ]
     ++
     -- This rule is not yet documented. It removes constraint systems that
@@ -94,7 +91,6 @@ contradictions ctxt syss@(sys:|_) = F.asum
     ++
     -- TODO: Document corresponding constraint reduction rule.
     (NodeAfterLast <$> nodesAfterLast sys)
-    -- TODO: Move cyclic contradictions here (prioritize all simple ones)
   where
     sig  = L.get pcSignature ctxt
     msig = mhMaudeSig . L.get pcMaudeHandle $ ctxt

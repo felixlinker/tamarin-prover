@@ -188,6 +188,7 @@ data Goal =
        -- ^ A case split over a disjunction.
      | SubtermG (LNTerm, LNTerm)
        -- ^ A split of a Subterm which is in SubtermStore -> _subterms
+     | SearchBacklink
      | Weaken WeakenEl
      | Cut UpTo
      deriving( Eq, Ord, Show, Generic, NFData, Binary )
@@ -265,6 +266,7 @@ instance HasFrees Goal where
         SubtermG p    -> foldFrees f p
         Weaken el     -> foldFrees f el
         Cut phis      -> foldFrees f phis
+        SearchBacklink -> mempty
 
     foldFreesOcc  f c goal = case goal of
         ActionG i fa -> foldFreesOcc f ("ActionG":c) (i, fa)
@@ -280,6 +282,7 @@ instance HasFrees Goal where
         SubtermG p    -> SubtermG <$> mapFrees f p
         Weaken el     -> Weaken <$> mapFrees f el
         Cut upTo      -> Cut <$> mapFrees f upTo
+        SearchBacklink -> pure SearchBacklink
 
 instance Apply LNSubst Goal where
     apply subst goal = case goal of
@@ -291,6 +294,7 @@ instance Apply LNSubst Goal where
         SubtermG p    -> SubtermG (apply subst p)
         Weaken el     -> Weaken   (apply subst el)
         Cut phis      -> Cut      (apply subst phis)
+        SearchBacklink -> SearchBacklink
 
 
 ------------------------------------------------------------------------------
@@ -357,3 +361,4 @@ prettyGoal (Weaken (WeakenGoal g)) = weaken "goal" $ prettyGoal g
 prettyGoal (Weaken (WeakenEdge e)) = weaken "edge" $ prettyEdge e
 prettyGoal (Weaken (WeakenFormula f)) = weaken "formula" $ prettyGuarded f
 prettyGoal (Weaken WeakenCyclic) = keyword_ "minimize for cyclic proofs"
+prettyGoal SearchBacklink = keyword_ "search for cycle"

@@ -76,8 +76,8 @@ import Utils.Misc (peak)
 import Theory.Constraint.System.ID (subCaseIDs)
 import Theory.Constraint.System.Results
 import Data.List.NonEmpty (NonEmpty((:|)), (<|))
-import qualified Data.List.NonEmpty as NE
 import Data.Bool (bool)
+import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
 
 
 
@@ -253,6 +253,7 @@ checkAndExecProofMethod ctxt method syss@(sys:|_) = do
       Induction -> canApplyInduction
       SolveGoal (Cut _) -> Just ()
       SolveGoal (Weaken _) -> Just ()
+      SolveGoal SearchBacklink -> guard (doCyclicInduction ctxt)  -- TODO: implement more heuristics here
       SolveGoal goal -> guard (goal `M.member` L.get sGoals sys)
       Simplify -> Just ()
       Sorry _ -> Just ()
@@ -287,6 +288,7 @@ execProofMethod ctxt method syss@(sys:|_) =
           -- cannot be equal to the original one so there's nothing to check.
           _ -> return cases
       Induction             -> process . induction <$> getInductionCases sys
+      SolveGoal SearchBacklink -> searchBacklink
       SolveGoal goal        -> return $ process $ solve goal
   where
     checkFinished :: System -> (System, Maybe (Result Contradiction))
@@ -328,6 +330,16 @@ execProofMethod ctxt method syss@(sys:|_) =
       (caseName, caseFormula) <- disjunctionOfList [("empty_trace", baseCase), ("non_empty_trace", stepCase)]
       L.setM sFormulas (S.singleton caseFormula)
       return caseName
+
+    searchBacklink :: Maybe ProofMethodResult
+    searchBacklink = cycleFound <|> def
+      where
+        def = Just $ M.singleton "" (sys, Nothing)
+        cycleFound = do
+          (PartialCyclicProof upTo bl) <- getCycleRenamingOnPath ctxt syss
+          return $ if S.null upTo
+            then M.singleton "" (sys, Just (Contradictory (Just (Cyclic bl))))
+            else process ("" <$ insertGoal (Cut upTo) False)
 
     distinguish n =
         [ (\(x,y) -> (if null x then show i else x ++ "_case_" ++ pad (show i), y))
@@ -504,7 +516,7 @@ isFinished ctxt syss@(sys:|_)
   | isSolved sys && (not stFinished || weakened) = Just Unfinishable
   | otherwise = Nothing
   where
-    cs = contradictions ctxt syss
+    cs = simpleContradictions ctxt syss
     stFinished = finishedSubterms ctxt sys
     weakened = isJust (L.get sWeakenedFrom sys)
 
@@ -514,11 +526,11 @@ isFinished ctxt syss@(sys:|_)
 rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> NonEmpty System
                  -> [(ProofMethod, String)]
 rankProofMethods ranking tactics ctxt syss@(sys:|_) =
-  let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals ctxt syss)
-      initialMethods gs = case L.get pcUseInduction ctxt of
-        UseInduction  -> induction : simplify : gs
-        _             -> simplify : induction : gs
-      proofMethods = bool (maybe id (:) trySimplify) initialMethods (isInitialSystem sys) goals
+  let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals (doCyclicInduction ctxt) sys)
+      initialMethods = case L.get pcUseInduction ctxt of
+        UseInduction  -> [induction, simplify]
+        _             -> [simplify, induction]
+      proofMethods = if isInitialSystem sys then initialMethods else maybe goals (:goals) trySimplify
       stoppingMethod = Sorry (Just "Oracle ranked no goals") <$ instr
   in maybe proofMethods ((:[]) . (,"")) stoppingMethod
   where

@@ -179,7 +179,7 @@ solveAllSafeGoals ths' openChainsLimit =
         simplifySystem
         ctxt <- ask
         contradictoryIf =<< gets (contradictorySystem ctxt . NE.singleton)
-        goals  <- gets (annotateGoalsSimple ctxt)
+        goals  <- gets (annotateGoals False)
         chains <- gets unsolvedChains
         -- Filter out chain goals where the term in the conclusion is identical to one we just solved,
         -- as this indicates our chain can loop
