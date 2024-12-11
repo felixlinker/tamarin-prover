@@ -219,10 +219,10 @@ type Mapping = (RNode, RNode)
 allLoopMappings :: [LoopInstance RNode] -> [LoopInstance RNode] -> [([Mapping], PartialRenaming)]
 allLoopMappings [] _ = []
 allLoopMappings _ [] = []
-allLoopMappings lisSml lisLrg =
+allLoopMappings (groupByNode start -> lisSml) (groupByNode start -> lisLrg) =
     map (first fst)
   $ filter (didProgress . fst)
-  $ allMappingsGrouped (~>) couldProgress (const True) (Pure idRenaming) (groupByNode start lisSml) (groupByNode start lisLrg)
+  $ allMappingsGrouped (~>) couldProgress (const True) (Pure idRenaming) lisSml lisLrg
   where
     leftShorter :: NE.NonEmpty a -> NE.NonEmpty a -> Bool
     leftShorter (NE.toList -> l) (NE.toList -> r) = rec l r
