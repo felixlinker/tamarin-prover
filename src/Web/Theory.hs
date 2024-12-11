@@ -625,7 +625,7 @@ subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf syss@(se
       , nameSuffix
       ]
 
-    prettyPM i (m, (_cases, expl)) =
+    prettyPM i (m, expl) =
       linkToPath renderUrl
         (TheoryPathMR tidx (TheoryMethod lemma proofPath (Left i)))
         ["proof-method"] (prettyProofMethod m)
@@ -734,7 +734,7 @@ subProofDiffSnippet renderUrl tidx ti s lemma proofPath ctxt prf syss@(se:|_) = 
       , nameSuffix
       ]
 
-    prettyPM (i, (m, (_cases, expl))) =
+    prettyPM (i, (m, expl)) =
       linkToPath renderUrl
         (TheoryPathDiffMR tidx (DiffTheoryMethod s lemma proofPath i))
         ["proof-method"] (prettyProofMethod m)

@@ -25,6 +25,7 @@ module Theory.Constraint.Solver.ProofMethod (
 
   -- ** Heuristics
   , rankProofMethods
+  , execRankedProofMethods
   , rankDiffProofMethods
 
   , roundRobinHeuristic
@@ -40,6 +41,7 @@ module Theory.Constraint.Solver.ProofMethod (
 import           GHC.Generics                              (Generic)
 import           Data.Binary
 import           Data.Function                             (on)
+import           Data.Functor (($>))
 import qualified Data.Label                                as L
 import           Data.List                                 (partition,groupBy,sortBy,isPrefixOf,findIndex,intercalate, uncons)
 import qualified Data.List.NonEmpty as NE
@@ -510,20 +512,21 @@ isFinished ctxt syss@(sys:|_)
 -- 'ProofMethod's and their corresponding results in this 'ProofContext' and
 -- for this 'System'.
 rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> NonEmpty System
-                 -> [(ProofMethod, (ProofMethodResult, String))]
+                 -> [(ProofMethod, String)]
 rankProofMethods ranking tactics ctxt syss@(sys:|_) =
   let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals ctxt syss)
-      insertInduction (simplify NE.:| gs) = case L.get pcUseInduction ctxt of
-        UseInduction -> (Induction, "") : simplify : gs
-        _ -> simplify : (Induction, "") : gs
-      proofMethods = bool NE.toList insertInduction (isInitialSystem sys) ((Simplify, "") NE.:| goals)
+      initialMethods gs = case L.get pcUseInduction ctxt of
+        UseInduction  -> induction : simplify : gs
+        _             -> simplify : induction : gs
+      proofMethods = bool (maybe id (:) trySimplify) initialMethods (isInitialSystem sys) goals
       stoppingMethod = Sorry (Just "Oracle ranked no goals") <$ instr
-  in execMethods $ maybe proofMethods ((:[]) . (,"")) stoppingMethod
+  in maybe proofMethods ((:[]) . (,"")) stoppingMethod
   where
-    execMethods = mapMaybe execMethod
-    execMethod (m, expl) = do
-      cases <- execProofMethod ctxt m syss
-      return (m, (cases, expl))
+    induction = (Induction, "")
+    simplify = (Simplify, "")
+
+    -- Try applying simplify to see whether it's redundant
+    trySimplify = execProofMethod ctxt Simplify syss $> simplify
 
     sourceRule goal = case goalRule sys goal of
         Just ru -> " (from rule " ++ getRuleName ru ++ ")"
@@ -540,6 +543,11 @@ rankProofMethods ranking tactics ctxt syss@(sys:|_) =
             CurrentlyDeducible    -> " (currently deducible)"
             Dangerous             -> " (solving might yield UNFINISHABLE)"
       )
+
+execRankedProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> NonEmpty System -> [(ProofMethod, (ProofMethodResult, String))]
+execRankedProofMethods ranking tactics ctxt syss = mapMaybe go (rankProofMethods ranking tactics ctxt syss)
+  where
+    go (pm, expl) = (pm,) . (,expl) <$> execProofMethod ctxt pm syss
 
 -- | Use a 'GoalRanking' to generate the ranked, list of possible
 -- 'ProofMethod's and their corresponding results in this 'DiffProofContext' and

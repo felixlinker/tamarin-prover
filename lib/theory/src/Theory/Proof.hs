@@ -1065,7 +1065,7 @@ proveSystemDFS heuristic tactics ctxt = prove
         defaultMethod = Sorry (Just "neither result nor proof methods")
 
         appliedMethod :: Maybe (ProofMethod, ProofMethodResult)
-        appliedMethod = fmap fst <$> peak (rankProofMethods (useHeuristic heuristic depth) tactics ctxt syss)
+        appliedMethod = fmap fst <$> peak (execRankedProofMethods (useHeuristic heuristic depth) tactics ctxt syss)
 
 -- | @proveSystemDFS rules se@ explores all solutions of the initial
 -- constraint system using a depth-first-search strategy to resolve the
