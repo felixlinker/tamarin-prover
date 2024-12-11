@@ -58,6 +58,7 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
   -- relation.
   guard (all (uncurry (isSmaller lessRelLarger) . apply r) lessAtomsSmaller)
   guard $ runReader (eqStoreInlcusionModR r (L.get sEqStore smaller) (L.get sEqStore larger)) mh
+  guard (apply r (L.get sSubtermStore smaller) `subtermStoreInclusion` L.get sSubtermStore larger)
 
   let varsInSmaller =
             S.fromList (map fst lessAtomsSmaller) <> S.fromList (map snd lessAtomsSmaller)
