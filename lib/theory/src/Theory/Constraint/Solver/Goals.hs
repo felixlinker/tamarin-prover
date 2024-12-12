@@ -55,6 +55,7 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
+import Control.Monad.RWS (MonadReader(ask))
 
 ------------------------------------------------------------------------------
 -- Extracting Goals

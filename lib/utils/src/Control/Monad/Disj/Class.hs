@@ -16,6 +16,7 @@ import qualified Control.Monad.State.Lazy   as L
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Reader
 import Control.Monad.Trans.PreciseFresh
+import Control.Monad.RWS (RWST (RWST, runRWST))
 
 
 ------------------------------------------------------------------------------
@@ -41,6 +42,10 @@ instance MonadDisj m => MonadDisj (L.StateT s m) where
 instance MonadDisj m => MonadDisj (S.StateT s m) where
     contradictoryBecause = lift . contradictoryBecause
     disjunction m1 m2 = S.StateT $ \s -> S.runStateT m1 s `disjunction` S.runStateT m2 s
+
+instance (Monoid w, MonadDisj m) => MonadDisj (RWST r w s m) where
+    contradictoryBecause = lift . contradictoryBecause
+    disjunction m1 m2 = RWST $ \r s -> runRWST m1 r s `disjunction` runRWST m2 r s
 
 instance MonadDisj m => MonadDisj (FreshT m) where
     contradictoryBecause = lift . contradictoryBecause

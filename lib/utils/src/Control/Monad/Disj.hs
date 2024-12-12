@@ -18,11 +18,6 @@ module Control.Monad.Disj (
   , disjunctions
   , disjunctionOfList
 
-  -- * The DisjT monad transformer
-  , DisjT(..)
-  , disjT
-  , runDisjT
-
   -- * Convencience exports
   , module Control.Monad
   , module Control.Monad.Fix
@@ -35,7 +30,6 @@ import Control.Monad.Fix
 import Control.Monad.Trans
 
 import Control.Monad.Disj.Class
-import Control.Monad.Trans.Disj
 
 -- | @contradiction reason@ denotes the logical false, but also 
 -- provides the @reason@ as meta-information.

@@ -97,6 +97,5 @@ library
     other-modules:
         Control.Monad.Fresh.Class
 
-        Control.Monad.Trans.Disj
         Control.Monad.Disj.Class
 

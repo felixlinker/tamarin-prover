@@ -104,6 +104,7 @@ import           Theory.Constraint.Solver.Contradictions
 import           Theory.Constraint.System
 import           Theory.Model
 import Data.Maybe (mapMaybe)
+import Control.Monad.RWS (RWST (runRWST), execRWST)
 
 ------------------------------------------------------------------------------
 -- The constraint reduction monad
@@ -112,7 +113,7 @@ import Data.Maybe (mapMaybe)
 -- | A constraint reduction step. Its state is the current constraint system,
 -- it can generate fresh names, split over cases, and access the proof
 -- context.
-type Reduction = StateT System (FreshT (DisjT (Reader ProofContext)))
+type Reduction = RWST ProofContext () System (FreshT Disj)
 
 -- Executing reductions
 -----------------------
@@ -125,15 +126,13 @@ type Reduction = StateT System (FreshT (DisjT (Reader ProofContext)))
 -- this only applies to weakening.
 runReduction :: Reduction a -> ProofContext -> System -> FreshState
              -> Disj ((a, System), FreshState)
-runReduction m ctxt se fs =
-    Disj $ (`runReader` ctxt) $ runDisjT $ (`runFreshT` fs) $ runStateT m se
+runReduction m ctxt se fs = (`runFreshT` fs) $ (\(a, b, _) -> (a, b)) <$> runRWST m ctxt se
 
 -- | Run a constraint reduction returning only the updated constraint systems
 -- and the new freshness states.
 execReduction :: Reduction a -> ProofContext -> System -> FreshState
               -> Disj (System, FreshState)
-execReduction m ctxt se fs =
-    Disj $ (`runReader` ctxt) . runDisjT . (`runFreshT` fs) $ execStateT m se
+execReduction m ctxt se fs = (`runFreshT` fs) $ fst <$> execRWST m ctxt se
 
 -- Change management
 --------------------
