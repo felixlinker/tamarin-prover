@@ -121,6 +121,7 @@ mustBeSolved se = filter (uncurry p) $ M.toList $ get sGoals se
     goalP :: Goal -> Bool
     goalP (Cut _) = False
     goalP (Weaken _) = False
+    goalP SearchBacklink = False
     goalP g = not $ isRedundant se g
 
 isSolved :: System -> Bool
