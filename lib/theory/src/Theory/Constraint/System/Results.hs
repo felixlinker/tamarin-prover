@@ -40,6 +40,11 @@ data Contradiction =
     -- ^ Cyclic proof
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 
+-- |  Needed for definition of type reduction. Combine contradictions by simply
+--    picking an arbitrary one.
+instance Semigroup Contradiction where
+  c1 <> _ = c1
+
 instance HasFrees Contradiction where
   foldFrees f (NonInjectiveFactInstance ns) = foldFrees f ns
   foldFrees f (SuperfluousLearn t n) = foldFrees f t <> f n

@@ -17,7 +17,8 @@
 module Theory.Constraint.Solver.Reduction (
   -- * The constraint 'Reduction' monad
     Reduction
-  , execReduction
+  , ReductionResult(..)
+  , mapSys
   , runReduction
 
   -- ** Change management
@@ -101,10 +102,12 @@ import           Extension.Prelude
 import           Logic.Connectives
 
 import           Theory.Constraint.Solver.Contradictions
+import           Theory.Constraint.System.Results (Result, Contradiction)
 import           Theory.Constraint.System
 import           Theory.Model
 import Data.Maybe (mapMaybe)
-import Control.Monad.RWS (RWST (runRWST), execRWST)
+import Control.Monad.RWS (RWST (runRWST))
+import qualified Data.List.NonEmpty as NE
 
 ------------------------------------------------------------------------------
 -- The constraint reduction monad
@@ -113,7 +116,21 @@ import Control.Monad.RWS (RWST (runRWST), execRWST)
 -- | A constraint reduction step. Its state is the current constraint system,
 -- it can generate fresh names, split over cases, and access the proof
 -- context.
-type Reduction = RWST ProofContext () System (FreshT Disj)
+type Reduction = RWST ProofContext (Maybe (Result Contradiction)) System (FreshT Disj)
+
+data ReductionResult a = ReductionResult
+  { reducedValue :: a
+  , reducedSys :: System
+  , reducedResult :: Maybe (Result Contradiction) }
+
+instance Functor ReductionResult where
+  fmap f (ReductionResult a s r) = ReductionResult (f a) s r
+
+mapSys :: (System -> System) -> ReductionResult a -> ReductionResult a
+mapSys f r = r { reducedSys = f (reducedSys r) }
+
+fromTriple :: (a, System, Maybe (Result Contradiction)) -> ReductionResult a
+fromTriple (a, s, mr) = ReductionResult a s mr
 
 -- Executing reductions
 -----------------------
@@ -125,14 +142,8 @@ type Reduction = RWST ProofContext () System (FreshT Disj)
 -- solutions, it must set the value @sWeakenedFrom@ respectively. Currently,
 -- this only applies to weakening.
 runReduction :: Reduction a -> ProofContext -> System -> FreshState
-             -> Disj ((a, System), FreshState)
-runReduction m ctxt se fs = (`runFreshT` fs) $ (\(a, b, _) -> (a, b)) <$> runRWST m ctxt se
-
--- | Run a constraint reduction returning only the updated constraint systems
--- and the new freshness states.
-execReduction :: Reduction a -> ProofContext -> System -> FreshState
-              -> Disj (System, FreshState)
-execReduction m ctxt se fs = (`runFreshT` fs) $ fst <$> execRWST m ctxt se
+             -> Disj (ReductionResult a, FreshState)
+runReduction m ctxt se fs = (`runFreshT` fs) $ fromTriple <$> runRWST m ctxt se
 
 -- Change management
 --------------------
@@ -546,7 +557,7 @@ markGoalAsSolved how goal =
                          modM sSolvedFormulas (S.insert $ GDisj disj) >>
                          updateStatus
       SubtermG _      -> updateStatus
-      SearchBacklink  -> return ()
+      SearchBacklink  -> delete
       Weaken _        -> delete
       Cut _           -> delete
 

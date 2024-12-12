@@ -76,7 +76,6 @@ import Utils.Misc (peak)
 import Theory.Constraint.System.ID (subCaseIDs)
 import Theory.Constraint.System.Results
 import Data.List.NonEmpty (NonEmpty((:|)), (<|))
-import Data.Bool (bool)
 import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
 
 
@@ -253,7 +252,7 @@ checkAndExecProofMethod ctxt method syss@(sys:|_) = do
       Induction -> canApplyInduction
       SolveGoal (Cut _) -> Just ()
       SolveGoal (Weaken _) -> Just ()
-      SolveGoal SearchBacklink -> guard (doCyclicInduction ctxt)  -- TODO: implement more heuristics here
+      SolveGoal SearchBacklink -> guard (doCyclicInduction ctxt)
       SolveGoal goal -> guard (goal `M.member` L.get sGoals sys)
       Simplify -> Just ()
       Sorry _ -> Just ()
@@ -275,7 +274,7 @@ checkAndExecProofMethod ctxt method syss@(sys:|_) = do
 -- and all variable indices reset.
 execProofMethod :: ProofContext
                 -> ProofMethod -> NonEmpty System -> Maybe ProofMethodResult
-execProofMethod ctxt method syss@(sys:|_) =
+execProofMethod ctxt method syss@(sys:|syssTail) =
     case method of
       Sorry _               -> return M.empty
       Simplify              ->
@@ -288,33 +287,33 @@ execProofMethod ctxt method syss@(sys:|_) =
           -- cannot be equal to the original one so there's nothing to check.
           _ -> return cases
       Induction             -> process . induction <$> getInductionCases sys
-      SolveGoal SearchBacklink -> searchBacklink
       SolveGoal goal        -> return $ process $ solve goal
   where
-    checkFinished :: System -> (System, Maybe (Result Contradiction))
-    checkFinished s = (s, isFinished ctxt (s <| syss))
+    -- Convert a reduction result into a key-value pair for the resulting map of
+    -- cases and update whether the system is finished.
+    toKeyValue :: ReductionResult a -> (a, (System, Maybe (Result Contradiction)))
+    toKeyValue (ReductionResult val s r) = (val, (s, r <|> isFinished ctxt (s <| syss)))
 
     process :: Reduction CaseName -> ProofMethodResult
     process m =
-      let cases =   removeRedundantCases ctxt [] snd
+      let reduction = m <* simplifySystem <* insertCyclicGoals
+          cases =   removeRedundantCases ctxt [] reducedSys
                   . map (uncurry cleanup)
-                  . getDisj $ runReduction (m <* simplifySystem) ctxt sys (L.get sFreshState sys)
+                  . getDisj $ runReduction reduction ctxt sys (L.get sFreshState sys)
       in  M.fromListWith (error "case names not unique")
-            $ map (fmap checkFinished)
-            $ uniqueListBy (comparing fst) id distinguish
-            $ zipWith (\r f -> L.modify sId f <$> r) cases (subCaseIDs $ length cases)
+            $ map toKeyValue
+            $ uniqueListBy (comparing reducedValue) id distinguish
+            $ zipWith (\r f -> mapSys (L.modify sId f) r) cases (subCaseIDs $ length cases)
 
-    cleanup :: (a, System) -> FreshState -> (a, System)
-    cleanup s st =
-        L.set sSubst emptySubst
-      . L.set sFreshState st <$> s
+    cleanup :: ReductionResult a -> FreshState -> ReductionResult a
+    cleanup res st = mapSys (L.set sSubst emptySubst . L.set sFreshState st) res
 
     -- solve the given goal
     -- PRE: Goal must be valid in this system.
     solve :: Goal -> Reduction CaseName
     solve goal =
       let ths = L.get pcSources ctxt
-      in maybe  (solveGoal goal)
+      in maybe  (solveGoal syssTail goal)
                 (intercalate "_" <$>)
                 (solveWithSource ctxt ths goal)
 
@@ -331,18 +330,9 @@ execProofMethod ctxt method syss@(sys:|_) =
       L.setM sFormulas (S.singleton caseFormula)
       return caseName
 
-    searchBacklink :: Maybe ProofMethodResult
-    searchBacklink = cycleFound <|> def
-      where
-        def = Just $ M.singleton "" (sys, Nothing)
-        cycleFound = do
-          (PartialCyclicProof upTo bl) <- getCycleRenamingOnPath ctxt syss
-          return $ if S.null upTo
-            then M.singleton "" (sys, Just (Contradictory (Just (Cyclic bl))))
-            else process ("" <$ insertGoal (Cut upTo) False)
-
+    distinguish :: Int -> [ReductionResult CaseName -> ReductionResult CaseName]
     distinguish n =
-        [ (\(x,y) -> (if null x then show i else x ++ "_case_" ++ pad (show i), y))
+        [ fmap (\c -> if null c then show i else c ++ "_case_" ++ pad (show i))
         | i <- [(1::Int)..] ]
       where
         l      = length (show n)
@@ -526,7 +516,7 @@ isFinished ctxt syss@(sys:|_)
 rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofContext -> NonEmpty System
                  -> [(ProofMethod, String)]
 rankProofMethods ranking tactics ctxt syss@(sys:|_) =
-  let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals (doCyclicInduction ctxt) sys)
+  let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals sys)
       initialMethods = case L.get pcUseInduction ctxt of
         UseInduction  -> catMaybes [induction, trySimplify]
         _             -> catMaybes [trySimplify, induction]

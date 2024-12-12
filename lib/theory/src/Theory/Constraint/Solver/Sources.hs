@@ -102,13 +102,13 @@ initialSource
 initialSource ctxt restrictions goal =
     Source goal cases
   where
-    polish ((name, se), _) = ([name], se)
+    polish (ReductionResult name se _, _) = ([name], se)
     se0   = insertLemmas restrictions $ emptySystem RawSource $ get pcDiffContext ctxt
     -- TODO: I might need to come up with the FreshState for se0 differently
     cases = polish <$> runReduction instantiate ctxt se0 (avoid (goal, se0))
     instantiate = do
         insertGoal goal False
-        solveGoal goal
+        solveGoal [] goal
 
 -- | Refine a source by applying the additional proof step.
 refineSource
@@ -129,7 +129,7 @@ refineSource ctxt proofStep th =
     fs         = avoid th
     refinement = do
         (names, se)        <- get cdCases th
-        ((x, names'), se') <- fst <$> runReduction proofStep ctxt se fs
+        ReductionResult (x, names') se' _ <- fst <$> runReduction proofStep ctxt se fs
         return (x, (combine names names', se'))
 
     -- Combine names such that the coerce rule is blended out.
@@ -165,6 +165,7 @@ solveAllSafeGoals ths' openChainsLimit =
         SubtermG _    -> doSplit
         Weaken _ -> False
         Cut _ -> False
+        SearchBacklink -> False
 
     usefulGoal (_, (_, Useful)) = True
     usefulGoal _                = False
@@ -179,7 +180,7 @@ solveAllSafeGoals ths' openChainsLimit =
         simplifySystem
         ctxt <- ask
         contradictoryIf =<< gets (contradictorySystem ctxt . NE.singleton)
-        goals  <- gets (annotateGoals False)
+        goals  <- gets annotateGoals
         chains <- gets unsolvedChains
         -- Filter out chain goals where the term in the conclusion is identical to one we just solved,
         -- as this indicates our chain can loop
@@ -203,9 +204,9 @@ solveAllSafeGoals ths' openChainsLimit =
             usefulGoals     = fst <$> filter usefulGoal goals
             nextStep :: Maybe (Reduction [String], Maybe Source)
             nextStep     =
-                ((\x -> (fmap return (solveGoal x), Nothing)) <$> headMay (kdPremGoals)) <|>
-                ((\x -> (fmap return (solveGoal x), Nothing)) <$> headMay (safeGoals)) <|>
-                (asum $ map (solveWithSourceAndReturn ctxt ths) usefulGoals)
+                ((\x -> (fmap return (solveGoal [] x), Nothing)) <$> headMay kdPremGoals) <|>
+                ((\x -> (fmap return (solveGoal [] x), Nothing)) <$> headMay safeGoals) <|>
+                asum (map (solveWithSourceAndReturn ctxt ths) usefulGoals)
 
         -- Update the last chain conclusion term if next step is a 'safe' chain goal (kdPremGoals is empty)
         lastChainTerm' <- case (kdPremGoals, safeGoals) of

@@ -1707,6 +1707,7 @@ allOpenGoalsAreSimpleFacts ctxt sys = M.foldlWithKey goalIsSimpleFact True (L.ge
     goalIsSimpleFact ret (SubtermG _)             (GoalStatus solved _ _) = ret && solved
     goalIsSimpleFact ret (Cut _)                  _                       = ret
     goalIsSimpleFact ret (Weaken _)               _                       = ret
+    goalIsSimpleFact ret SearchBacklink           _                       = ret
 
 -- | Returns true if the current system is a diff system
 isDiffSystem :: System -> Bool

@@ -20,6 +20,7 @@ module Theory.Constraint.Solver.Goals
   , annotateGoals
   , solveGoal
   , plainOpenGoals
+  , insertCyclicGoals
   ) where
 
 -- import           Debug.Trace
@@ -37,6 +38,7 @@ import           Control.Basics
 import           Control.Category
 import           Control.Monad.Disj
 import           Control.Monad.State                     (gets)
+import qualified Control.Monad.State as St
 
 import           Extension.Data.Label                    as L
 
@@ -55,7 +57,8 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
-import Control.Monad.RWS (MonadReader(ask))
+import Control.Monad.RWS (MonadReader(ask), MonadWriter (tell))
+import Theory.Constraint.System.Results (Result(Contradictory), Contradiction (Cyclic))
 
 ------------------------------------------------------------------------------
 -- Extracting Goals
@@ -120,38 +123,14 @@ mustBeSolved se = filter (uncurry p) $ M.toList $ get sGoals se
     goalP (Weaken _) = False
     goalP g = not $ isRedundant se g
 
--- NOTE: This function establishes an invariant for annotateGoalsSimple. Make
--- sure to read the comments on annotateGoalsSimple before you edit this
--- function.
-mayBeSolved :: Bool -> System -> [(Goal, GoalStatus)]
-mayBeSolved doCyclic se = filter (uncurry p) (M.toList (get sGoals se))
-    ++ (guard doCyclic >> searchBl : maybeToList cyclicMinimization)
-  where
-    p :: Goal -> GoalStatus -> Bool
-    p g gs = not (isRedundant se g) && not (get gsSolved gs)
-
-    hasOutgoingEdge :: LoopInstance NodeId -> Bool
-    hasOutgoingEdge li = any ((end li ==) . fst . eSrc) (L.get sEdges se)
-
-    searchBl = (SearchBacklink, GoalStatus False Contextual True)
-
-    cyclicMinimization = do
-      let loops = L.get sLoops se
-      let rs = L.get sNodes se
-      guard (any canMinimizeLoop loops || any isISendRule rs)
-      return (Weaken WeakenCyclic, GoalStatus False Contextual True)
-      where
-        canMinimizeLoop :: LoopInstance NodeId -> Bool
-        canMinimizeLoop l = isLongLoop l || hasOutgoingEdge l
-
 isSolved :: System -> Bool
 isSolved sys = not (isInitialSystem sys) && null (mustBeSolved sys)
 
 -- | The list of goals that can be solved. Each goal is annotated with its age
 --   and an indicator for its usefulness.
-annotateGoals :: Bool -> System -> [AnnotatedGoal]
-annotateGoals doCyclic sys = do
-    (goal, status) <- mayBeSolved doCyclic sys
+annotateGoals :: System -> [AnnotatedGoal]
+annotateGoals sys = do
+    (goal, status) <- filter (uncurry mayBeSolved) (M.toList (get sGoals sys))
     let useful = case goal of
           (Cut _) -> Useful
           _ | get gsLoopBreaker status -> LoopBreaker
@@ -165,6 +144,9 @@ annotateGoals doCyclic sys = do
 
     return (goal, (get gsNr status, useful))
   where
+    mayBeSolved :: Goal -> GoalStatus -> Bool
+    mayBeSolved g gs = not (isRedundant sys g) && not (get gsSolved gs)
+
     existingDeps = rawLessRel sys
     hasKUGuards  =
         any ((KUFact `elem`) . guardFactTags) $ S.toList $ get sFormulas sys
@@ -218,8 +200,8 @@ plainOpenGoals = filter (not . get gsSolved . snd) . M.toList . L.get sGoals
 -- | @solveGoal rules goal@ enumerates all possible cases of how this goal
 -- could be solved in the context of the given @rules@. For each case, a
 -- sensible case-name is returned.
-solveGoal :: Goal -> Reduction String
-solveGoal goal = do
+solveGoal :: [System] -> Goal -> Reduction String
+solveGoal syssToRoot goal = do
     -- mark before solving, as representation might change due to unification
     markGoalAsSolved "directly" goal
     rules <- askM pcRules
@@ -232,8 +214,8 @@ solveGoal goal = do
       DisjG disj    -> solveDisjunction disj
       SubtermG st   -> solveSubterm st
       Weaken el     -> weaken el >> return ""
-      Cut el        -> cut el
-      SearchBacklink -> error "cannot solve SearchBacklink"
+      Cut el        -> cut syssToRoot el
+      SearchBacklink -> searchBacklink syssToRoot >> return ""
 
 -- The following functions are internal to 'solveGoal'. Use them with great
 -- care.
@@ -592,13 +574,63 @@ weaken el = do
     go (WeakenEdge e) = weakenEdge Preserve e
     go (WeakenNode i) = weakenNode Preserve i
 
-cut :: UpTo -> Reduction String
-cut phis =
-  let phisL = S.toList phis
-  in do
-    (caseName, caseFormulas) <- disjunctionOfList (("cut", phisL):zipWith neg [(0 :: Int)..] phisL)
-    L.modM sFormulas (\s -> foldr S.insert s caseFormulas)
-    return caseName
+cut :: [System] -> UpTo -> Reduction String
+cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith negCase [(0 :: Int)..] phis)
   where
-    neg :: Int -> LNGuarded -> (String, [LNGuarded])
-    neg i phi = ("negate_" ++ show i, [gnot phi])
+    insertFormulas :: [LNGuarded] -> Reduction ()
+    insertFormulas formulas = L.modM sFormulas (\s -> foldr S.insert s formulas)
+
+    cutCase :: Reduction String
+    cutCase = do
+      insertFormulas phis
+      searchBacklink syssToRoot
+      return "cut"
+
+    negCase :: Int -> LNGuarded -> Reduction String
+    negCase i phi = do
+      insertFormulas [gnot phi]
+      return $ "negate_" ++ show i
+
+searchBacklink :: [System] -> Reduction ()
+searchBacklink syssToRoot = do
+  ctxt <- ask
+  s <- St.get
+  maybe (return ()) cycleFound (getCycleRenamingOnPath ctxt (s NE.:| syssToRoot))
+  where
+    cycleFound :: BackLinkCandidate -> Reduction ()
+    cycleFound (PartialCyclicProof upTo bl) = if S.null upTo
+      then tell (Just (Contradictory (Just (Cyclic bl))))
+      else insertGoal (Cut upTo) False
+
+insertMinimize :: Reduction ()
+insertMinimize = do
+  loops <- getM sLoops
+  es <- getM sEdges
+  rs <- getM sNodes
+  present <- M.member (Weaken WeakenCyclic) <$> getM sGoals
+  when  (not present && (any (canMinimizeLoop es) loops || any isISendRule rs))
+        (insertGoal (Weaken WeakenCyclic) False)
+  where
+    hasOutgoingEdge :: LoopInstance NodeId -> S.Set Edge -> Bool
+    hasOutgoingEdge li = any ((end li ==) . fst . eSrc)
+
+    canMinimizeLoop :: S.Set Edge -> LoopInstance NodeId -> Bool
+    canMinimizeLoop es l = isLongLoop l || hasOutgoingEdge l es
+
+insertSearchBacklink :: Reduction ()
+insertSearchBacklink = do
+  loopsExist <- not . null <$> getM sLoops
+  present <- M.member SearchBacklink <$> getM sGoals
+  cutPresent <- any isCut . M.keys <$> getM sGoals
+  when (loopsExist && not present && not cutPresent) (insertGoal SearchBacklink False)
+  where
+    isCut :: Goal -> Bool
+    isCut (Cut _) = True
+    isCut _ = False
+
+insertCyclicGoals :: Reduction ()
+insertCyclicGoals = do
+  ctxt <- ask
+  when (doCyclicInduction ctxt) $ do
+    insertMinimize
+    insertSearchBacklink

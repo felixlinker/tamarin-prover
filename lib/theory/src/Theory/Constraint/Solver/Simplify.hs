@@ -291,7 +291,7 @@ solveUniqueActions = do
            && null [ () | t <- ts, FUnion _ <- return (viewTerm2 t) ]
 
         trySolve (i, fa)
-          | isUnique fa = solveGoal (ActionG i fa) >> return Changed
+          | isUnique fa = solveGoal [] (ActionG i fa) >> return Changed
           | otherwise   = return Unchanged
 
     mconcat <$> mapM trySolve actionAtoms
