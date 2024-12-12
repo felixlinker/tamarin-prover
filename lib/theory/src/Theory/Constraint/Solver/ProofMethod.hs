@@ -528,17 +528,15 @@ rankProofMethods :: GoalRanking ProofContext -> [Tactic ProofContext] -> ProofCo
 rankProofMethods ranking tactics ctxt syss@(sys:|_) =
   let Ranking (map solveGoalMethod -> goals) instr = rankGoals ctxt ranking tactics sys (annotateGoals (doCyclicInduction ctxt) sys)
       initialMethods = case L.get pcUseInduction ctxt of
-        UseInduction  -> [induction, simplify]
-        _             -> [simplify, induction]
+        UseInduction  -> catMaybes [induction, trySimplify]
+        _             -> catMaybes [trySimplify, induction]
       proofMethods = if isInitialSystem sys then initialMethods else maybe goals (:goals) trySimplify
       stoppingMethod = Sorry (Just "Oracle ranked no goals") <$ instr
   in maybe proofMethods ((:[]) . (,"")) stoppingMethod
   where
-    induction = (Induction, "")
-    simplify = (Simplify, "")
-
+    induction = Just (Induction, "")
     -- Try applying simplify to see whether it's redundant
-    trySimplify = execProofMethod ctxt Simplify syss $> simplify
+    trySimplify = execProofMethod ctxt Simplify syss $> (Simplify, "")
 
     sourceRule goal = case goalRule sys goal of
         Just ru -> " (from rule " ++ getRuleName ru ++ ")"
