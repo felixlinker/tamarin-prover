@@ -118,9 +118,11 @@ isFirstProtoFact :: Goal -> Bool
 isFirstProtoFact (PremiseG _ fa) = isSolveFirstFact fa
 isFirstProtoFact _               = False
 
-isNotAuthOut :: Goal -> Bool
-isNotAuthOut (PremiseG _ fa) = not (isAuthOutFact fa)
-isNotAuthOut _               = False
+isNotAuthOutOrCyclic :: Goal -> Bool
+isNotAuthOutOrCyclic (PremiseG _ fa) = not (isAuthOutFact fa)
+isNotAuthOutOrCyclic SearchBacklink = True
+isNotAuthOutOrCyclic (Weaken WeakenCyclic) = True
+isNotAuthOutOrCyclic _               = False
 
 msgPremise :: Goal -> Maybe LNTerm
 msgPremise (ActionG _ fa) = do (UpK, m) <- kFactView fa; return m
@@ -169,6 +171,10 @@ isDoubleExpGoal goal = case msgPremise goal of
 isCyclicMinimization :: Goal -> Bool
 isCyclicMinimization (Weaken WeakenCyclic) = True
 isCyclicMinimization _ = False
+
+isSearchBacklink :: Goal -> Bool
+isSearchBacklink SearchBacklink = True
+isSearchBacklink _ = False
 
 -- | @sortDecisionTree xs ps@ returns a reordering of @xs@
 -- such that the sublist satisfying @ps!!0@ occurs first,
@@ -817,7 +823,7 @@ sapicRanking ctxt sys =
         , isNonLoopBreakerProtoFactGoal
         , isStandardActionGoalButNotInsertOrReceive  . fst
         , isProgressDisj . fst
-        , isNotAuthOut . fst
+        , isNotAuthOutOrCyclic . fst
         , isPrivateKnowsGoal . fst
         -- , isFreshKnowsGoal . fst
         , isSplitGoalSmall . fst
@@ -892,7 +898,7 @@ sapicPKCS11Ranking ctxt sys =
         , isInsertTemplateAction . fst
         , isNonLoopBreakerProtoFactGoal
         , isStandardActionGoalButNotInsert  . fst
-        , isNotAuthOut . fst
+        , isNotAuthOutOrCyclic . fst
         , isPrivateKnowsGoal . fst
         -- , isFreshKnowsGoal . fst
         , isSplitGoalSmall . fst
@@ -946,7 +952,7 @@ injRanking :: ProofContext
             -> System
             -> [AnnotatedGoal] -> [AnnotatedGoal]
 injRanking ctxt allowLoopBreakers sys =
-    (sortOnUsefulness . unmark . sortDecisionTree [notSolveLast] . sortDecisionTree solveFirst . goalNrRanking)
+    sortOnUsefulness . unmark . sortDecisionTree [notSolveLast] . sortDecisionTree solveFirst . goalNrRanking
   where
     oneCaseOnly = catMaybes . map getMsgOneCase . L.get pcSources $ ctxt
 
@@ -968,9 +974,9 @@ injRanking ctxt allowLoopBreakers sys =
 
     -- move the Last proto facts (L_) and large splits to the end by
     -- putting all goals that shouldn't be solved last in front
-    notSolveLast goaltuple = (isNoLargeSplitGoal $ fst goaltuple)
-                            && (isNonSolveLastGoal $ fst goaltuple)
-                            && (isNotKnowsLastNameGoal $ fst goaltuple)
+    notSolveLast goaltuple = isNoLargeSplitGoal (fst goaltuple)
+                            && isNonSolveLastGoal (fst goaltuple)
+                            && isNotKnowsLastNameGoal (fst goaltuple)
 
     solveFirst =
         [ isImmediateGoal . fst         -- Goals with the I_ prefix
@@ -985,21 +991,26 @@ injRanking ctxt allowLoopBreakers sys =
     -- Putting the goals together like this ranks them by goal number
     -- within the same priority class, so one type of goal doesn't always win
     -- (assuming the same usefulness)
-    isHighPriorityGoal goal = (isKnowsFirstNameGoal goal)
-                                || (isSolveFirstGoal goal)
-                                || (isChainGoal goal)
-                                || (isFreshKnowsGoal goal)
+    isHighPriorityGoal goal =       isKnowsFirstNameGoal goal
+                                ||  isSolveFirstGoal goal
+                                ||  isChainGoal goal
+                                ||  isFreshKnowsGoal goal
 
-    isMedPriorityGoal goaltuple = (isStandardActionGoal $ fst goaltuple)
-                                    || (isDisjGoal $ fst goaltuple)
-                                    || (isPrivateKnowsGoal $ fst goaltuple)
-                                    || (isSplitGoalSmall $ fst goaltuple)
-                                    || (isMsgOneCaseGoal $ fst goaltuple)
-                                    || (isNonLoopBreakerProtoFactGoal goaltuple)
+    isMedPriorityGoal goaltuple =       isStandardActionGoal (fst goaltuple)
+                                    ||  isDisjGoal (fst goaltuple)
+                                    ||  isPrivateKnowsGoal (fst goaltuple)
+                                    ||  isSplitGoalSmall (fst goaltuple)
+                                    ||  isMsgOneCaseGoal (fst goaltuple)
+                                    ||  isNonLoopBreakerProtoFactGoal goaltuple
 
-    isLowPriorityGoal goaltuple = (isDoubleExpGoal $ fst goaltuple)
-                                || (isSignatureGoal $ fst goaltuple)
-                                || (isProtoFactGoal goaltuple)
+    isLowPriorityGoal goaltuple =   isDoubleExpGoal (fst goaltuple)
+                                ||  isSignatureGoal (fst goaltuple)
+                                ||  isProtoFactGoal goaltuple
+                                ||  isCyclicGoal (fst goaltuple)
+
+    isCyclicGoal SearchBacklink = True
+    isCyclicGoal (Weaken WeakenCyclic) = True
+    isCyclicGoal _ = False
 
     isProtoFactGoal (PremiseG _ fa, (_, _)) = not (isKFact fa)
     isProtoFactGoal _                       = False
@@ -1088,10 +1099,9 @@ smartRanking ctxt allowPremiseGLoopBreakers sys =
         , isSolveFirstGoal . fst
         , isNonLoopBreakerProtoFactGoal
         , isStandardActionGoal . fst
-        , isNotAuthOut . fst
+        , isNotAuthOutOrCyclic . fst
         , isPrivateKnowsGoal . fst
         , isFreshKnowsGoal . fst
-        , isCyclicMinimization . fst
         , isSplitGoalSmall . fst
         , isMsgOneCaseGoal . fst
         , isSignatureGoal . fst

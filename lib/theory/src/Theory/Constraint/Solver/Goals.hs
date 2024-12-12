@@ -135,7 +135,6 @@ annotateGoals sys = do
     let useful = case goal of
           (Cut _) -> Useful
           _ | get gsLoopBreaker status -> LoopBreaker
-          (Weaken _) -> Dangerous
           ActionG i (kFactView -> Just (UpK, m))
               -- if there are KU-guards then all knowledge goals are useful
             | hasKUGuards             -> Useful
@@ -605,25 +604,18 @@ searchBacklink syssToRoot = do
 
 insertMinimize :: Reduction ()
 insertMinimize = do
-  loops <- getM sLoops
-  es <- getM sEdges
+  loopsExist <- not . null <$> getM sLoops
   rs <- getM sNodes
   present <- M.member (Weaken WeakenCyclic) <$> getM sGoals
-  when  (not present && (any (canMinimizeLoop es) loops || any isISendRule rs))
-        (insertGoal (Weaken WeakenCyclic) False)
-  where
-    hasOutgoingEdge :: LoopInstance NodeId -> S.Set Edge -> Bool
-    hasOutgoingEdge li = any ((end li ==) . fst . eSrc)
-
-    canMinimizeLoop :: S.Set Edge -> LoopInstance NodeId -> Bool
-    canMinimizeLoop es l = isLongLoop l || hasOutgoingEdge l es
+  when  (not present && (loopsExist || any isISendRule rs))
+        (insertGoal (Weaken WeakenCyclic) True)
 
 insertSearchBacklink :: Reduction ()
 insertSearchBacklink = do
   loopsExist <- not . null <$> getM sLoops
   present <- M.member SearchBacklink <$> getM sGoals
   cutPresent <- any isCut . M.keys <$> getM sGoals
-  when (loopsExist && not present && not cutPresent) (insertGoal SearchBacklink False)
+  when (loopsExist && not present && not cutPresent) (insertGoal SearchBacklink True)
   where
     isCut :: Goal -> Bool
     isCut (Cut _) = True
@@ -633,5 +625,7 @@ insertCyclicGoals :: Reduction ()
 insertCyclicGoals = do
   ctxt <- ask
   when (doCyclicInduction ctxt) $ do
-    insertMinimize
+    -- It is important to insert backlink search before minimzation so that
+    -- backlinks are searched before minimization is done.
     insertSearchBacklink
+    insertMinimize
