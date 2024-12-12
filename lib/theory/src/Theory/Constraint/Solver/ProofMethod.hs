@@ -1056,7 +1056,7 @@ smartRanking :: ProofContext
 smartRanking ctxt allowPremiseGLoopBreakers sys =
     moveNatToEnd . sortOnUsefulness . unmark . sortDecisionTree notSolveLast . sortDecisionTree solveFirst . goalNrRanking
   where
-    oneCaseOnly = catMaybes . map getMsgOneCase . L.get pcSources $ ctxt
+    oneCaseOnly = mapMaybe getMsgOneCase $ L.get pcSources ctxt
 
     getMsgOneCase cd = case msgPremise (L.get cdGoal cd) of
       Just (viewTerm -> FApp o _)

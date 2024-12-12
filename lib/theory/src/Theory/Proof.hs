@@ -248,8 +248,8 @@ type DiffProof a = LTree CaseName (DiffProofStep a)
 -- Unfinished proofs
 --------------------
 
-resultToProof :: (System -> IncrementalProof) -> Maybe System -> ProofMethod -> ProofMethodResult -> IncrementalProof
-resultToProof f sys pm pmr = LNode (ProofStep (Left pm) sys) (M.map mapResult pmr)
+resultToProof :: (System -> IncrementalProof) -> System -> ProofMethod -> ProofMethodResult -> IncrementalProof
+resultToProof f sys pm pmr = LNode (ProofStep (Left pm) (Just sys)) (M.map mapResult pmr)
   where
     mapResult :: (System, Maybe (Result Contradiction)) -> IncrementalProof
     mapResult (s, Just r) = LNode (ProofStep (Right r) (Just s)) M.empty
@@ -640,7 +640,7 @@ tryProver =  (`orelse` mempty)
 oneStepProver :: ProofMethod -> Prover
 oneStepProver method = Prover $ \ctxt _ syss@(sys:|_) _ -> do
     res <- checkAndExecProofMethod ctxt method syss
-    return $ resultToProof (unproven . Just) (Just sys) method res
+    return $ resultToProof (unproven . Just) sys method res
 
 -- | Try to execute one proof step using the given proof method.
 oneStepDiffProver :: DiffProofMethod -> DiffProver
@@ -1059,7 +1059,7 @@ proveSystemDFS heuristic tactics ctxt = prove
       uncurry recurse $ fromMaybe (defaultMethod, M.empty) appliedMethod
       where
         recurse :: ProofMethod -> ProofMethodResult -> IncrementalProof
-        recurse = resultToProof (prove (succ depth) . (<| syss)) (Just sys)
+        recurse = resultToProof (prove (succ depth) . (<| syss)) sys
 
         defaultMethod :: ProofMethod
         defaultMethod = Sorry (Just "neither result nor proof methods")
