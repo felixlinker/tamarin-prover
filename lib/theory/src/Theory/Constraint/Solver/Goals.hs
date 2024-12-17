@@ -53,12 +53,14 @@ import           Term.Builtin.Convenience
 import Utils.Misc (twoPartitions, peakTail, splitBetween)
 import Data.Maybe (isNothing, catMaybes, isJust, fromJust, maybeToList)
 import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
+import Data.List (uncons)
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
 import Control.Monad.RWS (MonadReader(ask), MonadWriter (tell))
 import Theory.Constraint.System.Results (Result(Contradictory), Contradiction (Cyclic))
+import Data.Bool (bool)
 
 ------------------------------------------------------------------------------
 -- Extracting Goals
@@ -215,7 +217,7 @@ solveGoal syssToRoot goal = do
       SubtermG st   -> solveSubterm st
       Weaken el     -> weaken el >> return ""
       Cut el        -> cut syssToRoot el
-      SearchBacklink -> searchBacklink syssToRoot >> return ""
+      SearchBacklink -> searchBacklink False syssToRoot >> return ""
 
 -- The following functions are internal to 'solveGoal'. Use them with great
 -- care.
@@ -583,7 +585,7 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
     cutCase :: Reduction String
     cutCase = do
       insertFormulas phis
-      searchBacklink syssToRoot
+      searchBacklink True syssToRoot
       return "cut"
 
     negCase :: Int -> LNGuarded -> Reduction String
@@ -591,11 +593,12 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
       insertFormulas [gnot phi]
       return $ "negate_" ++ show i
 
-searchBacklink :: [System] -> Reduction ()
-searchBacklink syssToRoot = do
+searchBacklink :: Bool -> [System] -> Reduction ()
+searchBacklink considerLeaf syssToRoot = do
   ctxt <- ask
   s <- St.get
-  maybe (return ()) cycleFound (getCycleRenamingOnPath ctxt (s NE.:| syssToRoot))
+  let syss = bool (Just . (s NE.:|)) NE.nonEmpty considerLeaf syssToRoot
+  maybe (return ()) cycleFound (syss >>= getCycleRenamingOnPath ctxt)
   where
     cycleFound :: BackLinkCandidate -> Reduction ()
     cycleFound (PartialCyclicProof upTo bl) = if S.null upTo

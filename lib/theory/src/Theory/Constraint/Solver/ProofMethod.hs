@@ -168,14 +168,6 @@ isDoubleExpGoal goal = case msgPremise goal of
     Just (viewTerm2 -> FExp  _ (viewTerm2 -> FMult _)) -> True
     _                                                  -> False
 
-isCyclicMinimization :: Goal -> Bool
-isCyclicMinimization (Weaken WeakenCyclic) = True
-isCyclicMinimization _ = False
-
-isSearchBacklink :: Goal -> Bool
-isSearchBacklink SearchBacklink = True
-isSearchBacklink _ = False
-
 -- | @sortDecisionTree xs ps@ returns a reordering of @xs@
 -- such that the sublist satisfying @ps!!0@ occurs first,
 -- then the sublist satisfying @ps!!1@, and so on.
