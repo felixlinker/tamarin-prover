@@ -282,7 +282,7 @@ import           Data.Binary
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
 import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy)
-import           Data.List.NonEmpty (NonEmpty((:|)),(<|))
+import           Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.Map                             as M
 import           Data.Maybe                           (fromMaybe, mapMaybe, isJust, isNothing)
 import qualified Data.Monoid                             as Mono
@@ -2120,9 +2120,15 @@ type RNode = Node RuleACInst
 type AFNode = Node [LNFact]
 
 instance Renamable (LoopInstance RNode) where
-  (LoopInstance ft li es _ _) ~> (LoopInstance ft' li' es' _ _)
+  (LoopInstance ft li (e :| es) _ _) ~> (LoopInstance ft' li' (e' :| es') _ _)
     | ft /= ft' = NoRenaming
-    | otherwise = sconcat ((li ~> li') <| NE.zipWith (~>) es es')
+    | otherwise = sconcat ((li ~> li') :| (e ~> e') : zipStrictLeft (~>) es es')
+      where
+        zipStrictLeft :: (a -> b -> PartialRenaming) -> [a] -> [b] -> [PartialRenaming]
+        zipStrictLeft _ [] _ = []
+        -- There cannot be a renaming if the left loop is longer than the right
+        zipStrictLeft _ _ [] = [NoRenaming]
+        zipStrictLeft f (a:as) (b:bs) = f a b : zipStrictLeft f as bs
 
 hasLoopExit :: System -> LoopInstance NodeId -> Bool
 hasLoopExit s (LoopInstance { loopFact = lf, loopId = lid, end = nid }) =
