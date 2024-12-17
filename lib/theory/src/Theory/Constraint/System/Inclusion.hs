@@ -22,9 +22,9 @@ import qualified Data.List.NonEmpty as NE
 import Control.Applicative ((<|>))
 import Control.Monad
 import Theory.Model.Rule
-import Data.Maybe (mapMaybe, listToMaybe, maybeToList )
+import Data.Maybe (mapMaybe, listToMaybe, maybeToList, fromMaybe )
 import Theory.Model.Signature (sigmMaudeHandle)
-import Theory.Model.Fact (LNFact, FactTag, Fact (factTag))
+import Theory.Model.Fact (LNFact, FactTag, Fact (factTag, factTerms))
 import Theory.Model.Atom (ProtoAtom(Action))
 import Theory.Proof.Cyclic
 import Utils.PartialOrd (TransClosedOrder (..), fromSet, image, minima, domain, getDirectlyLarger, isSmaller, universe)
@@ -203,10 +203,20 @@ groupByNode f = foldr (uncurry addAt . withNodeName) M.empty
   where
     withNodeName fn = (show $ getRuleName (nannot (f fn)), fn)
 
-groupByFacts :: [AFNode] -> M.Map [FactTag] [AFNode]
+data TermKind = Function FunSym | Constant | Variable LSort deriving (Show, Ord, Eq)
+termKind :: LNTerm -> TermKind
+termKind t = case viewTerm t of
+  FApp sym _ -> Function sym
+  Lit (Con _) -> Constant
+  Lit (Var (LVar _ sort _)) -> Variable sort
+
+groupByFacts :: [AFNode] -> M.Map [(FactTag, [TermKind])] [AFNode]
 groupByFacts = foldr (uncurry addAt . withFacts) M.empty
   where
-    withFacts a = (map factTag (nannot a), a)
+    groupFact :: LNFact -> (FactTag, [TermKind])
+    groupFact f = (factTag f, map termKind (factTerms f))
+
+    withFacts a = (map groupFact (nannot a), a)
 
 type Mapping = (RNode, RNode)
 
