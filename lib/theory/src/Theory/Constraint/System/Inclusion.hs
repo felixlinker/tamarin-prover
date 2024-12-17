@@ -188,6 +188,7 @@ allMappingsGrouped (~~>) genF testF baseR als ars
     foldToMatching k as ml = do
       l <- ml
       as' <- M.lookup k ars
+      guard (length as <= length as')
       return $ (as, as'):l
 
 newtype Or = Any Bool
