@@ -22,6 +22,7 @@ module Theory.Constraint.Renaming
   , idRenaming
   , extendWith
   , Renamable(..)
+  , AFGoals(..)
   , mapVar
   , mapVarM
   , singleton
@@ -38,10 +39,12 @@ import Control.Monad (guard)
 import Theory.Model.Rule (RuleACInst, getRuleRenaming, getRuleName)
 import Term.Unification (SubstVFresh(..), WithMaude, LNSubstVFresh, LNSubst, Subst(..), unifyLNTerms, MaudeHandle, Apply(..))
 import Theory.Model.Fact (LNFact, unifyLNFacts, Fact (factTag))
-import Data.Maybe (mapMaybe, listToMaybe)
+import Data.Maybe (mapMaybe, listToMaybe, fromMaybe)
 import Theory.Constraint.System.Constraints (Goal(..))
 import Control.Monad.Trans.Reader (runReader)
 import Text.PrettyPrint.Highlight (HighlightDocument, Document (vcat), operator_, space)
+import Utils.Misc (zipWithStrictLeft, peak)
+import Data.List (permutations)
 
 -- A Renaming is a substitution that always maps to variables.
 data Renaming = Renaming
@@ -132,6 +135,10 @@ updateDelayed dr (Just r) = maybe Nothing (mergeRenamings r) <$> dr
 
 data PartialRenaming = NoRenaming | Pure Renaming | Monadic DelayedRenaming | Combined DelayedRenaming Renaming
 
+isFailedRenaming :: PartialRenaming -> Bool
+isFailedRenaming NoRenaming = True
+isFailedRenaming _ = False
+
 nonMonadicDomain :: PartialRenaming -> S.Set LVar
 nonMonadicDomain NoRenaming = S.empty
 nonMonadicDomain (Pure (Renaming r _)) = M.keysSet r
@@ -207,14 +214,6 @@ instance (Renamable a, Renamable b) => Renamable (Either a b) where
   Right b1 ~> Right b2 = b1 ~> b2
   _ ~> _ = NoRenaming
 
--- TODO: This implementation is to easily support renaming AFNodes. This might
--- not work when there are multiple action facts associated with a node id. To
--- be checked! Potentially, we must explore all permutations (per action fact),
--- which could *potentially* return multiple renamings and would thus not fit
--- into this type class.
-instance Renamable a => Renamable [a] where
-  as1 ~> as2 = mconcat (zipWith (~>) as1 as2)
-
 instance Renamable RuleACInst where
   r1 ~> r2 
     | getRuleName r1 /= getRuleName r2 = NoRenaming
@@ -224,6 +223,23 @@ instance Renamable LNFact where
   fa1 ~> fa2 
     | factTag fa1 /= factTag fa2 = NoRenaming
     | otherwise = Monadic (listToMaybe . mapMaybe (fromUnification fa1 fa2) <$> unifyLNFacts fa1 fa2)
+
+-- | A list of action fact from action fact goals that share the same timepoint.
+newtype AFGoals = AFGoals { afgs :: [LNFact] } deriving (Eq, Ord, Show)
+
+-- |  This instance is very inefficient (because it calls permutations), but it
+--    will in all likelihood only be called on very small lists.
+instance Renamable AFGoals where
+  (AFGoals fs1) ~> (AFGoals fs2) = fromMaybe NoRenaming $ renameFacts fs1 fs2
+    where
+      tryPermutation :: [LNFact] -> [LNFact] -> Maybe PartialRenaming
+      tryPermutation smaller larger = do
+        r <- mconcat <$> zipWithStrictLeft (~>) smaller larger
+        guard (not $ isFailedRenaming r)
+        return r
+
+      renameFacts :: [LNFact] -> [LNFact] -> Maybe PartialRenaming
+      renameFacts smaller larger = peak $ mapMaybe (`tryPermutation` larger) (permutations smaller)
 
 instance Renamable LVar where
   v1 ~> v2

@@ -20,6 +20,7 @@ module Utils.Misc (
   , splitBetween
   , equalLength
   , (!?)
+  , zipWithStrictLeft
 
   -- * Control
   , whileTrue
@@ -214,3 +215,8 @@ l !? i = peak $ drop i l
 
 addAt :: Ord k => k -> a -> M.Map k [a] -> M.Map k [a]
 addAt k a = M.alter (Just . maybe [a] (a:)) k
+
+zipWithStrictLeft :: (a -> b -> c) -> [a] -> [b] -> Maybe [c]
+zipWithStrictLeft _ [] _ = Just []
+zipWithStrictLeft _ _ [] = Nothing
+zipWithStrictLeft f (a:as) (b:bs) = (f a b :) <$> zipWithStrictLeft f as bs
