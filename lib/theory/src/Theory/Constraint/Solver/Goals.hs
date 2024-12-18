@@ -525,16 +525,21 @@ weaken el = do
       when (not (null loops) && isJust mFwd && isJust mBackwd) $ do
         let fwd = fromJust mFwd
         let backwd = fromJust mBackwd
+        let loopNodes = foldr (flip (foldr S.insert)) S.empty loops
+
         mapM_ (mapM_ (weakenNode Prune) . getLarger fwd . end) loops
-        mapM_ (keepLoopShort backwd) loops
+        mapM_ (keepLoopShort loopNodes fwd backwd) loops
         nodes <- M.toList <$> L.getM sNodes
         -- Delete all K nodes
-        mapM_ (weakenNode Prune . fst) (filter (isISendRule . snd) nodes)
         nonLeafs <- gets (S.fromList . map fst . rawLessRel)
-        let kLeafs = filter (isConstrRule . snd)
-              $ filter (not . (`S.member` nonLeafs) . fst) nodes
-        mapM_ (keepKuChainShort backwd . fst) kLeafs
+        let isLeaf = not . (`S.member` nonLeafs)
+        let kLeafs = filters all [isISendRule . snd, isLeaf . fst] nodes
+        mapM_ (weakenNode Prune . fst) kLeafs
+        let isLeafNow n = isLeaf n || any (S.member n . getDirectlyLarger backwd . fst) kLeafs
+        mapM_ (keepKuChainShort backwd . fst) $ filters all [isConstrRule . snd, isLeafNow . fst] nodes
       where
+        filters acc ps = filter (\a -> acc ($ a) ps)
+
         reachability :: (System -> [(NodeId, NodeId)]) -> Reduction (Maybe (TransClosedOrder NodeId))
         reachability f = do
           rel <- gets f
@@ -546,16 +551,18 @@ weaken el = do
         backwardReachability :: Reduction (Maybe (TransClosedOrder NodeId))
         backwardReachability = reachability (map swap . (\s -> kLessRel s ++ rawEdgeRel s))
 
-        pruneWhenFr :: NodeId -> Reduction ()
-        pruneWhenFr i = do
-          isFr <- maybe False isFreshRule . M.lookup i <$> L.getM sNodes
-          when isFr (weakenNode Prune i)
-
-        keepLoopShort :: TransClosedOrder NodeId -> LoopInstance NodeId -> Reduction ()
-        keepLoopShort backwd ls = do
-          let t = NE.tail $ loopEdges ls
+        keepLoopShort :: S.Set NodeId -> TransClosedOrder NodeId -> TransClosedOrder NodeId -> LoopInstance NodeId -> Reduction ()
+        keepLoopShort loopNodes fwd backwd ls = do
+          let t = NE.tail (loopEdges ls)
           mapM_ (weakenNode Preserve) t
-          mapM_ (mapM_ pruneWhenFr . getDirectlyLarger backwd) t
+          mapM_ (\n -> mapM_ (prunePremiseSources n) $ getDirectlyLarger backwd n) t
+            where
+              prunePremiseSources :: NodeId -> NodeId -> Reduction ()
+              prunePremiseSources parent i = do
+                let noOutgoing = S.singleton parent == getDirectlyLarger fwd i
+                when (noOutgoing && (i `S.notMember` loopNodes)) $ do
+                  weakenNode Prune i
+                  mapM_ (prunePremiseSources i) $ getDirectlyLarger backwd i
 
         keepKuChainShort :: TransClosedOrder NodeId -> NodeId -> Reduction ()
         keepKuChainShort backwd i = do
