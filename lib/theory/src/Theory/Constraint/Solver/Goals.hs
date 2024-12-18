@@ -51,9 +51,8 @@ import           Term.Builtin.Convenience
 
 
 import Utils.Misc (twoPartitions, peakTail, splitBetween)
-import Data.Maybe (isNothing, catMaybes, isJust, fromJust, maybeToList)
+import Data.Maybe (isNothing, catMaybes, isJust, fromJust)
 import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
-import Data.List (uncons)
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
@@ -217,7 +216,7 @@ solveGoal syssToRoot goal = do
       SubtermG st   -> solveSubterm st
       Weaken el     -> weaken el >> return ""
       Cut el        -> cut syssToRoot el
-      SearchBacklink -> searchBacklink False syssToRoot >> return ""
+      SearchBacklink -> searchBacklink True syssToRoot >> return ""
 
 -- The following functions are internal to 'solveGoal'. Use them with great
 -- care.
@@ -585,7 +584,7 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
     cutCase :: Reduction String
     cutCase = do
       insertFormulas phis
-      searchBacklink True syssToRoot
+      searchBacklink False syssToRoot
       return "cut"
 
     negCase :: Int -> LNGuarded -> Reduction String
@@ -594,16 +593,16 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
       return $ "negate_" ++ show i
 
 searchBacklink :: Bool -> [System] -> Reduction ()
-searchBacklink considerLeaf syssToRoot = do
+searchBacklink asMethod syssToRoot = do
   ctxt <- ask
   s <- St.get
-  let syss = bool (Just . (s NE.:|)) NE.nonEmpty considerLeaf syssToRoot
+  let syss = bool (Just . (s NE.:|)) NE.nonEmpty asMethod syssToRoot
   maybe (return ()) cycleFound (syss >>= getCycleRenamingOnPath ctxt)
   where
     cycleFound :: BackLinkCandidate -> Reduction ()
     cycleFound (PartialCyclicProof upTo bl) = if S.null upTo
       then tell (Just (Contradictory (Just (Cyclic bl))))
-      else insertGoal (Cut upTo) False
+      else when asMethod (insertGoal (Cut upTo) False)
 
 insertMinimize :: Reduction ()
 insertMinimize = do
