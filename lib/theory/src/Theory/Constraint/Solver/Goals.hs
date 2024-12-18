@@ -621,10 +621,9 @@ insertMinimize = do
 
 insertSearchBacklink :: Reduction ()
 insertSearchBacklink = do
-  loopsExist <- not . null <$> getM sLoops
   present <- M.member SearchBacklink <$> getM sGoals
   cutPresent <- any isCut . M.keys <$> getM sGoals
-  when (loopsExist && not present && not cutPresent) (insertGoal SearchBacklink True)
+  when (not present && not cutPresent) (insertGoal SearchBacklink True)
   where
     isCut :: Goal -> Bool
     isCut (Cut _) = True
