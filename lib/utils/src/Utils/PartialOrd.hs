@@ -11,6 +11,7 @@ module Utils.PartialOrd (
   , toposort
   , TransClosedOrder(..)
   , addAsUnordered
+  , unordered
   , domain
   , image
   , universe
@@ -124,6 +125,9 @@ addAsUnordered :: Ord a => a -> TransClosedOrder a -> TransClosedOrder a
 addAsUnordered a tco@(TransClosedOrder raw _ maxes)
   | a `M.member` raw || any (S.member a) raw = tco
   | otherwise = tco { maxima = S.insert a maxes }
+
+unordered :: Ord a => TransClosedOrder a -> S.Set a
+unordered ord = S.filter (\m -> not (any (S.member m) (raw ord))) $ maxima ord
 
 domain :: Ord a => TransClosedOrder a -> S.Set a
 domain = M.keysSet . raw

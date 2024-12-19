@@ -319,17 +319,20 @@ loopsAndsystemSpanningOrder s = do
   let afs = unsolvedAFGoals s
   es <- toposortedEdges s afs
   let ls = loops s
-  let (rest, spanning) = if null ls then spanningDAGNoFr es else spanningOrder (map start ls) (toRawRelation es)
-  es' <-  fromSet $ S.fromList $ expand rest
-  let (rest', spanning') = spanningDAGNoFr es'
-  unless (M.null rest') (error "spanning DAG computation invariant violated")
-  return (ls, unionDisjoint spanning spanning')
+  let roots = startFrom es ls
+  let (rest, spanning) = spanningOrder roots (toRawRelation es)
+  unless (M.null rest) (error "spanning DAG computation invariant violated")
+  return (ls, foldr addAsUnordered spanning (unordered es))
   where
-    spanningDAGNoFr :: TransClosedOrder ColoredNode -> (EdgeMap ColoredNode, TransClosedOrder ColoredNode)
-    spanningDAGNoFr ord =
+    startFrom :: TransClosedOrder ColoredNode -> [LoopInstance ColoredNode] -> S.Set ColoredNode
+    startFrom ord ls =
       let roots = foldr skipFr S.empty (minima ord)
-      in  spanningOrder roots (toRawRelation ord)
+          starts = map start ls
+      in  foldr S.insert (S.filter ((`all` starts) . cannotReach ) roots) starts
       where
+        cannotReach :: ColoredNode -> ColoredNode -> Bool
+        cannotReach from to = not $ to `S.member` getLarger ord from
+
         skipFr :: ColoredNode -> S.Set ColoredNode -> S.Set ColoredNode
         skipFr n = bool (S.insert n) (S.union (getDirectlyLarger ord n)) (either isFreshRule (const False) (nannot n))
 
