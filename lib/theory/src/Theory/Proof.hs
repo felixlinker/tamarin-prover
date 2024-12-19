@@ -295,10 +295,12 @@ atPathDiff prf path = do
 
 -- | @modifyAtPath f path prf@ applies @f@ to the subproof at @path@,
 -- if there is one.
-modifyAtPath :: (NonEmpty System -> IncrementalProof -> Maybe IncrementalProof)
-             -> NonEmpty System -> ProofPath -> IncrementalProof
+modifyAtPath :: (NE.NonEmpty System -> IncrementalProof -> Maybe IncrementalProof)
+             -> [System] -> ProofPath -> IncrementalProof
              -> Maybe IncrementalProof
-modifyAtPath f = go
+modifyAtPath f syssToRoot path p = do
+  s <- psInfo $ root p
+  go (s :| syssToRoot) path p
   where
     go acc []     prf = f acc prf
     go acc (l:ls) prf = do
@@ -659,13 +661,8 @@ sorryDiffProver reason = DiffProver $ \_ _ (sys:|_) _ -> return $ diffSorry reas
 -- | Apply a prover only to a sub-proof, fails if the subproof doesn't exist.
 focus :: ProofPath -> Prover -> Prover
 focus []   prover = prover
-focus path prover =
-    Prover $ \ctxt d syss prf ->
-        modifyAtPath (prover' ctxt (d + length path)) syss path prf
-  where
-    prover' ctxt d syss prf = do
-        se <- psInfo (root prf)
-        runProver prover ctxt d (se <| syss) prf
+focus path prover = Prover $ \ctxt d (_:|t) prf ->
+  modifyAtPath (runProver prover ctxt (d + length path)) t path prf
 
 -- | Apply a diff prover only to a sub-proof, fails if the subproof doesn't exist.
 focusDiff :: ProofPath -> DiffProver -> DiffProver

@@ -1619,8 +1619,7 @@ resolveProofPath :: ClosedTheory            -- ^ Theory to resolve in
                  -> Maybe (IncrementalProof, NonEmpty System)
 resolveProofPath thy lemmaName path = do
   lemma <- lookupLemma lemmaName thy
-  (prf, p) <- get lProof lemma `atPath` path
-  return (prf, p)
+  get lProof lemma `atPath` path
 
 -- | Resolve a diff proof path.
 resolveProofPathDiff :: ClosedDiffTheory       -- ^ Theory to resolve in
@@ -1630,8 +1629,7 @@ resolveProofPathDiff :: ClosedDiffTheory       -- ^ Theory to resolve in
                     -> Maybe (IncrementalProof, NonEmpty System)
 resolveProofPathDiff thy s lemmaName path = do
   lemma <- lookupLemmaDiff s lemmaName thy
-  (prf, p) <- get lProof lemma `atPath` path
-  return (prf, p)
+  get lProof lemma `atPath` path
 
 -- | Resolve a proof path for a diff lemma.
 resolveProofPathDiffLemma :: ClosedDiffTheory       -- ^ Theory to resolve in
