@@ -23,8 +23,6 @@ module Theory.Constraint.Solver.Goals
   , insertCyclicGoals
   ) where
 
--- import           Debug.Trace
-
 import           Prelude                                 hiding (id, (.))
 
 import qualified Data.ByteString.Char8                   as BC
@@ -33,6 +31,7 @@ import qualified Data.DAG.Simple                         as D (reachableSet)
 import qualified Data.Map                                as M
 import qualified Data.Monoid                             as Mono
 import qualified Data.Set                                as S
+import qualified Data.List.NonEmpty as NE
 
 import           Control.Basics
 import           Control.Category
@@ -53,8 +52,7 @@ import           Term.Builtin.Convenience
 import Utils.Misc (twoPartitions, peakTail, splitBetween)
 import Data.Maybe (isNothing, catMaybes, isJust, fromJust)
 import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
-import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty as NE (NonEmpty((:|)))
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
 import Control.Monad.RWS (MonadReader(ask), MonadWriter (tell))
@@ -201,8 +199,8 @@ plainOpenGoals = filter (not . get gsSolved . snd) . M.toList . L.get sGoals
 -- | @solveGoal rules goal@ enumerates all possible cases of how this goal
 -- could be solved in the context of the given @rules@. For each case, a
 -- sensible case-name is returned.
-solveGoal :: [System] -> Goal -> Reduction String
-solveGoal syssToRoot goal = do
+solveGoal :: Maybe (NE.NonEmpty System) -> Goal -> Reduction String
+solveGoal syss goal = do
     -- mark before solving, as representation might change due to unification
     markGoalAsSolved "directly" goal
     rules <- askM pcRules
@@ -215,8 +213,8 @@ solveGoal syssToRoot goal = do
       DisjG disj    -> solveDisjunction disj
       SubtermG st   -> solveSubterm st
       Weaken el     -> weaken el >> return ""
-      Cut el        -> cut syssToRoot el
-      SearchBacklink -> searchBacklink True syssToRoot >> return ""
+      Cut el        -> cut syss el
+      SearchBacklink -> searchBacklink True syss >> return ""
 
 -- The following functions are internal to 'solveGoal'. Use them with great
 -- care.
@@ -582,8 +580,8 @@ weaken el = do
     go (WeakenEdge e) = weakenEdge Preserve e
     go (WeakenNode i) = weakenNode Preserve i
 
-cut :: [System] -> UpTo -> Reduction String
-cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith negCase [(0 :: Int)..] phis)
+cut :: Maybe (NE.NonEmpty System) -> UpTo -> Reduction String
+cut syss (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith negCase [(0 :: Int)..] phis)
   where
     insertFormulas :: [LNGuarded] -> Reduction ()
     insertFormulas formulas = L.modM sFormulas (\s -> foldr S.insert s formulas)
@@ -591,7 +589,7 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
     cutCase :: Reduction String
     cutCase = do
       insertFormulas phis
-      searchBacklink False syssToRoot
+      searchBacklink False syss
       return "cut"
 
     negCase :: Int -> LNGuarded -> Reduction String
@@ -599,11 +597,11 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
       insertFormulas [gnot phi]
       return $ "negate_" ++ show i
 
-searchBacklink :: Bool -> [System] -> Reduction ()
+searchBacklink :: Bool -> Maybe (NE.NonEmpty System) -> Reduction ()
 searchBacklink asMethod syssToRoot = do
   ctxt <- ask
   s <- St.get
-  let syss = bool (Just . (s NE.:|)) NE.nonEmpty asMethod syssToRoot
+  let syss = bool (s NE.<|) id asMethod <$> syssToRoot
   maybe (return ()) cycleFound (syss >>= getCycleRenamingOnPath ctxt)
   where
     cycleFound :: BackLinkCandidate -> Reduction ()
