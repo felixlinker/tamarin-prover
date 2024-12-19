@@ -613,11 +613,8 @@ searchBacklink asMethod syssToRoot = do
 
 insertMinimize :: Reduction ()
 insertMinimize = do
-  loopsExist <- not . null <$> getM sLoops
-  rs <- getM sNodes
   present <- M.member (Weaken WeakenCyclic) <$> getM sGoals
-  when  (not present && (loopsExist || any isISendRule rs))
-        (insertGoal (Weaken WeakenCyclic) True)
+  unless present (insertGoal (Weaken WeakenCyclic) True)
 
 insertSearchBacklink :: Reduction ()
 insertSearchBacklink = do
