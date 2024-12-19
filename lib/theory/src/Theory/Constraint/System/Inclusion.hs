@@ -19,7 +19,6 @@ import qualified Data.Map as M
 import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
-import Control.Applicative ((<|>))
 import Control.Monad
 import Theory.Model.Rule
 import Data.Maybe (mapMaybe, listToMaybe, maybeToList )
@@ -29,7 +28,7 @@ import Theory.Model.Atom (ProtoAtom(Action))
 import Theory.Proof.Cyclic
 import Utils.PartialOrd
 import Data.Bifunctor (Bifunctor(bimap, first))
-import Utils.Two (tuple, two, Two)
+import Utils.Two (tuple, mapTwice)
 import Utils.Misc (addAt)
 import Term.Substitution (Apply(apply))
 import Control.Monad.Trans.Reader (runReader)
@@ -288,26 +287,36 @@ mapAlongEdges nidF groupF topoSml topoLrg = go
       let larger = map (bimap (S.toList . getDirectlyLarger topoSml) (S.toList . getDirectlyLarger topoLrg)) mappedNodes
       in foldr (\(ns1, ns2) -> concatMap (go ns1 ns2)) [r] larger
 
-toposortedRel :: Ord a => (NodeId -> Maybe a) -> [Two NodeId] -> Maybe (TransClosedOrder a)
-toposortedRel f = fromSet . S.fromList . mapMaybe (fmap tuple . traverse f)
-
-coloredFromAnnotated :: System -> NodeId -> Maybe ColoredNode
-coloredFromAnnotated s nid = Node nid . Left <$> M.lookup nid (L.get sNodes s)
-
-coloredNode :: System -> AFMap -> NodeId -> Maybe ColoredNode
-coloredNode s afMap nid = Node nid <$> ((Left <$> M.lookup nid (L.get sNodes s)) <|> (Right . AFGoals <$> M.lookup nid afMap))
+colorAnnotated :: System -> NodeId -> Maybe ColoredNode
+colorAnnotated s nid = Node nid . Left <$> M.lookup nid (L.get sNodes s)
 
 toposortedEdges :: System -> AFMap -> Maybe (TransClosedOrder ColoredNode)
-toposortedEdges s afs = 
-  let ord = toposortedRel (coloredNode s afs) (map (uncurry two) (rawEdgeRel s ++ kLessRel s))
-      afNodes = map (uncurry Node . fmap (Right . AFGoals)) (M.toList afs) :: [ColoredNode]
-      nodes = map (uncurry Node . fmap Left) (M.toList $ L.get sNodes s) :: [ColoredNode]
-  in  (\o -> foldr addAsUnordered o (afNodes ++ nodes)) <$> ord
+toposortedEdges s afs =
+  let kRelRaw = colorList colorAFG (kLessRel s)
+      nodeRel = colorList (colorAnnotated s) (rawEdgeRel s)
+      afNodes = map mkAFG (M.toList afs) :: [ColoredNode]
+      nodes = map mkAnnotated (M.toList $ L.get sNodes s) :: [ColoredNode]
+  in do
+    kRel <- toRelation <$> fromSet (S.fromList kRelRaw)
+    ord <- fromSet (S.fromList nodeRel <> S.fromList kRel)
+    return $ foldr addAsUnordered ord (afNodes ++ nodes)
+  where
+    colorAFG :: NodeId -> Maybe ColoredNode
+    colorAFG nid = Node nid . Right . AFGoals <$> M.lookup nid afs
+
+    colorList :: Ord a => (a -> Maybe ColoredNode) -> [(a, a)] -> [(ColoredNode, ColoredNode)]
+    colorList f = mapMaybe (fmap tuple . sequence . mapTwice f)
+
+    mkAFG :: (NodeId, [LNFact]) -> ColoredNode
+    mkAFG = uncurry Node . fmap (Right . AFGoals)
+
+    mkAnnotated :: (NodeId, RuleACInst) -> ColoredNode
+    mkAnnotated = uncurry Node . fmap Left
 
 type AFMap = M.Map NodeId [LNFact]
 
 loops :: System -> [LoopInstance ColoredNode]
-loops s = mapMaybe (traverse (coloredFromAnnotated s)) (L.get sLoops s)
+loops s = mapMaybe (traverse (colorAnnotated s)) (L.get sLoops s)
 
 unsolvedAFGoals :: System -> AFMap
 unsolvedAFGoals s =

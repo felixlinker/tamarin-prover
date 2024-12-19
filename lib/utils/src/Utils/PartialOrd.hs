@@ -24,6 +24,7 @@ module Utils.PartialOrd (
   , getDirectlyLarger
   , fromTopoSorted
   , fromSet
+  , toRelation
   , toRawRelation
   , EdgeMap
   , spanningOrder ) where
@@ -211,6 +212,9 @@ fromTopoSorted (TopoSortedOrder l) = uncurry (TransClosedOrder (collect l)) (go 
 
 fromSet :: Ord a => S.Set (a, a) -> Maybe (TransClosedOrder a)
 fromSet = fmap fromTopoSorted . toposort
+
+toRelation :: Ord a => TransClosedOrder a -> [(a, a)]
+toRelation (TransClosedOrder _ rel _) = expand rel
 
 toRawRelation :: Ord a => TransClosedOrder a -> [(a, a)]
 toRawRelation (TransClosedOrder raw _ _) = expand raw
