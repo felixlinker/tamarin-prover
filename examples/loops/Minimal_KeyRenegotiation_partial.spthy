@@ -37,15 +37,22 @@ rule (modulo E) Receive:
   // loop breaker: [0]
   /* has exactly the trivial AC variant */
 
-lemma Secret_reachable [use_induction]:
+lemma Secret_reachable:
   exists-trace "∃ k #i. Secret( k ) @ #i"
 /*
 guarded formula characterizing all satisfying traces:
 "∃ k #i. (Secret( k ) @ #i)"
 */
-by sorry /* removed */
+simplify
+solve( Secret( k ) @ #i )
+  case Send
+  solve( Sender( k0 ) ▶₀ #i )
+    case Setup
+    SOLVED // trace found
+  qed
+qed
 
-lemma secrecy [use_induction]:
+lemma secrecy:
   all-traces
   "∀ k #i #j. ((Secret( k ) @ #i) ∧ (!KU( k ) @ #j)) ⇒ (⊥)"
 /*
@@ -57,7 +64,16 @@ solve( Secret( k ) @ #i )
   case Receive
   solve( Receiver( k0 ) ▶₀ #i )
     case Receive
-    by sorry
+    solve( !KU( senc(k.1, k0) ) @ #vk )
+      case Send
+      solve( !KU( ~k.2 ) @ #j )
+        case Send
+        by sorry /* removed */
+      qed
+    next
+      case c_senc
+      by sorry /* removed */
+    qed
   next
     case Setup
     solve( !KU( senc(k.1, ~k.2) ) @ #vk )
@@ -79,7 +95,8 @@ next
       case Send
       solve( !KU( ~k.2 ) @ #vk )
         case Send
-        by sorry
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 4-00 */
       qed
     next
       case Setup
@@ -102,10 +119,10 @@ qed
 
 /*
 Generated from:
-Tamarin version 1.9.0
+Tamarin version 1.11.0
 Maude version 3.3.1
-Git revision: 091232c102511b638b3116a61c8afffef08a4240, branch: cyclic
-Compiled at: 2024-08-07 14:49:34.171269 UTC
+Git revision: aa4d5f05853f925f20868af061f7e1faf8be153b, branch: cyclic
+Compiled at: 2024-12-13 10:25:53.610676 UTC
 */
 
 end
