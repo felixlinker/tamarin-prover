@@ -3,37 +3,44 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ViewPatterns #-}
 module Utils.PartialOrd (
     PartialOrdering(..)
   , PartialOrder(..)
   , TopoSortedOrder
-  , toList
   , toposort
   , TransClosedOrder(..)
+  , addAsUnordered
+  , unordered
   , domain
   , image
   , universe
   , unionDisjoint
   , minima
-  , getGreatest
+  , expand
   , isSmaller
   , isLarger
   , getLarger
   , getDirectlyLarger
   , fromTopoSorted
   , fromSet
-  , toRelation ) where
+  , toRelation
+  , toRawRelation
+  , EdgeMap
+  , spanningOrder ) where
 
 import GHC.Generics (Generic)
 import Control.DeepSeq (NFData)
 import Data.Binary (Binary)
+import qualified Data.Foldable as F
 import qualified Data.Set as S
 import qualified Data.Map as M
 import Control.Monad (guard)
 import Control.Applicative ((<|>))
 import Data.Maybe (fromMaybe)
-import Data.List (uncons, groupBy)
+import Data.List (groupBy)
 import Utils.Two
+import Utils.Misc (addAt)
 
 data PartialOrdering = PLT | PEQ | PGT | PINCOMP deriving (Eq, Show)
 
@@ -66,9 +73,6 @@ instance Semigroup PartialOrdering where
 
 -- |A partial order implemented using an ascending, topologically sorted list.
 newtype TopoSortedOrder a = TopoSortedOrder [(a, a)] deriving Show
-
-toList :: TopoSortedOrder a -> [(a, a)]
-toList (TopoSortedOrder l) = l
 
 tcons :: (a, a) -> TopoSortedOrder a -> TopoSortedOrder a
 tcons a (TopoSortedOrder l) = TopoSortedOrder (a:l)
@@ -115,8 +119,16 @@ data TransClosedOrder a = TransClosedOrder
   -- ^Map that maps elements to larger elements.
   , maxima :: S.Set a
   -- ^All maxima of the partial order, i.e., all elements that are contained in
-  --  no key of @ltMap@.
+  --  no key of @toGreater@.
   } deriving( Show, Eq, Ord, Generic, NFData, Binary )
+
+addAsUnordered :: Ord a => a -> TransClosedOrder a -> TransClosedOrder a
+addAsUnordered a tco@(TransClosedOrder raw _ maxes)
+  | a `M.member` raw || any (S.member a) raw = tco
+  | otherwise = tco { maxima = S.insert a maxes }
+
+unordered :: Ord a => TransClosedOrder a -> S.Set a
+unordered ord = S.filter (\m -> not (any (S.member m) (raw ord))) $ maxima ord
 
 domain :: Ord a => TransClosedOrder a -> S.Set a
 domain = M.keysSet . raw
@@ -128,10 +140,12 @@ universe :: Ord a => TransClosedOrder a -> S.Set a
 universe ord = domain ord <> maxima ord
 
 minima :: Ord a => TransClosedOrder a -> S.Set a
-minima tco = domain tco S.\\ image tco
+-- Also add maxima because maxima could be unordered. Unordered maxima will not
+-- be contaiend in the image.
+minima tco = (domain tco <> maxima tco) S.\\ image tco
 
-expand :: M.Map a (S.Set a) -> [(a, a)]
-expand = concatMap (\(a, as) -> map (,a) (S.toList as)) . M.toList
+expand :: Foldable t => M.Map a (t a) -> [(a, a)]
+expand = concatMap (\(a, as) -> map (a,) (F.toList as)) . M.toList
 
 -- | Take the union of two orders closed under transitivity assuming that their
 --   elements are disjoint. The precondition is not checked.
@@ -143,13 +157,8 @@ unionDisjoint (TransClosedOrder r m maxes) (TransClosedOrder r' m' maxes') =
 instance Ord a => Semigroup (TransClosedOrder a) where
   order <> TransClosedOrder raw _ _ = foldr pinsert order (expand raw)
 
--- |Get the greatest element of the partial order. Returns @Nothing@ if the
---  relation is empty or there are multiple maxima.
-getGreatest :: TransClosedOrder a -> Maybe a
-getGreatest order = do
-  (grtst, t) <- uncons $ S.toList $ maxima order
-  guard (null t)
-  return grtst
+instance Ord a => Monoid (TransClosedOrder a) where
+  mempty = pempty
 
 isLarger :: Ord a => TransClosedOrder a -> a -> a -> Bool
 isLarger ord = flip (isSmaller ord)
@@ -204,5 +213,29 @@ fromTopoSorted (TopoSortedOrder l) = uncurry (TransClosedOrder (collect l)) (go 
 fromSet :: Ord a => S.Set (a, a) -> Maybe (TransClosedOrder a)
 fromSet = fmap fromTopoSorted . toposort
 
-toRelation :: Ord a => TransClosedOrder a -> S.Set (a, a)
-toRelation (TransClosedOrder _ m _) = S.fromList $ expand m
+toRelation :: Ord a => TransClosedOrder a -> [(a, a)]
+toRelation (TransClosedOrder _ rel _) = expand rel
+
+toRawRelation :: Ord a => TransClosedOrder a -> [(a, a)]
+toRawRelation (TransClosedOrder raw _ _) = expand raw
+
+type EdgeMap a = M.Map a [a]
+
+spanningOrder :: (Ord a, Foldable t1, Foldable t2) => t1 a -> t2 (a, a) -> (EdgeMap a, TransClosedOrder a)
+spanningOrder roots es =
+  let edgeMap = foldr (uncurry addAt) M.empty es
+      (remainingEdges, (\d -> foldr addAsUnordered d roots) -> forwardDAG) = insertEdges edgeMap mempty roots
+      (remaingInverted, spanning) = insertEdges (invert remainingEdges) forwardDAG (universe forwardDAG)
+  in  (invert remaingInverted, spanning)
+  where
+    insertEdges :: (Ord a, Foldable t) => EdgeMap a -> TransClosedOrder a -> t a -> (EdgeMap a, TransClosedOrder a)
+    insertEdges eM = foldr go . (eM,)
+      where
+        go node (edgeMap, dag) =
+          let greater = M.findWithDefault [] node edgeMap
+              dag' = foldr (pinsert . (node,)) dag greater
+              edgeMap' = M.delete node edgeMap
+          in foldr go (edgeMap', dag') greater
+
+    invert :: Ord a => EdgeMap a -> EdgeMap a
+    invert = M.foldrWithKey (\k as m -> foldr (`addAt` k) m as) M.empty

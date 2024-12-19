@@ -168,14 +168,6 @@ isDoubleExpGoal goal = case msgPremise goal of
     Just (viewTerm2 -> FExp  _ (viewTerm2 -> FMult _)) -> True
     _                                                  -> False
 
-isCyclicMinimization :: Goal -> Bool
-isCyclicMinimization (Weaken WeakenCyclic) = True
-isCyclicMinimization _ = False
-
-isSearchBacklink :: Goal -> Bool
-isSearchBacklink SearchBacklink = True
-isSearchBacklink _ = False
-
 -- | @sortDecisionTree xs ps@ returns a reordering of @xs@
 -- such that the sublist satisfying @ps!!0@ occurs first,
 -- then the sublist satisfying @ps!!1@, and so on.
@@ -280,7 +272,7 @@ checkAndExecProofMethod ctxt method syss@(sys:|_) = do
 -- and all variable indices reset.
 execProofMethod :: ProofContext
                 -> ProofMethod -> NonEmpty System -> Maybe ProofMethodResult
-execProofMethod ctxt method syss@(sys:|syssTail) =
+execProofMethod ctxt method syss@(sys:|_) =
     case method of
       Sorry _               -> return M.empty
       Simplify              ->
@@ -319,7 +311,7 @@ execProofMethod ctxt method syss@(sys:|syssTail) =
     solve :: Goal -> Reduction CaseName
     solve goal =
       let ths = L.get pcSources ctxt
-      in maybe  (solveGoal syssTail goal)
+      in maybe  (solveGoal (Just syss) goal)
                 (intercalate "_" <$>)
                 (solveWithSource ctxt ths goal)
 

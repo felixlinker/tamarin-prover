@@ -23,8 +23,6 @@ module Theory.Constraint.Solver.Goals
   , insertCyclicGoals
   ) where
 
--- import           Debug.Trace
-
 import           Prelude                                 hiding (id, (.))
 
 import qualified Data.ByteString.Char8                   as BC
@@ -33,6 +31,7 @@ import qualified Data.DAG.Simple                         as D (reachableSet)
 import qualified Data.Map                                as M
 import qualified Data.Monoid                             as Mono
 import qualified Data.Set                                as S
+import qualified Data.List.NonEmpty as NE
 
 import           Control.Basics
 import           Control.Category
@@ -51,14 +50,14 @@ import           Term.Builtin.Convenience
 
 
 import Utils.Misc (twoPartitions, peakTail, splitBetween)
-import Data.Maybe (isNothing, catMaybes, isJust, fromJust, maybeToList)
+import Data.Maybe (isNothing, catMaybes, isJust, fromJust)
 import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
-import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Data.List.NonEmpty as NE
+import Data.List.NonEmpty as NE (NonEmpty((:|)))
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
 import Control.Monad.RWS (MonadReader(ask), MonadWriter (tell))
 import Theory.Constraint.System.Results (Result(Contradictory), Contradiction (Cyclic))
+import Data.Bool (bool)
 
 ------------------------------------------------------------------------------
 -- Extracting Goals
@@ -200,8 +199,8 @@ plainOpenGoals = filter (not . get gsSolved . snd) . M.toList . L.get sGoals
 -- | @solveGoal rules goal@ enumerates all possible cases of how this goal
 -- could be solved in the context of the given @rules@. For each case, a
 -- sensible case-name is returned.
-solveGoal :: [System] -> Goal -> Reduction String
-solveGoal syssToRoot goal = do
+solveGoal :: Maybe (NE.NonEmpty System) -> Goal -> Reduction String
+solveGoal syss goal = do
     -- mark before solving, as representation might change due to unification
     markGoalAsSolved "directly" goal
     rules <- askM pcRules
@@ -214,8 +213,8 @@ solveGoal syssToRoot goal = do
       DisjG disj    -> solveDisjunction disj
       SubtermG st   -> solveSubterm st
       Weaken el     -> weaken el >> return ""
-      Cut el        -> cut syssToRoot el
-      SearchBacklink -> searchBacklink syssToRoot >> return ""
+      Cut el        -> cut syss el
+      SearchBacklink -> searchBacklink True syss >> return ""
 
 -- The following functions are internal to 'solveGoal'. Use them with great
 -- care.
@@ -524,16 +523,21 @@ weaken el = do
       when (not (null loops) && isJust mFwd && isJust mBackwd) $ do
         let fwd = fromJust mFwd
         let backwd = fromJust mBackwd
+        let loopNodes = foldr (flip (foldr S.insert)) S.empty loops
+
         mapM_ (mapM_ (weakenNode Prune) . getLarger fwd . end) loops
-        mapM_ (keepLoopShort backwd) loops
+        mapM_ (keepLoopShort loopNodes fwd backwd) loops
         nodes <- M.toList <$> L.getM sNodes
         -- Delete all K nodes
-        mapM_ (weakenNode Prune . fst) (filter (isISendRule . snd) nodes)
         nonLeafs <- gets (S.fromList . map fst . rawLessRel)
-        let kLeafs = filter (isConstrRule . snd)
-              $ filter (not . (`S.member` nonLeafs) . fst) nodes
-        mapM_ (keepKuChainShort backwd . fst) kLeafs
+        let isLeaf = not . (`S.member` nonLeafs)
+        let kLeafs = filters all [isISendRule . snd, isLeaf . fst] nodes
+        mapM_ (weakenNode Prune . fst) kLeafs
+        let isLeafNow n = isLeaf n || any (S.member n . getDirectlyLarger backwd . fst) kLeafs
+        mapM_ (keepKuChainShort backwd . fst) $ filters all [isConstrRule . snd, isLeafNow . fst] nodes
       where
+        filters acc ps = filter (\a -> acc ($ a) ps)
+
         reachability :: (System -> [(NodeId, NodeId)]) -> Reduction (Maybe (TransClosedOrder NodeId))
         reachability f = do
           rel <- gets f
@@ -545,16 +549,18 @@ weaken el = do
         backwardReachability :: Reduction (Maybe (TransClosedOrder NodeId))
         backwardReachability = reachability (map swap . (\s -> kLessRel s ++ rawEdgeRel s))
 
-        pruneWhenFr :: NodeId -> Reduction ()
-        pruneWhenFr i = do
-          isFr <- maybe False isFreshRule . M.lookup i <$> L.getM sNodes
-          when isFr (weakenNode Prune i)
-
-        keepLoopShort :: TransClosedOrder NodeId -> LoopInstance NodeId -> Reduction ()
-        keepLoopShort backwd ls = do
-          let t = NE.tail $ loopEdges ls
+        keepLoopShort :: S.Set NodeId -> TransClosedOrder NodeId -> TransClosedOrder NodeId -> LoopInstance NodeId -> Reduction ()
+        keepLoopShort loopNodes fwd backwd ls = do
+          let t = NE.tail (loopEdges ls)
           mapM_ (weakenNode Preserve) t
-          mapM_ (mapM_ pruneWhenFr . getDirectlyLarger backwd) t
+          mapM_ (\n -> mapM_ (prunePremiseSources n) $ getDirectlyLarger backwd n) t
+            where
+              prunePremiseSources :: NodeId -> NodeId -> Reduction ()
+              prunePremiseSources parent i = do
+                let noOutgoing = S.singleton parent == getDirectlyLarger fwd i
+                when (noOutgoing && (i `S.notMember` loopNodes)) $ do
+                  weakenNode Prune i
+                  mapM_ (prunePremiseSources i) $ getDirectlyLarger backwd i
 
         keepKuChainShort :: TransClosedOrder NodeId -> NodeId -> Reduction ()
         keepKuChainShort backwd i = do
@@ -574,8 +580,8 @@ weaken el = do
     go (WeakenEdge e) = weakenEdge Preserve e
     go (WeakenNode i) = weakenNode Preserve i
 
-cut :: [System] -> UpTo -> Reduction String
-cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith negCase [(0 :: Int)..] phis)
+cut :: Maybe (NE.NonEmpty System) -> UpTo -> Reduction String
+cut syss (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith negCase [(0 :: Int)..] phis)
   where
     insertFormulas :: [LNGuarded] -> Reduction ()
     insertFormulas formulas = L.modM sFormulas (\s -> foldr S.insert s formulas)
@@ -583,7 +589,7 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
     cutCase :: Reduction String
     cutCase = do
       insertFormulas phis
-      searchBacklink syssToRoot
+      searchBacklink False syss
       return "cut"
 
     negCase :: Int -> LNGuarded -> Reduction String
@@ -591,31 +597,28 @@ cut syssToRoot (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith 
       insertFormulas [gnot phi]
       return $ "negate_" ++ show i
 
-searchBacklink :: [System] -> Reduction ()
-searchBacklink syssToRoot = do
+searchBacklink :: Bool -> Maybe (NE.NonEmpty System) -> Reduction ()
+searchBacklink asMethod syssToRoot = do
   ctxt <- ask
   s <- St.get
-  maybe (return ()) cycleFound (getCycleRenamingOnPath ctxt (s NE.:| syssToRoot))
+  let syss = bool (s NE.<|) id asMethod <$> syssToRoot
+  maybe (return ()) cycleFound (syss >>= getCycleRenamingOnPath ctxt)
   where
     cycleFound :: BackLinkCandidate -> Reduction ()
     cycleFound (PartialCyclicProof upTo bl) = if S.null upTo
       then tell (Just (Contradictory (Just (Cyclic bl))))
-      else insertGoal (Cut upTo) False
+      else when asMethod (insertGoal (Cut upTo) False)
 
 insertMinimize :: Reduction ()
 insertMinimize = do
-  loopsExist <- not . null <$> getM sLoops
-  rs <- getM sNodes
   present <- M.member (Weaken WeakenCyclic) <$> getM sGoals
-  when  (not present && (loopsExist || any isISendRule rs))
-        (insertGoal (Weaken WeakenCyclic) True)
+  unless present (insertGoal (Weaken WeakenCyclic) True)
 
 insertSearchBacklink :: Reduction ()
 insertSearchBacklink = do
-  loopsExist <- not . null <$> getM sLoops
   present <- M.member SearchBacklink <$> getM sGoals
   cutPresent <- any isCut . M.keys <$> getM sGoals
-  when (loopsExist && not present && not cutPresent) (insertGoal SearchBacklink True)
+  when (not present && not cutPresent) (insertGoal SearchBacklink True)
   where
     isCut :: Goal -> Bool
     isCut (Cut _) = True

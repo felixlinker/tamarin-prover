@@ -248,12 +248,12 @@ type DiffProof a = LTree CaseName (DiffProofStep a)
 -- Unfinished proofs
 --------------------
 
-resultToProof :: (System -> IncrementalProof) -> System -> ProofMethod -> ProofMethodResult -> IncrementalProof
-resultToProof f sys pm pmr = LNode (ProofStep (Left pm) (Just sys)) (M.map mapResult pmr)
+resultToProof :: System -> ProofMethod -> ProofMethodResult -> IncrementalProof
+resultToProof sys pm pmr = LNode (ProofStep (Left pm) (Just sys)) (M.map mapResult pmr)
   where
     mapResult :: (System, Maybe (Result Contradiction)) -> IncrementalProof
     mapResult (s, Just r) = LNode (ProofStep (Right r) (Just s)) M.empty
-    mapResult (s, Nothing) = f s
+    mapResult (s, Nothing) = sorry Nothing (Just s)
 
 -- | A proof using the 'sorry' proof method.
 sorry :: Maybe String -> a -> Proof a
@@ -295,10 +295,12 @@ atPathDiff prf path = do
 
 -- | @modifyAtPath f path prf@ applies @f@ to the subproof at @path@,
 -- if there is one.
-modifyAtPath :: (NonEmpty System -> IncrementalProof -> Maybe IncrementalProof)
-             -> NonEmpty System -> ProofPath -> IncrementalProof
+modifyAtPath :: (NE.NonEmpty System -> IncrementalProof -> Maybe IncrementalProof)
+             -> [System] -> ProofPath -> IncrementalProof
              -> Maybe IncrementalProof
-modifyAtPath f = go
+modifyAtPath f syssToRoot path p = do
+  s <- psInfo $ root p
+  go (s :| syssToRoot) path p
   where
     go acc []     prf = f acc prf
     go acc (l:ls) prf = do
@@ -640,7 +642,7 @@ tryProver =  (`orelse` mempty)
 oneStepProver :: ProofMethod -> Prover
 oneStepProver method = Prover $ \ctxt _ syss@(sys:|_) _ -> do
     res <- checkAndExecProofMethod ctxt method syss
-    return $ resultToProof (unproven . Just) sys method res
+    return $ resultToProof sys method res
 
 -- | Try to execute one proof step using the given proof method.
 oneStepDiffProver :: DiffProofMethod -> DiffProver
@@ -659,13 +661,8 @@ sorryDiffProver reason = DiffProver $ \_ _ (sys:|_) _ -> return $ diffSorry reas
 -- | Apply a prover only to a sub-proof, fails if the subproof doesn't exist.
 focus :: ProofPath -> Prover -> Prover
 focus []   prover = prover
-focus path prover =
-    Prover $ \ctxt d syss prf ->
-        modifyAtPath (prover' ctxt (d + length path)) syss path prf
-  where
-    prover' ctxt d syss prf = do
-        se <- psInfo (root prf)
-        runProver prover ctxt d (se <| syss) prf
+focus path prover = Prover $ \ctxt d (_:|t) prf ->
+  modifyAtPath (runProver prover ctxt (d + length path)) t path prf
 
 -- | Apply a diff prover only to a sub-proof, fails if the subproof doesn't exist.
 focusDiff :: ProofPath -> DiffProver -> DiffProver
@@ -1055,17 +1052,22 @@ cutAfterFirstSorryDiff = snd . go False
 proveSystemDFS :: Heuristic ProofContext -> [Tactic ProofContext] -> ProofContext -> Int -> NonEmpty System -> IncrementalProof
 proveSystemDFS heuristic tactics ctxt = prove
   where
-    prove !depth syss@(sys:|_) =
-      uncurry recurse $ fromMaybe (defaultMethod, M.empty) appliedMethod
+    prove !depth syss@(sys:|_) = fromMaybe failProof $ do
+      (method, (r, _)) <- peak (execRankedProofMethods (useHeuristic heuristic depth) tactics ctxt syss)
+      let nextLevel = resultToProof sys method r
+      return $ mapChildren nextLevel
       where
-        recurse :: ProofMethod -> ProofMethodResult -> IncrementalProof
-        recurse = resultToProof (prove (succ depth) . (<| syss)) sys
+        mapChild :: IncrementalProof -> IncrementalProof
+        mapChild (LNode (ProofStep (Left _) ann) _) = fromMaybe failProof $ do
+          s <- ann
+          return $ prove (depth + 1) (s <| syss)
+        mapChild n@(LNode (ProofStep (Right _) _) _) = n -- Stop recursion on contradictions
 
-        defaultMethod :: ProofMethod
-        defaultMethod = Sorry (Just "neither result nor proof methods")
+        mapChildren :: IncrementalProof -> IncrementalProof
+        mapChildren (LNode ann cs) = LNode ann (M.map mapChild cs)
 
-        appliedMethod :: Maybe (ProofMethod, ProofMethodResult)
-        appliedMethod = fmap fst <$> peak (execRankedProofMethods (useHeuristic heuristic depth) tactics ctxt syss)
+        failProof :: IncrementalProof
+        failProof = resultToProof sys (Sorry (Just "neither result nor proof methods")) M.empty
 
 -- | @proveSystemDFS rules se@ explores all solutions of the initial
 -- constraint system using a depth-first-search strategy to resolve the

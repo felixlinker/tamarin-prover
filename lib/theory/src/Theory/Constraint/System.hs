@@ -121,9 +121,6 @@ module Theory.Constraint.System (
 
   -- * Constraint systems
   , System
-  , Node(..)
-  , RNode
-  , AFNode
   , DiffProofType(..)
   , DiffSystem
   , sFreshState
@@ -282,7 +279,7 @@ import           Data.Binary
 import qualified Data.ByteString.Char8                as BC
 import qualified Data.DAG.Simple                      as D
 import           Data.List                            (foldl', partition, intersect,find,intercalate, groupBy)
-import           Data.List.NonEmpty (NonEmpty((:|)),(<|))
+import           Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.Map                             as M
 import           Data.Maybe                           (fromMaybe, mapMaybe, isJust, isNothing)
 import qualified Data.Monoid                             as Mono
@@ -314,7 +311,7 @@ import           System.Directory                     (doesFileExist)
 import           System.FilePath
 import           Text.Show.Functions()
 import Theory.Constraint.System.ID
-import Utils.Misc (peak, safeTail)
+import Utils.Misc (peak, safeTail, zipWithStrictLeft)
 import Data.Semigroup (Semigroup(sconcat))
 import qualified Data.List.NonEmpty as NE
 
@@ -463,6 +460,11 @@ instance HasFrees (LoopInstance NodeId) where
       <*> mapFrees f es
       <*> mapFrees f s
       <*> mapFrees f e
+
+instance Renamable a => Renamable (LoopInstance a) where
+  (LoopInstance ft li (e :| es) _ _) ~> (LoopInstance ft' li' (e' :| es') _ _)
+    | ft /= ft' = NoRenaming
+    | otherwise = sconcat ((li ~> li') :| (e ~> e') : fromMaybe [NoRenaming] (zipWithStrictLeft (~>) es es'))
 
 isLongLoop :: LoopInstance a -> Bool
 isLongLoop = not . null . NE.tail . loopEdges
@@ -2096,33 +2098,6 @@ nonEmptyGraphDiff diffSys = not $
           (Just sys) -> M.null (L.get sNodes sys) && null (unsolvedActionAtoms sys) &&
                         null (unsolvedChains sys) &&
                         S.null (L.get sEdges sys) && S.null (L.get sLessAtoms sys)
-
-data Node a = Node
-  { nnid  :: NodeId
-  , nannot :: a }
-
-instance Show a => Show (Node a) where
-  show (Node nid a) = show nid ++ ":" ++ show a
-
-instance Eq a => Eq (Node a) where
-  (Node n1 a1) == (Node n2 a2) = n1 == n2 && a1 == a2
-
-instance Ord a => Ord (Node a) where
-  compare (Node n1 a1) (Node n2 a2) = case compare n1 n2 of
-    LT  -> LT
-    GT  -> GT
-    EQ  -> compare a1 a2
-
-instance Renamable a => Renamable (Node a) where
-  (Node nid1 a1) ~> (Node nid2 a2) = mapVarM nid1 nid2 (a1 ~> a2)
-
-type RNode = Node RuleACInst
-type AFNode = Node [LNFact]
-
-instance Renamable (LoopInstance RNode) where
-  (LoopInstance ft li es _ _) ~> (LoopInstance ft' li' es' _ _)
-    | ft /= ft' = NoRenaming
-    | otherwise = sconcat ((li ~> li') <| NE.zipWith (~>) es es')
 
 hasLoopExit :: System -> LoopInstance NodeId -> Bool
 hasLoopExit s (LoopInstance { loopFact = lf, loopId = lid, end = nid }) =

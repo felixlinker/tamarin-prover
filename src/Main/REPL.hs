@@ -137,7 +137,7 @@ stepAt pathIdx fm prf =
   (path, methods) <- maybeREPL "illegal path index" mPath
   (_, syss) <- maybeREPL "illegal path" (iPrf `atPath` path)
   let method = fromMaybe (error "illegal method") $ fm (NE.head syss) methods
-  iPrf' <- maybeREPL "applying method failed" $ modifyAtPath (runProver (oneStepProver method) ctxt (length syss)) syss path iPrf
+  iPrf' <- maybeREPL "applying method failed" $ modifyAtPath (runProver (oneStepProver method) ctxt (length syss)) [] path iPrf
   return (REPLProof iPrf' ctxt (collectPaths ctxt iPrf'))
 
 systemsAt :: Int -> REPLProof -> REPL (NonEmpty System)

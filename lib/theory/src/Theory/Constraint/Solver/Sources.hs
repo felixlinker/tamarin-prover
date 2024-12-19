@@ -108,7 +108,7 @@ initialSource ctxt restrictions goal =
     cases = polish <$> runReduction instantiate ctxt se0 (avoid (goal, se0))
     instantiate = do
         insertGoal goal False
-        solveGoal [] goal
+        solveGoal Nothing goal
 
 -- | Refine a source by applying the additional proof step.
 refineSource
@@ -204,8 +204,8 @@ solveAllSafeGoals ths' openChainsLimit =
             usefulGoals     = fst <$> filter usefulGoal goals
             nextStep :: Maybe (Reduction [String], Maybe Source)
             nextStep     =
-                ((\x -> (fmap return (solveGoal [] x), Nothing)) <$> headMay kdPremGoals) <|>
-                ((\x -> (fmap return (solveGoal [] x), Nothing)) <$> headMay safeGoals) <|>
+                ((\x -> (fmap return (solveGoal Nothing x), Nothing)) <$> headMay kdPremGoals) <|>
+                ((\x -> (fmap return (solveGoal Nothing x), Nothing)) <$> headMay safeGoals) <|>
                 asum (map (solveWithSourceAndReturn ctxt ths) usefulGoals)
 
         -- Update the last chain conclusion term if next step is a 'safe' chain goal (kdPremGoals is empty)

@@ -19,20 +19,56 @@ import qualified Data.Map as M
 import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
-import Control.Applicative ((<|>))
 import Control.Monad
 import Theory.Model.Rule
 import Data.Maybe (mapMaybe, listToMaybe, maybeToList )
 import Theory.Model.Signature (sigmMaudeHandle)
-import Theory.Model.Fact (LNFact, FactTag, Fact (factTag))
+import Theory.Model.Fact (LNFact, FactTag, Fact (factTag, factTerms))
 import Theory.Model.Atom (ProtoAtom(Action))
 import Theory.Proof.Cyclic
-import Utils.PartialOrd (TransClosedOrder (..), fromSet, image, minima, domain, getDirectlyLarger, isSmaller, universe)
+import Utils.PartialOrd
 import Data.Bifunctor (Bifunctor(bimap, first))
-import Utils.Two (tuple, two, Two)
+import Utils.Two (tuple, mapTwice)
 import Utils.Misc (addAt)
 import Term.Substitution (Apply(apply))
 import Control.Monad.Trans.Reader (runReader)
+import Data.Bool (bool)
+
+data Node a = Node
+  { nnid  :: NodeId
+  , nannot :: a }
+
+instance Show a => Show (Node a) where
+  show (Node nid a) = show nid ++ ":" ++ show a
+
+instance Eq a => Eq (Node a) where
+  (Node n1 a1) == (Node n2 a2) = n1 == n2 && a1 == a2
+
+instance Ord a => Ord (Node a) where
+  compare (Node n1 a1) (Node n2 a2) = case compare n1 n2 of
+    LT  -> LT
+    GT  -> GT
+    EQ  -> compare a1 a2
+
+instance Renamable a => Renamable (Node a) where
+  (Node nid1 a1) ~> (Node nid2 a2) = mapVarM nid1 nid2 (a1 ~> a2)
+
+data TermKind = KFun FunSym | KConst | KVar LSort deriving (Show, Ord, Eq)
+termKind :: LNTerm -> TermKind
+termKind t = case viewTerm t of
+  FApp sym _ -> KFun sym
+  Lit (Con _) -> KConst
+  Lit (Var (LVar _ sort _)) -> KVar sort
+
+type ColoredNode = Node (Either RuleACInst AFGoals)
+
+type Color = Either String [(FactTag, [TermKind])]
+
+getColor :: ColoredNode -> Color
+getColor = bimap getRuleName (map afColor . afgs) . nannot
+  where
+    afColor :: LNFact -> (FactTag, [TermKind])
+    afColor f = (factTag f, map termKind (factTerms f))
 
 data BackLinkCandidate = PartialCyclicProof UpTo BackLink
   deriving ( Show )
@@ -86,16 +122,8 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
     checkProgresses ord (Renaming subst _) j =
       maybe False (\sigma_j -> isSmaller ord sigma_j j) (M.lookup j subst)
 
-rnode :: System -> NodeId -> Maybe RNode
-rnode sys nid = Node nid <$> M.lookup nid (L.get sNodes sys)
-
 allRenamings :: MaudeHandle -> System -> System -> [Renaming]
-allRenamings mh smallerSys largerSys
-  | null (renamableLoops smallerSys) = []
-  | otherwise = mapMaybe (runRenaming mh) (allNodeMappings smallerSys largerSys)
-  where
-    renamableLoops :: System -> [LoopInstance RNode]
-    renamableLoops s = mapMaybe (traverse (rnode s)) $ filter (not . hasLoopExit s) (L.get sLoops s)
+allRenamings mh smallerSys largerSys = mapMaybe (runRenaming mh) (allNodeMappings smallerSys largerSys)
 
 isContainedInModRenamingUpTo :: MaudeHandle -> System -> System -> RenamingUpToWithVars
 isContainedInModRenamingUpTo mh smaller larger =
@@ -188,6 +216,7 @@ allMappingsGrouped (~~>) genF testF baseR als ars
     foldToMatching k as ml = do
       l <- ml
       as' <- M.lookup k ars
+      guard (length as <= length as')
       return $ (as, as'):l
 
 newtype Or = Any Bool
@@ -198,32 +227,23 @@ instance Semigroup Or where
 instance Monoid Or where
   mempty = Any False
 
-groupByNode :: (a -> RNode) -> [a] -> M.Map String [a]
-groupByNode f = foldr (uncurry addAt . withNodeName) M.empty
-  where
-    withNodeName fn = (show $ getRuleName (nannot (f fn)), fn)
-
-groupByFacts :: [AFNode] -> M.Map [FactTag] [AFNode]
-groupByFacts = foldr (uncurry addAt . withFacts) M.empty
-  where
-    withFacts a = (map factTag (nannot a), a)
-
-type Mapping = (RNode, RNode)
-
 -- | Tries to rename loops into one another s.t. some of the renamed loops
 --   *could* make progress. We early-test whether we could make progress by
 --   checking that whether some loop is shorter than the loop it got mapped to.
 --   If no loops are provided, we say there are no renamings. Technically, the
 --   identity would be a valid renamings, but this renaming will not make
 --   progress. We expect that only renamings of loops will progress.
-allLoopMappings :: [LoopInstance RNode] -> [LoopInstance RNode] -> [([Mapping], PartialRenaming)]
+allLoopMappings :: [LoopInstance ColoredNode] -> [LoopInstance ColoredNode] -> [PartialRenaming]
 allLoopMappings [] _ = []
 allLoopMappings _ [] = []
-allLoopMappings (groupByNode start -> lisSml) (groupByNode start -> lisLrg) =
-    map (first fst)
+allLoopMappings lisSml lisLrg =
+    map snd
   $ filter (didProgress . fst)
-  $ allMappingsGrouped (~>) couldProgress (const True) (Pure idRenaming) lisSml lisLrg
+  $ allMappingsGrouped (~>) couldProgress (const True) (Pure idRenaming) (groupF lisSml) (groupF lisLrg)
   where
+    groupF :: [LoopInstance ColoredNode] -> M.Map Color [LoopInstance ColoredNode]
+    groupF = groupByColor (getColor . start)
+
     leftShorter :: NE.NonEmpty a -> NE.NonEmpty a -> Bool
     leftShorter (NE.toList -> l) (NE.toList -> r) = rec l r
       where
@@ -232,13 +252,11 @@ allLoopMappings (groupByNode start -> lisSml) (groupByNode start -> lisLrg) =
         rec _ [] = False
         rec (_:tl) (_:tr) = rec tl tr
 
-    couldProgress :: LoopInstance RNode -> LoopInstance RNode -> (([Mapping], Or) -> ([Mapping], Or))
-    couldProgress l1 l2 =
-      let end = NE.last $ NE.zip (loopEdges l1) (loopEdges l2)
-      in bimap (end:) (Any (leftShorter (loopEdges l1) (loopEdges l2)) <>)
+    couldProgress :: LoopInstance ColoredNode -> LoopInstance ColoredNode -> (Or -> Or)
+    couldProgress l1 l2 = (Any (leftShorter (loopEdges l1) (loopEdges l2)) <>)
 
-    didProgress :: ([Mapping], Or) -> Bool
-    didProgress (_, Any p) = p
+    didProgress :: Or -> Bool
+    didProgress (Any p) = p
 
 mapAlongEdges :: (Renamable a, Ord a, Ord k) =>
      (a -> NodeId)
@@ -269,69 +287,70 @@ mapAlongEdges nidF groupF topoSml topoLrg = go
       let larger = map (bimap (S.toList . getDirectlyLarger topoSml) (S.toList . getDirectlyLarger topoLrg)) mappedNodes
       in foldr (\(ns1, ns2) -> concatMap (go ns1 ns2)) [r] larger
 
-toposortedRel :: Ord a => (NodeId -> Maybe a) -> [Two NodeId] -> Maybe (TransClosedOrder a)
-toposortedRel f = fromSet . S.fromList . mapMaybe (fmap tuple . traverse f)
+colorAnnotated :: System -> NodeId -> Maybe ColoredNode
+colorAnnotated s nid = Node nid . Left <$> M.lookup nid (L.get sNodes s)
 
--- | Generate the transitive closure of the edge relaiton of the constraint
---   system, but in inverted order so that the maxima of the relation are the
---   nodes that have no premise solved (or no premise).
-toposortedNodeRel :: System -> Maybe (TransClosedOrder RNode)
-toposortedNodeRel s = toposortedRel (rnode s) (map (uncurry two) (rawEdgeRel s))
-
-toposortedKRel :: System -> Maybe (TransClosedOrder RNode)
-toposortedKRel s = toposortedRel (rnode s) (map (uncurry two) (kLessRel s))
-
-type AFMap = M.Map NodeId AFNode
-
-toposortedAFRel :: System -> AFMap -> Maybe (AFMap, TransClosedOrder AFNode)
-toposortedAFRel sys afs = do
-  order <- toposortedRel afnode (map (uncurry two) $ filter p (kLessRel sys))
-  let ordered = image order <> domain order
-  return (M.filter (`S.notMember` ordered) afs, order)
+toposortedEdges :: System -> AFMap -> Maybe (TransClosedOrder ColoredNode)
+toposortedEdges s afs =
+  let kRelRaw = colorList colorAFG (kLessRel s)
+      nodeRel = colorList (colorAnnotated s) (rawEdgeRel s)
+      afNodes = map mkAFG (M.toList afs) :: [ColoredNode]
+      nodes = map mkAnnotated (M.toList $ L.get sNodes s) :: [ColoredNode]
+  in do
+    kRel <- toRelation <$> fromSet (S.fromList kRelRaw)
+    ord <- fromSet (S.fromList nodeRel <> S.fromList kRel)
+    return $ foldr addAsUnordered ord (afNodes ++ nodes)
   where
-    afnode :: NodeId -> Maybe AFNode
-    afnode nid = nid `M.lookup` afs <|> Just (Node nid [])
+    colorAFG :: NodeId -> Maybe ColoredNode
+    colorAFG nid = Node nid . Right . AFGoals <$> M.lookup nid afs
 
-    p :: (NodeId, NodeId) -> Bool
-    p (lt, gt) = (lt `M.member` afs) || (gt `M.member` afs)
+    colorList :: Ord a => (a -> Maybe ColoredNode) -> [(a, a)] -> [(ColoredNode, ColoredNode)]
+    colorList f = mapMaybe (fmap tuple . sequence . mapTwice f)
 
-loops :: System -> [LoopInstance RNode]
-loops s = mapMaybe (traverse (rnode s)) (L.get sLoops s)
+    mkAFG :: (NodeId, [LNFact]) -> ColoredNode
+    mkAFG = uncurry Node . fmap (Right . AFGoals)
 
-splitByK :: System -> ([RNode], [RNode])
-splitByK sys =
-  let nodes = L.get sNodes sys
-  in L.partition (isIntruderRule . nannot) $ map (uncurry Node) (M.toList nodes)
+    mkAnnotated :: (NodeId, RuleACInst) -> ColoredNode
+    mkAnnotated = uncurry Node . fmap Left
+
+type AFMap = M.Map NodeId [LNFact]
+
+loops :: System -> [LoopInstance ColoredNode]
+loops s = mapMaybe (traverse (colorAnnotated s)) (L.get sLoops s)
 
 unsolvedAFGoals :: System -> AFMap
 unsolvedAFGoals s =
   let afts = unsolvedActionAtoms s
-  in M.mapWithKey Node (foldr (uncurry addAt) M.empty afts)
+  in foldr (uncurry addAt) M.empty afts
 
-rootsIn :: TransClosedOrder RNode -> [RNode] -> [RNode]
-rootsIn tco baseNodes =
-  let notMinima = image tco
-  in filter (`S.notMember` notMinima) baseNodes
-
-getMappingInput :: System -> Maybe ([LoopInstance RNode], TransClosedOrder RNode, [RNode], TransClosedOrder RNode, [RNode], TransClosedOrder AFNode, [AFNode])
-getMappingInput s = do
+loopsAndsystemSpanningOrder :: System -> Maybe ([LoopInstance ColoredNode], TransClosedOrder ColoredNode)
+loopsAndsystemSpanningOrder s = do
+  let afs = unsolvedAFGoals s
+  es <- toposortedEdges s afs
   let ls = loops s
-  topo <- toposortedNodeRel s
-  let (nodesK, nodesNotK) = splitByK s
-  let roots = rootsIn topo nodesNotK
-  kTopo <- toposortedKRel s
-  let kRoots = rootsIn kTopo nodesK
-  (unordered, afTopo) <- toposortedAFRel s $ unsolvedAFGoals s
-  let afRoots = S.toList $ minima afTopo
-  return (ls, topo, roots, kTopo, kRoots, afTopo, M.elems unordered ++ afRoots)
+  let roots = startFrom es ls
+  let (rest, spanning) = spanningOrder roots (toRawRelation es)
+  unless (M.null rest) (error "spanning DAG computation invariant violated")
+  return (ls, foldr addAsUnordered spanning (unordered es))
+  where
+    startFrom :: TransClosedOrder ColoredNode -> [LoopInstance ColoredNode] -> S.Set ColoredNode
+    startFrom ord ls =
+      let roots = foldr skipFr S.empty (minima ord)
+          starts = map start ls
+      in  foldr S.insert (S.filter ((`all` starts) . cannotReach ) roots) starts
+      where
+        cannotReach :: ColoredNode -> ColoredNode -> Bool
+        cannotReach from to = not $ to `S.member` getLarger ord from
+
+        skipFr :: ColoredNode -> S.Set ColoredNode -> S.Set ColoredNode
+        skipFr n = bool (S.insert n) (S.union (getDirectlyLarger ord n)) (either isFreshRule (const False) (nannot n))
+
+groupByColor :: (a -> Color) -> [a] -> M.Map Color [a]
+groupByColor f = foldr (\n -> addAt (f n) n) M.empty
 
 allNodeMappings :: System -> System -> [PartialRenaming]
-allNodeMappings sml lrg = do
-  (lsSml, topoSml, rootsSml, kTopoSml, kRootsSml, afTopoSml, afRootsSml) <- maybeToList $ getMappingInput sml
-  (lsLrg, topoLrg, rootsLrg, kTopoLrg, kRootsLrg, afTopoLrg, afRootsLrg) <- maybeToList $ getMappingInput lrg
-
-  (mappedEnds, r1) <- allLoopMappings lsSml lsLrg
-  r2 <- mapAlongEdges nnid (groupByNode id) topoSml topoLrg (map fst mappedEnds) (map snd mappedEnds) r1
-  r3 <- mapAlongEdges nnid (groupByNode id) topoSml topoLrg rootsSml rootsLrg r2
-  r4 <- mapAlongEdges nnid (groupByNode id) kTopoSml kTopoLrg kRootsSml kRootsLrg r3
-  mapAlongEdges nnid groupByFacts afTopoSml afTopoLrg afRootsSml afRootsLrg r4
+allNodeMappings smaller larger = do
+  (lsSml, spanningSml) <- maybeToList (loopsAndsystemSpanningOrder smaller)
+  (lsLrg, spanningLrg) <- maybeToList (loopsAndsystemSpanningOrder larger)
+  r0 <- if null lsSml then [Pure idRenaming] else allLoopMappings lsSml lsLrg
+  mapAlongEdges nnid (groupByColor getColor) spanningSml spanningLrg (S.toList $ minima spanningSml) (S.toList $ minima spanningLrg) r0

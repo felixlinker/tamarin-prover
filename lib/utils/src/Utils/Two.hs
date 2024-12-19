@@ -3,7 +3,8 @@ module Utils.Two
   ( Two(..)
   , two
   , tuple
-  , twice ) where
+  , twice
+  , mapTwice ) where
 
 import Data.Bifunctor (bimap)
 
@@ -41,3 +42,6 @@ instance Traversable Two where
 
 twice :: (a -> b) -> (a -> c) -> a -> (b, c)
 twice f g = bimap f g . tuple . pure
+
+mapTwice :: (a -> b) -> (a, a) -> Two b
+mapTwice f = fmap f . uncurry two
