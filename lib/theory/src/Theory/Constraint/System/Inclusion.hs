@@ -1,12 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ViewPatterns #-}
 module Theory.Constraint.System.Inclusion
   ( BackLinkCandidate(..)
   , getCycleRenamingsOnPath
-  , getCycleRenamingOnPath
-  , canCloseCycle
   , allRenamings ) where
 
 import qualified Extension.Data.Label as L
@@ -20,8 +17,9 @@ import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NE
 import Control.Monad
+import Control.Applicative ((<|>))
 import Theory.Model.Rule
-import Data.Maybe (mapMaybe, listToMaybe, maybeToList )
+import Data.Maybe (mapMaybe, maybeToList )
 import Theory.Model.Signature (sigmMaudeHandle)
 import Theory.Model.Fact (LNFact, FactTag, Fact (factTag, factTerms))
 import Theory.Model.Atom (ProtoAtom(Action))
@@ -70,21 +68,24 @@ getColor = bimap getRuleName (map afColor . afgs) . nannot
     afColor :: LNFact -> (FactTag, [TermKind])
     afColor f = (factTag f, map termKind (factTerms f))
 
-data BackLinkCandidate = PartialCyclicProof UpTo BackLink
+data BackLinkCandidate = PartialCyclicProof
+ { blUpTo :: UpTo
+ , bl :: BackLink }
   deriving ( Show )
+
+fromRenaming :: BackLinkEdge -> RenamingUpToWithVars -> BackLinkCandidate
+fromRenaming e (r, upTo, progressing) = PartialCyclicProof upTo (BackLink e r progressing)
 
 fromCandidate :: BackLinkCandidate -> Maybe BackLink
 fromCandidate (PartialCyclicProof upTo bl) = guard (S.null upTo) >> return bl
 
--- |  @Nothing@ is an incorrect renaming, @Just S.Empty@ is a correct renaming,
---    and everything else a potentially correct renaming.
-type RenamingUpToWithVars = Maybe (Renaming, UpTo, ProgressingVars)
+type RenamingUpToWithVars = (Renaming, UpTo, ProgressingVars)
 
 type AGTuple = (LVar, LNFact)
 
 -- TODO: Handle last
 -- TODO: Document @System@ w.r.t. to how this functino works
-isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> Renaming -> RenamingUpToWithVars
+isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> Renaming -> Maybe RenamingUpToWithVars
 isProgressingAndSubSysUpTo mh smaller larger renaming = do
   let r = toSubst renaming
   guard (apply r (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
@@ -125,26 +126,20 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
 allRenamings :: MaudeHandle -> System -> System -> [Renaming]
 allRenamings mh smallerSys largerSys = mapMaybe (runRenaming mh) (allNodeMappings smallerSys largerSys)
 
-isContainedInModRenamingUpTo :: MaudeHandle -> System -> System -> RenamingUpToWithVars
+isContainedInModRenamingUpTo :: MaudeHandle -> System -> System -> [RenamingUpToWithVars]
 isContainedInModRenamingUpTo mh smaller larger =
-  msum $ map (isProgressingAndSubSysUpTo mh smaller larger) (allRenamings mh smaller larger)
+  mapMaybe (isProgressingAndSubSysUpTo mh smaller larger) (allRenamings mh smaller larger)
 
 getCycleRenamingsOnPath :: ProofContext -> NonEmpty System -> [BackLinkCandidate]
-getCycleRenamingsOnPath ctx (leaf:|candidates) = mapMaybe tryRenaming candidates
+getCycleRenamingsOnPath ctx (leaf:|candidates) = concatMap tryRenaming candidates
   where
     hnd :: MaudeHandle
     hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
 
-    tryRenaming :: System -> Maybe BackLinkCandidate
-    tryRenaming inner = do
-      (r, upTo, progressing) <- isContainedInModRenamingUpTo hnd inner leaf
-      return $ PartialCyclicProof upTo (BackLink (L.get sId leaf, L.get sId inner) r progressing)
-
-getCycleRenamingOnPath :: ProofContext -> NonEmpty System -> Maybe BackLinkCandidate
-getCycleRenamingOnPath ctx = listToMaybe . getCycleRenamingsOnPath ctx
-
-canCloseCycle :: ProofContext -> NonEmpty System -> Maybe BackLink
-canCloseCycle ctx p = getCycleRenamingOnPath ctx p >>= fromCandidate
+    tryRenaming :: System -> [BackLinkCandidate]
+    tryRenaming inner =
+      let blEdge = (L.get sId leaf, L.get sId inner)
+      in map (fromRenaming blEdge) (isContainedInModRenamingUpTo hnd inner leaf)
 
 -- | Explores all possible renamings between two lists while trying to reject as
 --   many candidates as possible. The applicative monoid @m b@ can be used as an
@@ -356,4 +351,7 @@ allNodeMappings smaller larger = do
   (lsSml, spanningSml) <- maybeToList (loopsAndsystemSpanningOrder smaller)
   (lsLrg, spanningLrg) <- maybeToList (loopsAndsystemSpanningOrder larger)
   r0 <- if null lsSml then [Pure idRenaming] else allLoopMappings lsSml lsLrg
-  mapAlongEdges nnid (groupByColor getColor) spanningSml spanningLrg (S.toList $ minima spanningSml) (S.toList $ minima spanningLrg) r0
+  mapAlongEdges nnid (groupByColor getColor) spanningSml spanningLrg (startAt spanningSml) (startAt spanningLrg) r0
+  where
+    startAt :: TransClosedOrder ColoredNode -> [ColoredNode]
+    startAt = S.toList . minima

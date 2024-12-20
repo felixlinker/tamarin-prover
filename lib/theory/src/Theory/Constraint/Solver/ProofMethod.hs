@@ -76,7 +76,6 @@ import Utils.Misc (peak)
 import Theory.Constraint.System.ID (subCaseIDs)
 import Theory.Constraint.System.Results
 import Data.List.NonEmpty (NonEmpty((:|)), (<|))
-import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
 
 
 

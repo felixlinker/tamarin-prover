@@ -4,6 +4,7 @@
 module Theory.Proof.Cyclic
   ( ProgressingVars(..)
   , BackLink(..)
+  , BackLinkEdge
   , toProof
   , CyclicProof(..)
   , ProofSoundness(..)

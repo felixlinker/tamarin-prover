@@ -51,13 +51,14 @@ import           Term.Builtin.Convenience
 
 import Utils.Misc (twoPartitions, peakTail, splitBetween)
 import Data.Maybe (isNothing, catMaybes, isJust, fromJust)
-import Theory.Constraint.System.Inclusion (getCycleRenamingOnPath, BackLinkCandidate (PartialCyclicProof))
+import Theory.Constraint.System.Inclusion (BackLinkCandidate (blUpTo, bl), getCycleRenamingsOnPath)
 import Data.List.NonEmpty as NE (NonEmpty((:|)))
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
 import Control.Monad.RWS (MonadReader(ask), MonadWriter (tell))
 import Theory.Constraint.System.Results (Result(Contradictory), Contradiction (Cyclic))
 import Data.Bool (bool)
+import Data.List (find)
 
 ------------------------------------------------------------------------------
 -- Extracting Goals
@@ -602,12 +603,16 @@ searchBacklink asMethod syssToRoot = do
   ctxt <- ask
   s <- St.get
   let syss = bool (s NE.<|) id asMethod <$> syssToRoot
-  maybe (return ()) cycleFound (syss >>= getCycleRenamingOnPath ctxt)
+  cycleFound (getCycleRenamingsOnPath ctxt <$> syss)
   where
-    cycleFound :: BackLinkCandidate -> Reduction ()
-    cycleFound (PartialCyclicProof upTo bl) = if S.null upTo
-      then tell (Just (Contradictory (Just (Cyclic bl))))
-      else when asMethod (insertGoal (Cut upTo) False)
+    insertCut :: [BackLinkCandidate] -> Reduction ()
+    insertCut = when asMethod . mapM_ (\(blUpTo -> ut) -> insertGoal (Cut ut) False)
+
+    setContradictory :: BackLinkCandidate -> Reduction ()
+    setContradictory = tell . Just . Contradictory . Just . Cyclic . bl
+
+    cycleFound :: Maybe [BackLinkCandidate] -> Reduction ()
+    cycleFound cands = maybe (mapM_ insertCut cands) setContradictory (find (S.null . blUpTo) =<< cands)
 
 insertMinimize :: Reduction ()
 insertMinimize = do
