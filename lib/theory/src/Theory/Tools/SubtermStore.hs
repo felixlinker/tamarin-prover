@@ -20,13 +20,13 @@
 module Theory.Tools.SubtermStore (
   -- ** Construction
     SubtermStore(..)
-  , subtermStoreInclusion
   , negSubterms
   , posSubterms
   , solvedSubterms
   , isContradictory
   , oldNegSubterms
   , emptySubtermStore
+  , isEmptySubtermStore
   , conjoinSubtermStores
   , isNatSubterm
   , rawSubtermRel
@@ -102,22 +102,12 @@ instance Binary SubtermStore
 
 $(mkLabels [''SubtermStore])
 
-subtermStoreInclusion :: SubtermStore -> SubtermStore -> Bool
-subtermStoreInclusion s1 s2 = and
-  [ subSetOn negSubterms
-  , subSetOn posSubterms
-  , subSetOn solvedSubterms
-  , impliesOn isContradictory]
-  where
-    subSetOn :: Ord a => (SubtermStore :-> S.Set a) -> Bool
-    subSetOn f = L.get f s1 `S.isSubsetOf` L.get f s2
-
-    impliesOn :: (SubtermStore :-> Bool) -> Bool
-    impliesOn f = not (L.get f s1) || L.get f s2
-
 -- | @emptyEqStore@ is the empty equation store.
 emptySubtermStore :: SubtermStore
 emptySubtermStore = SubtermStore S.empty S.empty S.empty False S.empty
+
+isEmptySubtermStore :: SubtermStore -> Bool
+isEmptySubtermStore (SubtermStore s1 s2 s3 _ _) = all S.null [s1, s2, s3]
 
 conjoinSubtermStores :: SubtermStore -> SubtermStore -> SubtermStore
 conjoinSubtermStores (SubtermStore a1 b1 c1 d1 e1) (SubtermStore a2 b2 c2 d2 e2)
