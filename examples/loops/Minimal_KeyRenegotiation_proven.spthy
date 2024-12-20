@@ -1,4 +1,4 @@
-theory Minimal_KeyRenegotiation begin
+theory Minimal_KeyRenegotiation_proven begin
 
 // Function signature and definition of the equational theory E
 
@@ -43,14 +43,7 @@ lemma Secret_reachable:
 guarded formula characterizing all satisfying traces:
 "∃ k #i. (Secret( k ) @ #i)"
 */
-simplify
-solve( Secret( k ) @ #i )
-  case Send
-  solve( Sender( k0 ) ▶₀ #i )
-    case Setup
-    SOLVED // trace found
-  qed
-qed
+by sorry
 
 lemma secrecy:
   all-traces
@@ -68,11 +61,38 @@ solve( Secret( k ) @ #i )
       case Send
       solve( !KU( ~k.2 ) @ #j )
         case Send
-        by sorry /* removed */
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 3-04 */
       qed
     next
       case c_senc
-      by sorry /* removed */
+      solve( Receiver( k0.1 ) ▶₀ #vr )
+        case Receive
+        solve( !KU( senc(k0, k0.1) ) @ #vk.1 )
+          case Send
+          solve( !KU( ~k.2 ) @ #vk.3 )
+            case Send
+            search for cycle
+            by contradiction /* cyclic backlink to CS id 3-04 */
+          qed
+        next
+          case c_senc
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 3-04 */
+        qed
+      next
+        case Setup
+        solve( !KU( senc(k0, ~k.2) ) @ #vk.1 )
+          case Send
+          solve( !KU( ~k.3 ) @ #vk.3 )
+            case Send
+            by solve( !KU( ~k.2 ) @ #vk.4 )
+          qed
+        next
+          case c_senc
+          by solve( !KU( ~k.2 ) @ #vk.5 )
+        qed
+      qed
     qed
   next
     case Setup
@@ -89,17 +109,26 @@ solve( Secret( k ) @ #i )
   qed
 next
   case Send
-  solve( !KU( ~k.1 ) @ #j )
+  solve( Sender( k0 ) ▶₀ #i )
     case Send
-    solve( Sender( x ) ▶₀ #vr )
+    solve( !KU( ~k.1 ) @ #j )
       case Send
       solve( !KU( ~k.2 ) @ #vk )
         case Send
-        search for cycle
-        by contradiction /* cyclic backlink to CS id 4-00 */
+        solve( Sender( x.1 ) ▶₀ #vr.3 )
+          case Send
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 3-00 */
+        next
+          case Setup
+          by solve( !KU( ~k.3 ) @ #vk.1 )
+        qed
       qed
-    next
-      case Setup
+    qed
+  next
+    case Setup
+    solve( !KU( ~k.1 ) @ #j )
+      case Send
       by solve( !KU( ~k.2 ) @ #vk )
     qed
   qed
@@ -120,9 +149,9 @@ qed
 /*
 Generated from:
 Tamarin version 1.11.0
-Maude version 3.3.1
-Git revision: aa4d5f05853f925f20868af061f7e1faf8be153b, branch: cyclic
-Compiled at: 2024-12-13 10:25:53.610676 UTC
+Maude version 3.2.1
+Git revision: 4d53012802d3c526e3d794810cb15551163f4462, branch: rewrite-prover-regression
+Compiled at: 2024-12-05 16:41:44.504428 UTC
 */
 
 end
