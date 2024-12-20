@@ -7,11 +7,18 @@
 --
 -- AC unification based on maude and free unification.
 module Term.Unification (
+  -- * Variable substitutions
+    LVarSubst
+  , toVarSubst
+  , mergeLVarSubsts
+
   -- * Unification modulo AC
-    unifyLTerm
+  , unifyLTerm
   , unifyLNTerm
   , unifyLNTerms
   , unifiableLNTerms
+  , unifyLTermOriented
+  , unifyLNTermOriented
 
   , unifyLTermFactored
   , unifyLNTermFactored
@@ -101,7 +108,7 @@ import qualified Term.Maude.Process as UM
 import           Term.Maude.Process
                    (MaudeHandle, WithMaude, startMaude, getMaudeStats, mhMaudeSig, mhFilePath)
 import           Term.Maude.Signature
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, mapMaybe)
 
 -- Unification modulo AC
 ----------------------------------------------------------------------
@@ -135,6 +142,39 @@ unifyLTerm :: (IsConst c)
            -> WithMaude [SubstVFresh c LVar]
 unifyLTerm sortOf eqs = flattenUnif <$> unifyLTermFactored sortOf eqs
 
+type LVarSubst = M.Map LVar LVar
+
+toVarSubst :: LSubst c -> Maybe LVarSubst
+toVarSubst = traverse termVar . sMap
+
+mergeLVarSubsts :: LVarSubst -> LVarSubst -> Maybe LVarSubst
+mergeLVarSubsts m1 m2 = M.fromAscList <$> go (M.toAscList m1) (M.toAscList m2)
+  where
+    go :: (Ord a, Eq b) => [(a, b)] -> [(a, b)] -> Maybe [(a, b)]
+    go [] l2 = Just l2
+    go l1 [] = Just l1
+    go l1@((k1, v1):t1) l2@((k2, v2):t2)
+      | k1 == k2 && v1 == v2 = ((k1,v1):) <$> go t1 t2
+      | k1 < k2 = ((k1, v1):) <$> go t1 l2
+      | k2 < k1 = ((k2, v2):) <$> go l1 t2
+      | otherwise = Nothing
+
+composeOrientedUnifs :: (IsConst c) => S.Set LVar -> S.Set LVar -> (LSubst c, [LSubstVFresh c]) -> Maybe [LVarSubst]
+composeOrientedUnifs domL domR (subst, substs) = do
+  r1 <- toVarSubst subst
+  traverse (mergeLVarSubsts r1) $ mapMaybe (couldBeRenaming domL domR) substs
+
+unifyLTermOriented :: IsConst c => (c -> LSort) -> [Equal (LTerm c)] -> WithMaude (Maybe [LVarSubst])
+unifyLTermOriented sortOf eqs = composeOrientedUnifs domL domR <$> unifyLTermFactored sortOf eqs
+  where
+    varsSide :: IsConst c => (Equal (LTerm c) -> LTerm c) -> [Equal (LTerm c)] -> S.Set LVar
+    varsSide f = S.fromList . freesList . map f
+
+    domL = varsSide eqLHS eqs
+    domR = varsSide eqRHS eqs
+
+unifyLNTermOriented :: [Equal LNTerm] -> WithMaude (Maybe [LVarSubst])
+unifyLNTermOriented = unifyLTermOriented sortOfName
 
 -- | @unifyLNTerm eqs@ returns a complete set of unifiers for @eqs@ modulo AC.
 unifyLNTerm :: [Equal LNTerm] -> WithMaude [LNSubstVFresh]

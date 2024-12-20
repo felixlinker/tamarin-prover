@@ -91,6 +91,7 @@ module Theory.Model.Fact (
   , LFact
   , LNFact
   , unifyLNFactEqs
+  , unifyLNFactEqsOriented
   , unifyLNFacts
   , unifiableLNFacts
   , newVariables
@@ -122,6 +123,7 @@ import           Term.Rewriting.Norm
 import           Term.Macro
 
 import           Text.PrettyPrint.Class
+import Control.Monad.Identity (Identity(Identity, runIdentity))
 
 
 ------------------------------------------------------------------------------
@@ -457,12 +459,18 @@ type LFact c = Fact (LTerm c)
 -- and constant fixed to names.
 type LNFact = Fact LNTerm
 
+unifyFactEqs :: Monad m => ([Equal (Term t)] -> WithMaude (m [a])) -> [Equal (Fact (Term t))] -> WithMaude (m [a])
+unifyFactEqs unif eqs
+  | all (evalEqual . fmap factTag) eqs =
+      unif (map (fmap (fAppList . factTerms)) eqs)
+  | otherwise = return (return [])
+
 -- | Unify a list of @LFact@ equalities.
 unifyLNFactEqs :: [Equal LNFact] -> WithMaude [LNSubstVFresh]
-unifyLNFactEqs eqs
-  | all (evalEqual . fmap factTag) eqs =
-      unifyLNTerm (map (fmap (fAppList . factTerms)) eqs)
-  | otherwise = return []
+unifyLNFactEqs = fmap runIdentity . unifyFactEqs (fmap Identity . unifyLNTerm)
+
+unifyLNFactEqsOriented :: [Equal LNFact] -> WithMaude (Maybe [LVarSubst])
+unifyLNFactEqsOriented = unifyFactEqs unifyLNTermOriented
 
 unifyLNFacts :: LNFact -> LNFact -> WithMaude [LNSubstVFresh]
 unifyLNFacts fa1 fa2 = unifyLNFactEqs [Equal fa1 fa2]

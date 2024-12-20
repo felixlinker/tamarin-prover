@@ -36,10 +36,10 @@ import Control.DeepSeq (NFData)
 import Data.Binary (Binary)
 import Term.LTerm
 import Control.Monad (guard)
-import Theory.Model.Rule (RuleACInst, getRuleRenaming, getRuleName)
-import Term.Unification (SubstVFresh(..), WithMaude, LNSubstVFresh, LNSubst, Subst(..), unifyLNTerms, MaudeHandle, Apply(..))
-import Theory.Model.Fact (LNFact, unifyLNFacts, Fact (factTag))
-import Data.Maybe (mapMaybe, listToMaybe, fromMaybe)
+import Theory.Model.Rule (RuleACInst, getRuleName, Rule (Rule))
+import Term.Unification (WithMaude, LNSubst, Subst(..), MaudeHandle, Apply(..), Equal (Equal), LVarSubst, unifyLNTermOriented, mergeLVarSubsts)
+import Theory.Model.Fact (LNFact, Fact (factTag), unifyLNFactEqsOriented)
+import Data.Maybe (mapMaybe, fromMaybe)
 import Theory.Constraint.System.Constraints (Goal(..))
 import Control.Monad.Trans.Reader (runReader)
 import Text.PrettyPrint.Highlight (HighlightDocument, Document (vcat), operator_, space)
@@ -48,7 +48,7 @@ import Data.List (permutations)
 
 -- A Renaming is a substitution that always maps to variables.
 data Renaming = Renaming
-  { rsubst :: M.Map LVar LVar
+  { rsubst :: LVarSubst
   , img :: S.Set LVar }
   deriving ( Eq, Ord, Show, Generic, NFData, Binary )
 
@@ -57,8 +57,23 @@ instance HasFrees Renaming where
   foldFreesOcc _ _ _ = mempty
   mapFrees f (Renaming rsubst img) = Renaming <$> mapFrees f rsubst <*> mapFrees f img
 
+fromLVarSubst :: LVarSubst -> Renaming
+fromLVarSubst subst = Renaming subst (S.fromList $ M.elems subst)
+
 toSubst :: Renaming -> LNSubst
 toSubst (Renaming r _) = Subst (M.map (LIT . Var) r)
+
+unifyToRenaming :: ([Equal a] -> WithMaude (Maybe [LVarSubst])) -> [Equal a] -> PartialRenaming
+unifyToRenaming unif eqs = Monadic (toRenaming <$> unif eqs)
+  where
+    toRenaming :: Maybe [LVarSubst] -> Maybe Renaming
+    toRenaming = fmap fromLVarSubst . (peak =<<)
+
+unifyLNTermToRenaming :: [Equal LNTerm] -> PartialRenaming
+unifyLNTermToRenaming = unifyToRenaming unifyLNTermOriented
+
+unifyLNFactToRenaming :: [Equal LNFact] -> PartialRenaming
+unifyLNFactToRenaming = unifyToRenaming unifyLNFactEqsOriented
 
 prettyRenaming :: HighlightDocument d => Renaming -> d
 prettyRenaming (M.toList . rsubst -> elems) = vcat (map showMapping elems)
@@ -71,41 +86,8 @@ applyR (Renaming r _) = apply (Subst (M.map (LIT . Var) r) :: LNSubst)
 idRenaming :: Renaming
 idRenaming = Renaming M.empty S.empty
 
-renamedTimePoints :: Renaming -> M.Map LVar LVar
+renamedTimePoints :: Renaming -> LVarSubst
 renamedTimePoints (Renaming r _) = M.filterWithKey (\k _ -> lvarSort k == LSortNode) r
-
-fromUnification :: HasFrees a => a -> a -> LNSubstVFresh -> Maybe Renaming
-fromUnification a1 a2 = fmap toRenaming . M.foldrWithKey canonicalize (Just M.empty) . svMap
-  where
-    toRenaming :: M.Map LVar LVar -> Renaming
-    toRenaming m =
-      let m' = selfCompose m
-      in Renaming m' (S.fromList $ M.elems m')
-
-    rng1 = range a1
-    rng2 = range a2
-
-    -- TODO: This function could be replaced with couldBeRenaming
-    canonicalize :: LVar -> VTerm Name LVar -> Maybe (M.Map LVar LVar) -> Maybe (M.Map LVar LVar)
-    canonicalize v (termVar -> mtv) macc = do
-      tv <- mtv
-      aux tv <$> macc
-      where
-        aux tv
-          | v `S.member` rng1 = M.insert v tv
-          | v `S.member` rng2 = M.insert tv v
-          | otherwise = error "illegal state"
-
-    -- @selfCompose@ handles cases such as the following. Presume we want to
-    -- rename variable x to variable y. One unifier could be [x->z, y->z].
-    -- @canonicalize@ above will store this as [x->z,z->y] and @selfCompose@
-    -- eliminates z.
-    selfCompose :: M.Map LVar LVar -> M.Map LVar LVar
-    -- @<> m@ keeps mappings that are already correct.
-    selfCompose m = M.filterWithKey (\k _ -> k `S.member` rng1) (M.compose m m <> m)
-
-    range :: HasFrees a => a -> S.Set LVar
-    range = S.fromList . freesList
 
 singleton :: LVar -> LVar -> Renaming
 singleton v v' = Renaming (M.singleton v v') (S.singleton v')
@@ -215,14 +197,14 @@ instance (Renamable a, Renamable b) => Renamable (Either a b) where
   _ ~> _ = NoRenaming
 
 instance Renamable RuleACInst where
-  r1 ~> r2 
+  r1@(Rule _ ps1 cs1 as1 _) ~> r2@(Rule _ ps2 cs2 as2 _)
     | getRuleName r1 /= getRuleName r2 = NoRenaming
-    | otherwise = Monadic ((fromUnification r1 r2 =<<) <$> getRuleRenaming r1 r2)
+    | otherwise = unifyLNFactToRenaming $ zipWith Equal (ps1 ++ cs1 ++ as1) (ps2 ++ cs2 ++ as2)
 
 instance Renamable LNFact where
   fa1 ~> fa2 
     | factTag fa1 /= factTag fa2 = NoRenaming
-    | otherwise = Monadic (listToMaybe . mapMaybe (fromUnification fa1 fa2) <$> unifyLNFacts fa1 fa2)
+    | otherwise = unifyLNFactToRenaming [Equal fa1 fa2]
 
 -- | A list of action fact from action fact goals that share the same timepoint.
 newtype AFGoals = AFGoals { afgs :: [LNFact] } deriving (Eq, Ord, Show)
@@ -253,7 +235,7 @@ instance Renamable LNTerm where
     | x == y = mempty
     | otherwise = NoRenaming
   (LIT _) ~> (LIT _) = NoRenaming
-  t1 ~> t2 = Monadic (listToMaybe . mapMaybe (fromUnification t1 t2) <$> unifyLNTerms t1 t2)
+  t1 ~> t2 = unifyLNTermToRenaming [Equal t1 t2]
 
 instance Renamable Goal where
   (ActionG v1 f1) ~> (ActionG v2 f2) = mapVarM v1 v2 (f1 ~> f2)
@@ -268,17 +250,5 @@ instance Renamable Goal where
 
 mergeRenamings :: Renaming -> Renaming -> Maybe Renaming
 mergeRenamings (Renaming m1 i1) (Renaming m2 i2) = do
-  m' <- mergeMaps m1 m2
+  m' <- mergeLVarSubsts m1 m2
   return $ Renaming m' (S.union i1 i2)
-
-mergeMaps :: (Ord k, Eq v) => M.Map k v -> M.Map k v -> Maybe (M.Map k v)
-mergeMaps m1 m2 = M.fromAscList <$> go (M.toAscList m1) (M.toAscList m2)
-  where
-    go :: (Ord a, Eq b) => [(a, b)] -> [(a, b)] -> Maybe [(a, b)]
-    go [] l2 = Just l2
-    go l1 [] = Just l1
-    go l1@((k1, v1):t1) l2@((k2, v2):t2)
-      | k1 == k2 && v1 == v2 = ((k1,v1):) <$> go t1 t2
-      | k1 < k2 = ((k1, v1):) <$> go t1 l2
-      | k2 < k1 = ((k2, v2):) <$> go l1 t2
-      | otherwise = Nothing
