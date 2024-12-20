@@ -76,9 +76,6 @@ data BackLinkCandidate = PartialCyclicProof
 fromRenaming :: BackLinkEdge -> RenamingUpToWithVars -> BackLinkCandidate
 fromRenaming e (r, upTo, progressing) = PartialCyclicProof upTo (BackLink e r progressing)
 
-fromCandidate :: BackLinkCandidate -> Maybe BackLink
-fromCandidate (PartialCyclicProof upTo bl) = guard (S.null upTo) >> return bl
-
 type RenamingUpToWithVars = (Renaming, UpTo, ProgressingVars)
 
 type AGTuple = (LVar, LNFact)
