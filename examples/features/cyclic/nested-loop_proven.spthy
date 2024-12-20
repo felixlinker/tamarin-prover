@@ -1,0 +1,533 @@
+theory NestedLoop begin
+
+// Function signature and definition of the equational theory E
+
+functions: fst/1, h/1, kdf/2, pair/2, snd/1
+equations: fst(<x.1, x.2>) = x.1, snd(<x.1, x.2>) = x.2
+
+
+
+
+
+/* looping facts with injective instances: Construct/4 */
+
+rule (modulo E) Start:
+   [ Fr( ~id ), Fr( ~x ) ]
+  --[
+  FreshSeed( ~id, kdf('0', ~x), ~x ),
+  Outer( ~id, kdf('0', ~x), kdf('0', ~x) ),
+  UseSeed( ~id, kdf('0', ~x), kdf('0', ~x) )
+  ]->
+   [
+   Construct( ~id, kdf('0', ~x), kdf('0', ~x), kdf('0', ~x) ),
+   !Seed( ~id, ~x )
+   ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) OuterNewSecret:
+   [ Construct( ~id, k, seed, lastFreshSeed ), Fr( ~x ) ]
+  --[
+  FreshSeed( ~id, kdf(seed, ~x), ~x ),
+  Outer( ~id, kdf(seed, ~x), kdf(seed, ~x) ),
+  UseSeed( ~id, kdf(seed, ~x), kdf(seed, ~x) )
+  ]->
+   [
+   Construct( ~id, kdf(seed, ~x), kdf(seed, ~x), kdf(seed, ~x) ),
+   !Seed( ~id, ~x )
+   ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) OuterOldSecret:
+   [ Construct( ~id, k, seed, lastFreshSeed ) ]
+  --[
+  Outer( ~id, kdf(seed, '0'), lastFreshSeed ),
+  UseSeed( ~id, kdf(seed, '0'), lastFreshSeed )
+  ]->
+   [ Construct( ~id, kdf(seed, '0'), kdf(seed, '0'), lastFreshSeed ) ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Inner:
+   [ Construct( ~id, k_old, seed, lastFreshSeed ) ]
+  --[
+  Key( ~id, h(k_old), seed, lastFreshSeed ),
+  UseSeed( ~id, seed, lastFreshSeed )
+  ]->
+   [ Construct( ~id, h(k_old), seed, lastFreshSeed ) ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) RevealSeed:
+   [ !Seed( ~id, x ) ] --[ RevealSeed( ~id, x ) ]-> [ Out( x ) ]
+
+  /* has exactly the trivial AC variant */
+
+lemma OuterLoopStep:
+  all-traces
+  "∀ id k seed lastFreshSeed #t.
+    (Key( id, k, seed, lastFreshSeed ) @ #t) ⇒
+    (∃ #x. (Outer( id, seed, lastFreshSeed ) @ #x) ∧ (#x < #t))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ id k seed lastFreshSeed #t.
+  (Key( id, k, seed, lastFreshSeed ) @ #t)
+ ∧
+  ∀ #x. (Outer( id, seed, lastFreshSeed ) @ #x) ⇒ ¬(#x < #t)"
+*/
+simplify
+solve( Construct( ~id.1, k_old, seed.1, lastFreshSeed.1 ) ▶₀ #t )
+  case Inner
+  search for cycle
+  cut( ∀ #x.
+        (Outer( ~id.1, seed.1, lastFreshSeed.1 ) @ #x) ⇒ ¬(#x < #vr) )
+    case cut
+    by contradiction /* cyclic backlink to CS id 2-00 */
+  next
+    case negate_0
+    by contradiction /* from formulas */
+  qed
+next
+  case OuterNewSecret
+  by contradiction /* from formulas */
+next
+  case OuterOldSecret
+  by contradiction /* from formulas */
+next
+  case Start
+  by contradiction /* from formulas */
+qed
+
+lemma FreshSeedInstantiate:
+  all-traces
+  "∀ id seed lastFreshSeed #t.
+    (Outer( id, seed, lastFreshSeed ) @ #t) ⇒
+    (∃ s #x. FreshSeed( id, lastFreshSeed, s ) @ #x)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ id seed lastFreshSeed #t.
+  (Outer( id, seed, lastFreshSeed ) @ #t)
+ ∧
+  ∀ s #x. (FreshSeed( id, lastFreshSeed, s ) @ #x) ⇒ ⊥"
+*/
+simplify
+solve( Outer( id, seed, lastFreshSeed ) @ #t )
+  case OuterNewSecret
+  by contradiction /* from formulas */
+next
+  case OuterOldSecret
+  search for cycle
+  minimize for cyclic proofs
+  solve( Construct( ~id.1, k, seed.1, lastFreshSeed.1 ) ▶₀ #t )
+    case Inner
+    search for cycle
+    minimize for cyclic proofs
+    solve( Construct( ~id.1, k_old, seed.1, lastFreshSeed.1 ) ▶₀ #vr )
+      case Inner
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 10-00c8 */
+    next
+      case OuterNewSecret
+      by contradiction /* from formulas */
+    next
+      case OuterOldSecret
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 6-08 */
+    next
+      case Start
+      by contradiction /* from formulas */
+    qed
+  next
+    case OuterNewSecret
+    by contradiction /* from formulas */
+  next
+    case OuterOldSecret
+    search for cycle
+    by contradiction /* cyclic backlink to CS id 6-08 */
+  next
+    case Start
+    by contradiction /* from formulas */
+  qed
+next
+  case Start
+  by contradiction /* from formulas */
+qed
+
+lemma SeedConstruction:
+  all-traces
+  "∀ id seed lastFreshSeed #t1 #t2.
+    ((UseSeed( id, seed, lastFreshSeed ) @ #t1) ∧
+     (!KU( seed ) @ #t2)) ⇒
+    (∃ #x. !KU( lastFreshSeed ) @ #x)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ id seed lastFreshSeed #t1 #t2.
+  (UseSeed( id, seed, lastFreshSeed ) @ #t1) ∧ (!KU( seed ) @ #t2)
+ ∧
+  ∀ #x. (!KU( lastFreshSeed ) @ #x) ⇒ ⊥"
+*/
+simplify
+solve( UseSeed( id, seed, lastFreshSeed ) @ #t1 )
+  case Inner
+  search for cycle
+  minimize for cyclic proofs
+  solve( Construct( ~id.1, k_old, seed.1, lastFreshSeed.1 ) ▶₀ #t1 )
+    case Inner
+    search for cycle
+    by contradiction /* cyclic backlink to CS id 6-0c */
+  next
+    case OuterNewSecret
+    by contradiction /* from formulas */
+  next
+    case OuterOldSecret
+    solve( !KU( kdf(seed.2, '0') ) @ #t2 )
+      case c_kdf
+      search for cycle
+      minimize for cyclic proofs
+      solve( Construct( ~id.1, k, seed.2, lastFreshSeed.1 ) ▶₀ #vr )
+        case Inner
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 6-0c */
+      next
+        case OuterNewSecret
+        by contradiction /* from formulas */
+      next
+        case OuterOldSecret
+        solve( !KU( kdf(seed.3, '0') ) @ #vk )
+          case c_kdf
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 11-008c */
+        qed
+      next
+        case Start
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case Start
+    by contradiction /* from formulas */
+  qed
+next
+  case OuterNewSecret
+  by contradiction /* from formulas */
+next
+  case OuterOldSecret
+  solve( !KU( kdf(seed.1, '0') ) @ #t2 )
+    case c_kdf
+    search for cycle
+    minimize for cyclic proofs
+    solve( Construct( ~id.1, k, seed.1, lastFreshSeed.1 ) ▶₀ #t1 )
+      case Inner
+      search for cycle
+      minimize for cyclic proofs
+      solve( Construct( ~id.1, k_old, seed.1, lastFreshSeed.1 ) ▶₀ #vr )
+        case Inner
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 11-0188 */
+      next
+        case OuterNewSecret
+        by contradiction /* from formulas */
+      next
+        case OuterOldSecret
+        solve( !KU( kdf(seed.2, '0') ) @ #vk )
+          case c_kdf
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 7-08 */
+        qed
+      next
+        case Start
+        by contradiction /* from formulas */
+      qed
+    next
+      case OuterNewSecret
+      by contradiction /* from formulas */
+    next
+      case OuterOldSecret
+      solve( !KU( kdf(seed.2, '0') ) @ #vk )
+        case c_kdf
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 7-08 */
+      qed
+    next
+      case Start
+      by contradiction /* from formulas */
+    qed
+  qed
+next
+  case Start
+  by contradiction /* from formulas */
+qed
+
+lemma KeyConstruction:
+  all-traces
+  "∀ id k seed lastFreshSeed #t1 #t2.
+    ((Key( id, k, seed, lastFreshSeed ) @ #t1) ∧ (!KU( k ) @ #t2)) ⇒
+    (∃ #x. !KU( seed ) @ #x)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ id k seed lastFreshSeed #t1 #t2.
+  (Key( id, k, seed, lastFreshSeed ) @ #t1) ∧ (!KU( k ) @ #t2)
+ ∧
+  ∀ #x. (!KU( seed ) @ #x) ⇒ ⊥"
+*/
+simplify
+solve( !KU( h(k_old) ) @ #t2 )
+  case c_h
+  solve( Construct( ~id.1, k_old, seed.1, lastFreshSeed.1 ) ▶₀ #t1 )
+    case Inner
+    solve( !KU( h(k_old.1) ) @ #vk )
+      case c_h
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 3-00 */
+    qed
+  next
+    case OuterNewSecret
+    by contradiction /* from formulas */
+  next
+    case OuterOldSecret
+    by contradiction /* from formulas */
+  next
+    case Start
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma KeySecrecy:
+  all-traces
+  "∀ id k seed lastFreshSeed #t.
+    (Key( id, k, seed, lastFreshSeed ) @ #t) ⇒
+    ((¬(∃ #x. K( k ) @ #x)) ∨
+     (∃ x #x1 #x2.
+       (FreshSeed( id, lastFreshSeed, x ) @ #x1) ∧
+       (RevealSeed( id, x ) @ #x2)))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ id k seed lastFreshSeed #t.
+  (Key( id, k, seed, lastFreshSeed ) @ #t)
+ ∧
+  (∃ #x. (K( k ) @ #x)) ∧
+  (∀ x #x1 #x2.
+    (FreshSeed( id, lastFreshSeed, x ) @ #x1) ∧
+    (RevealSeed( id, x ) @ #x2)
+   ⇒
+    ⊥)"
+*/
+simplify
+solve( !KU( h(k_old) ) @ #vk )
+  case c_h
+  solve( Construct( ~id.1, k_old, seed.1, lastFreshSeed.1 ) ▶₀ #t )
+    case Inner
+    solve( !KU( h(k_old.1) ) @ #vk.1 )
+      case c_h
+      search for cycle
+      minimize for cyclic proofs
+      solve( Construct( ~id.1, k_old.1, seed.1, lastFreshSeed.1
+             ) ▶₀ #vr )
+        case Inner
+        solve( !KU( h(k_old.2) ) @ #vk.2 )
+          case c_h
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 8-18 */
+        qed
+      next
+        case OuterNewSecret
+        solve( !KU( kdf(seed.2, ~x.2) ) @ #vk.2 )
+          case c_kdf
+          solve( !KU( ~x.2 ) @ #vk.4 )
+            case RevealSeed
+            by contradiction /* from formulas */
+          qed
+        qed
+      next
+        case OuterOldSecret
+        solve( !KU( kdf(seed.2, '0') ) @ #vk.2 )
+          case c_kdf
+          search for cycle
+          minimize for cyclic proofs
+          solve( Construct( ~id.1, k.1, seed.2, lastFreshSeed.1 ) ▶₀ #vr.1 )
+            case Inner
+            search for cycle
+            minimize for cyclic proofs
+            solve( Construct( ~id.1, k_old.2, seed.2, lastFreshSeed.1
+                   ) ▶₀ #vr.2 )
+              case Inner
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 17-006218 */
+            next
+              case OuterNewSecret
+              solve( !KU( kdf(seed.3, ~x.2) ) @ #vk.3 )
+                case c_kdf
+                solve( !KU( ~x.2 ) @ #vk.6 )
+                  case RevealSeed
+                  by contradiction /* from formulas */
+                qed
+              qed
+            next
+              case OuterOldSecret
+              solve( !KU( kdf(seed.3, '0') ) @ #vk.3 )
+                case c_kdf
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 13-0218 */
+              qed
+            next
+              case Start
+              solve( !KU( kdf('0', ~x.2) ) @ #vk.3 )
+                case c_kdf
+                solve( !KU( ~x.2 ) @ #vk.6 )
+                  case RevealSeed
+                  by contradiction /* from formulas */
+                qed
+              qed
+            qed
+          next
+            case OuterNewSecret
+            solve( !KU( kdf(seed.3, ~x.2) ) @ #vk.3 )
+              case c_kdf
+              solve( !KU( ~x.2 ) @ #vk.6 )
+                case RevealSeed
+                by contradiction /* from formulas */
+              qed
+            qed
+          next
+            case OuterOldSecret
+            solve( !KU( kdf(seed.3, '0') ) @ #vk.3 )
+              case c_kdf
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 13-0218 */
+            qed
+          next
+            case Start
+            solve( !KU( kdf('0', ~x.2) ) @ #vk.3 )
+              case c_kdf
+              solve( !KU( ~x.2 ) @ #vk.6 )
+                case RevealSeed
+                by contradiction /* from formulas */
+              qed
+            qed
+          qed
+        qed
+      next
+        case Start
+        solve( !KU( kdf('0', ~x.2) ) @ #vk.2 )
+          case c_kdf
+          solve( !KU( ~x.2 ) @ #vk.4 )
+            case RevealSeed
+            by contradiction /* from formulas */
+          qed
+        qed
+      qed
+    qed
+  next
+    case OuterNewSecret
+    solve( !KU( kdf(seed.2, ~x.2) ) @ #vk.1 )
+      case c_kdf
+      solve( !KU( ~x.2 ) @ #vk.3 )
+        case RevealSeed
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case OuterOldSecret
+    solve( !KU( kdf(seed.2, '0') ) @ #vk.1 )
+      case c_kdf
+      search for cycle
+      minimize for cyclic proofs
+      solve( Construct( ~id.1, k.1, seed.2, lastFreshSeed.1 ) ▶₀ #vr )
+        case Inner
+        search for cycle
+        minimize for cyclic proofs
+        solve( Construct( ~id.1, k_old.1, seed.2, lastFreshSeed.1
+               ) ▶₀ #vr.1 )
+          case Inner
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 12-0310 */
+        next
+          case OuterNewSecret
+          solve( !KU( kdf(seed.3, ~x.2) ) @ #vk.2 )
+            case c_kdf
+            solve( !KU( ~x.2 ) @ #vk.5 )
+              case RevealSeed
+              by contradiction /* from formulas */
+            qed
+          qed
+        next
+          case OuterOldSecret
+          solve( !KU( kdf(seed.3, '0') ) @ #vk.2 )
+            case c_kdf
+            search for cycle
+            by contradiction /* cyclic backlink to CS id 8-10 */
+          qed
+        next
+          case Start
+          solve( !KU( kdf('0', ~x.2) ) @ #vk.2 )
+            case c_kdf
+            solve( !KU( ~x.2 ) @ #vk.5 )
+              case RevealSeed
+              by contradiction /* from formulas */
+            qed
+          qed
+        qed
+      next
+        case OuterNewSecret
+        solve( !KU( kdf(seed.3, ~x.2) ) @ #vk.2 )
+          case c_kdf
+          solve( !KU( ~x.2 ) @ #vk.5 )
+            case RevealSeed
+            by contradiction /* from formulas */
+          qed
+        qed
+      next
+        case OuterOldSecret
+        solve( !KU( kdf(seed.3, '0') ) @ #vk.2 )
+          case c_kdf
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 8-10 */
+        qed
+      next
+        case Start
+        solve( !KU( kdf('0', ~x.2) ) @ #vk.2 )
+          case c_kdf
+          solve( !KU( ~x.2 ) @ #vk.5 )
+            case RevealSeed
+            by contradiction /* from formulas */
+          qed
+        qed
+      qed
+    qed
+  next
+    case Start
+    solve( !KU( kdf('0', ~x.2) ) @ #vk.1 )
+      case c_kdf
+      solve( !KU( ~x.2 ) @ #vk.3 )
+        case RevealSeed
+        by contradiction /* from formulas */
+      qed
+    qed
+  qed
+qed
+
+
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.11.0
+Maude version 3.3.1
+Git revision: aa4d5f05853f925f20868af061f7e1faf8be153b, branch: cyclic
+Compiled at: 2024-12-13 10:25:53.610676 UTC
+*/
+
+end
