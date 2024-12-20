@@ -290,9 +290,15 @@ mapAlongEdges nidF groupF topoSml topoLrg = go
 colorAnnotated :: System -> NodeId -> Maybe ColoredNode
 colorAnnotated s nid = Node nid . Left <$> M.lookup nid (L.get sNodes s)
 
+colorAFG :: AFMap -> NodeId -> Maybe ColoredNode
+colorAFG afs nid = Node nid . Right . AFGoals <$> M.lookup nid afs
+
+colorNid :: System -> AFMap -> NodeId -> Maybe ColoredNode
+colorNid s afs nid = colorAnnotated s nid <|> colorAFG afs nid
+
 toposortedEdges :: System -> AFMap -> Maybe (TransClosedOrder ColoredNode)
 toposortedEdges s afs =
-  let kRelRaw = colorList colorAFG (kLessRel s)
+  let kRelRaw = colorList (colorNid s afs) (kLessRel s)
       nodeRel = colorList (colorAnnotated s) (rawEdgeRel s)
       afNodes = map mkAFG (M.toList afs) :: [ColoredNode]
       nodes = map mkAnnotated (M.toList $ L.get sNodes s) :: [ColoredNode]
@@ -301,9 +307,6 @@ toposortedEdges s afs =
     ord <- fromSet (S.fromList nodeRel <> S.fromList kRel)
     return $ foldr addAsUnordered ord (afNodes ++ nodes)
   where
-    colorAFG :: NodeId -> Maybe ColoredNode
-    colorAFG nid = Node nid . Right . AFGoals <$> M.lookup nid afs
-
     colorList :: Ord a => (a -> Maybe ColoredNode) -> [(a, a)] -> [(ColoredNode, ColoredNode)]
     colorList f = mapMaybe (fmap tuple . sequence . mapTwice f)
 
