@@ -1,3 +1,6 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE BangPatterns     #-}
 {-# LANGUAGE TemplateHaskell  #-}
 {-# LANGUAGE TupleSections    #-}
@@ -103,6 +106,7 @@ module Theory.Proof (
 
 import           GHC.Generics                     (Generic)
 
+import Data.Bifunctor (first)
 import           Data.Binary
 import           Data.List
 import           Data.List.NonEmpty ( NonEmpty((:|)), (<|) )
@@ -114,7 +118,7 @@ import           Data.Maybe
 
 import           Debug.Trace
 
-import           Control.Basics
+import           Control.Basics hiding (first)
 import           Control.DeepSeq
 import qualified Control.Monad.State              as S
 import           Control.Parallel.Strategies
@@ -511,32 +515,39 @@ diffProofStepStatus (DiffProofStep _                (Just _)) = CompleteProof
 -- sequent @se@. A failure to apply a proof method is denoted by a resulting
 -- proof step without an annotated sequent. An unhandled case is denoted using
 -- the 'Sorry' proof method.
-checkProof :: ProofContext
+checkProof :: forall a. ProofContext
            -> (Int -> NonEmpty System -> Proof (Maybe System)) -- prover for new cases in depth
            -> Int
            -> NonEmpty System
            -> Proof a
            -> Proof (Maybe a, Maybe System)
-checkProof ctxt prover =
-    go
+checkProof ctxt prover i syssPath = dropResult . go i syssPath Nothing
   where
-    noSystemPrf = mapProofInfo (\i -> (Just i, Nothing))
-    node m info sys = LNode (ProofStep m (Just info, Just sys))
+    dropResult :: Proof (Maybe a, Maybe System, Maybe (Result Contradiction)) -> Proof (Maybe a, Maybe System)
+    dropResult = fmap (fmap (\(a, b, _) -> (a, b)))
+
+    noSystemPrf = mapProofInfo (\i -> (Just i, Nothing, Nothing))
+    node m info sys = LNode (ProofStep m (Just info, Just sys, Nothing))
     sorryNode reason cases info sys = node (Left $ Sorry reason) info sys (M.map noSystemPrf cases)
     invalidProofStep prf = sorryNode (Just "invalid proof step encountered")
       (M.singleton "" prf)
 
-    go _ syss@(sys:|_) prf@(LNode (ProofStep m@(Right result) info) _)
+    go :: Int -> NE.NonEmpty System -> Maybe (Result Contradiction) -> Proof a -> Proof (Maybe a, Maybe System, Maybe (Result Contradiction))
+    go _ syss@(sys:|_) resultFromParent prf@(LNode (ProofStep m@(Right result) info) _)
+      | fromMaybe False (equivResult <$> resultFromParent <*> Just result) = node m info sys M.empty
       | maybe False (equivResult result) (isFinished ctxt syss) = node m info sys M.empty
       | otherwise = invalidProofStep prf info sys
-    go d syss@(sys:|_) prf@(LNode (ProofStep m@(Left method) info) cs) = case (method, checkAndExecProofMethod ctxt method syss) of
+    go d syss@(sys:|_) _ prf@(LNode (ProofStep m@(Left method) info) cs) = case (method, checkAndExecProofMethod ctxt method syss) of
       (Sorry reason, _         ) -> sorryNode reason cs info sys
-      (_           , Just cases) -> node m info sys $ checkChildren $ M.map ((<| syss) . fst) cases  -- TODO:
+      (_           , Just cases) -> node m info sys $ checkChildren $ M.map (first (<| syss)) cases
       (_           , Nothing   ) -> invalidProofStep prf info sys
       where
-        unhandledCase = mapProofInfo (Nothing,) . prover d
-        checkChildren cases = mergeMapsWith unhandledCase noSystemPrf (go (d + 1)) cases cs
+        unhandledCase :: forall b. NE.NonEmpty System -> b -> Proof (Maybe a, Maybe System, Maybe (Result Contradiction))
+        unhandledCase = const . mapProofInfo (Nothing, ,Nothing) . prover d
 
+        checkChildren :: M.Map CaseName (NE.NonEmpty System, Maybe (Result Contradiction))
+          -> M.Map CaseName (Proof (Maybe a, Maybe System, Maybe (Result Contradiction)))
+        checkChildren cases = mergeMapsWith (uncurry unhandledCase) noSystemPrf (uncurry (go (d + 1))) cases cs
 
 -- | @checkDiffProof rules se prf@ replays the proof @prf@ against the start
 -- sequent @se@. A failure to apply a proof method is denoted by a resulting
