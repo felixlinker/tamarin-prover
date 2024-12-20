@@ -249,7 +249,7 @@ checkAndExecProofMethod ctxt method syss@(sys:|_) = do
       Induction -> canApplyInduction
       SolveGoal (Cut _) -> Just ()
       SolveGoal (Weaken _) -> Just ()
-      SolveGoal SearchBacklink -> guard (doCyclicInduction ctxt)
+      SolveGoal SearchBacklink -> guard (doCyclicInduction ctxt sys)
       SolveGoal goal -> guard (goal `M.member` L.get sGoals sys)
       Simplify -> Just ()
       Sorry _ -> Just ()
@@ -324,6 +324,7 @@ execProofMethod ctxt method syss@(sys:|_) =
     induction :: (LNGuarded, LNGuarded) -> Reduction String
     induction (baseCase, stepCase) = do
       (caseName, caseFormula) <- disjunctionOfList [("empty_trace", baseCase), ("non_empty_trace", stepCase)]
+      L.setM sUsingTraceInduction True
       L.setM sFormulas (S.singleton caseFormula)
       return caseName
 

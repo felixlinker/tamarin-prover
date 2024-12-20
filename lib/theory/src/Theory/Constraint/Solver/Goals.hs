@@ -632,7 +632,8 @@ insertSearchBacklink = do
 insertCyclicGoals :: Reduction ()
 insertCyclicGoals = do
   ctxt <- ask
-  when (doCyclicInduction ctxt) $ do
+  doCyclic <- gets (doCyclicInduction ctxt)
+  when doCyclic $ do
     -- It is important to insert backlink search before minimzation so that
     -- backlinks are searched before minimization is done.
     insertSearchBacklink
