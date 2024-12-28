@@ -1,6 +1,8 @@
 theory Signal
 begin
 
+heuristic: O "signal.py"
+
 builtins: diffie-hellman, symmetric-encryption
 functions: kdf/1, decrypts/2, true/0
 equations: decrypts(senc(m, k), k) = true
