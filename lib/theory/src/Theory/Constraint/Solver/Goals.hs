@@ -44,21 +44,23 @@ import           Extension.Data.Label                    as L
 import           Theory.Constraint.Solver.Contradictions (substCreatesNonNormalTerms)
 import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.System
+import           Theory.Constraint.System.ID (SystemID)
 import           Theory.Tools.IntruderRules (mkDUnionRule, isDExpRule, isDPMultRule, isDEMapRule)
 import           Theory.Model
 import           Term.Builtin.Convenience
 
 
-import Utils.Misc (twoPartitions, peakTail, splitBetween)
-import Data.Maybe (isNothing, catMaybes, isJust, fromJust)
-import Theory.Constraint.System.Inclusion (BackLinkCandidate (blUpTo, bl), getCycleRenamingsOnPath)
+import Utils.Misc (twoPartitions, peakTail, splitBetween, peak)
+import Data.Maybe (isNothing, catMaybes, isJust, fromJust, mapMaybe)
+import Theory.Constraint.System.Inclusion (InclusionFailure, BackLinkCandidate (blUpTo, bl), getCycleRenamingsOnPath)
 import Data.List.NonEmpty as NE (NonEmpty((:|)))
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
 import Control.Monad.RWS (MonadReader(ask), MonadWriter (tell))
 import Theory.Constraint.System.Results (Result(Contradictory), Contradiction (Cyclic))
 import Data.Bool (bool)
-import Data.List (find)
+import Data.List (find, group, sort, intersperse, intercalate)
+import Debug.Trace (traceM)
 
 ------------------------------------------------------------------------------
 -- Extracting Goals
@@ -603,7 +605,7 @@ searchBacklink asMethod syssToRoot = do
   ctxt <- ask
   s <- St.get
   let syss = bool (s NE.<|) id asMethod <$> syssToRoot
-  cycleFound (getCycleRenamingsOnPath ctxt <$> syss)
+  maybe mzero (either traceFailure cycleFound . getCycleRenamingsOnPath ctxt) syss
   where
     insertCut :: [BackLinkCandidate] -> Reduction ()
     insertCut = when asMethod . mapM_ (\(blUpTo -> ut) -> insertGoal (Cut ut) False)
@@ -611,8 +613,25 @@ searchBacklink asMethod syssToRoot = do
     setContradictory :: BackLinkCandidate -> Reduction ()
     setContradictory = tell . Just . Contradictory . Just . Cyclic . bl
 
-    cycleFound :: Maybe [BackLinkCandidate] -> Reduction ()
-    cycleFound cands = maybe (mapM_ insertCut cands) setContradictory (find (S.null . blUpTo) =<< cands)
+    showNEFails :: NE.NonEmpty InclusionFailure -> String
+    showNEFails (h NE.:| []) = show h
+    showNEFails l@(h NE.:| _) = show h ++ " (" ++ show (NE.length l) ++ " times)"
+
+    traceFailureSystem :: (SystemID, [InclusionFailure]) -> Reduction ()
+    traceFailureSystem (sid, fails) = do
+      traceM $ " * For system " ++ show sid
+      if null fails
+        then traceM "   * No renaming found"
+        else mapM_ (traceM . ("   * " ++) . showNEFails) $ mapMaybe NE.nonEmpty $ group $ sort fails
+
+    traceFailure :: [(SystemID, [InclusionFailure])] -> Reduction ()
+    traceFailure fails = do
+      traceM "NO CYCLE -- Reason(s): "
+      mapM_ traceFailureSystem fails
+
+    cycleFound :: [BackLinkCandidate] -> Reduction ()
+    cycleFound cands = maybe (insertCut cands) setContradictory (find (S.null . blUpTo) cands)
+      -- maybe (mapM_ insertCut cands) setContradictory (find (S.null . blUpTo) =<< cands)
 
 insertMinimize :: Reduction ()
 insertMinimize = do

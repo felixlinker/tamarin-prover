@@ -1,14 +1,17 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ViewPatterns #-}
 module Theory.Constraint.System.Inclusion
-  ( BackLinkCandidate(..)
+  ( InclusionFailure(..)
+  , BackLinkCandidate(..)
   , getCycleRenamingsOnPath
   , allRenamings ) where
 
 import qualified Extension.Data.Label as L
 import qualified Data.Set as S
 import Theory.Constraint.System
+import Theory.Constraint.System.ID (SystemID)
 import Term.LTerm
 import Term.Maude.Process (MaudeHandle)
 import Theory.Constraint.Renaming
@@ -31,6 +34,8 @@ import Utils.Misc (addAt)
 import Term.Substitution (Apply(apply))
 import Control.Monad.Trans.Reader (runReader)
 import Data.Bool (bool)
+import Control.Monad.Except (MonadError (throwError))
+import Data.Either (partitionEithers)
 
 data Node a = Node
   { nnid  :: NodeId
@@ -80,19 +85,29 @@ type RenamingUpToWithVars = (Renaming, UpTo, ProgressingVars)
 
 type AGTuple = (LVar, LNFact)
 
+data InclusionFailure = MissingEdge [Edge] | MissingLesRel [(NodeId, NodeId)] | EqStoreFail | SubTermStoreFail | NoProgress | Internal
+  deriving (Eq, Ord, Show)
+
 -- TODO: Handle last
 -- TODO: Document @System@ w.r.t. to how this functino works
-isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> Renaming -> Maybe RenamingUpToWithVars
+isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> Renaming -> Either InclusionFailure RenamingUpToWithVars
 isProgressingAndSubSysUpTo mh smaller larger renaming = do
   let r = toSubst renaming
-  guard (apply r (L.get sEdges smaller) `S.isSubsetOf` L.get sEdges larger)
-  let lessAtomsSmaller = map lessAtomToEdge $ S.toList $ L.get sLessAtoms smaller
-  lessRelLarger <- fromSet (S.fromList (rawLessRel larger))
+
+  unless (isEmptySubtermStore $ L.get sSubtermStore smaller) (throwError SubTermStoreFail)
+
+  -- Check edge inclusion
+  let edgeDiff = apply r (L.get sEdges smaller) `S.difference` L.get sEdges larger
+  unless (S.null edgeDiff) (throwError (MissingEdge (S.toList edgeDiff)))
+
   -- Check that all elements in the smaller relation are contained in the larger
   -- relation.
-  guard (all (uncurry (isSmaller lessRelLarger) . apply r) lessAtomsSmaller)
-  guard $ runReader (eqStoreInlcusionModR r (L.get sEqStore smaller) (L.get sEqStore larger)) mh
-  guard (isEmptySubtermStore $ L.get sSubtermStore smaller)
+  let lessAtomsSmaller = map (apply r . lessAtomToEdge) $ S.toList $ L.get sLessAtoms smaller
+  lessRelLarger <- maybe (throwError Internal) return $ fromSet (S.fromList (rawLessRel larger))
+  let lessRelDiff = filter (not . uncurry (isSmaller lessRelLarger)) lessAtomsSmaller
+  unless (null lessRelDiff) (throwError (MissingLesRel lessRelDiff))
+
+  unless (runReader (eqStoreInlcusionModR r (L.get sEqStore smaller) (L.get sEqStore larger)) mh) (throwError EqStoreFail)
 
   let varsInSmaller =
             S.fromList (map fst lessAtomsSmaller) <> S.fromList (map snd lessAtomsSmaller)
@@ -101,7 +116,7 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
 
   let pres = varsInSmaller `S.intersection` varsInLarger
   let prog = S.filter (checkProgresses lessRelLarger renaming) pres
-  guard (not $ S.null prog)
+  when (S.null prog) (throwError NoProgress)
 
   let diffFormulas = apply r (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
   let diffActionGoals = apply r (actionGoals smaller) `S.difference` actionGoals larger
@@ -123,20 +138,25 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
 allRenamings :: MaudeHandle -> System -> System -> [Renaming]
 allRenamings mh smallerSys largerSys = mapMaybe (runRenaming mh) (allNodeMappings smallerSys largerSys)
 
-isContainedInModRenamingUpTo :: MaudeHandle -> System -> System -> [RenamingUpToWithVars]
+isContainedInModRenamingUpTo :: MaudeHandle -> System -> System -> [Either InclusionFailure RenamingUpToWithVars]
 isContainedInModRenamingUpTo mh smaller larger =
-  mapMaybe (isProgressingAndSubSysUpTo mh smaller larger) (allRenamings mh smaller larger)
+  map (isProgressingAndSubSysUpTo mh smaller larger) (allRenamings mh smaller larger)
 
-getCycleRenamingsOnPath :: ProofContext -> NonEmpty System -> [BackLinkCandidate]
-getCycleRenamingsOnPath ctx (leaf:|candidates) = concatMap tryRenaming candidates
+getCycleRenamingsOnPath :: ProofContext -> NonEmpty System -> Either [(SystemID, [InclusionFailure])] [BackLinkCandidate]
+getCycleRenamingsOnPath ctx (leaf:|candidates) = concat <$> anyRights (map tryRenaming candidates)
   where
+    anyRights :: [Either a b] -> Either [a] [b]
+    anyRights eithers =
+      let (ls, rs) = partitionEithers eithers
+      in if null rs then Left ls else Right rs
+
     hnd :: MaudeHandle
     hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
 
-    tryRenaming :: System -> [BackLinkCandidate]
+    tryRenaming :: System -> Either (SystemID, [InclusionFailure]) [BackLinkCandidate]
     tryRenaming inner =
       let blEdge = (L.get sId leaf, L.get sId inner)
-      in map (fromRenaming blEdge) (isContainedInModRenamingUpTo hnd inner leaf)
+      in bimap (L.get sId inner,) (map (fromRenaming blEdge)) (anyRights (isContainedInModRenamingUpTo hnd inner leaf))
 
 -- | Explores all possible renamings between two lists while trying to reject as
 --   many candidates as possible. The applicative monoid @m b@ can be used as an
