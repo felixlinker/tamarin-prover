@@ -29,6 +29,11 @@ lemma SeedsMatch:
         & Compute(id2, seed2, x) @ #t2
     ==> (seed1 = seed2)"
 
+lemma SecrecyWeakened:
+  "All id seed x #t. Compute(id, seed, x) @ #t
+    ==>   (not Ex #x. K(x) @ #x)
+        | (Ex id2 y #x. RevealElement(id2, y) @ #x & (y << x | y = x))"
+
 lemma IdsMatch[reuse]:
   "All id1 id2 seed1 seed2 x #t1 #t2. Compute(id1, seed1, x) @ #t1
         & Compute(id2, seed2, x) @ #t2
