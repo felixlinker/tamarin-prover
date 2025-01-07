@@ -20,7 +20,7 @@ restriction Neq:
 
 rule KeyGen:
   [ Fr(~ltk), Fr(~prek) ]
-  --[ Honest('g'^~prek) ]->
+  -->
   [ !SecretKeys($A, ~ltk, ~prek)
   , !PublicKeys($A, 'g'^~ltk, 'g'^~prek)
   , Out('g'^~ltk)
@@ -39,9 +39,8 @@ rule SenderStart:
   , !SecretKeys($A, ~ltk, prek)
   , !PublicKeys($B, ltpk, prepk) ]
   --[ Neq($A, $B)
-    , Send(~id, ~m)
-    , Honest('g'^~x)
-    , SharedSecret(~id, prepk, ss) ]->
+    , Send(~m)
+    , GenEph('g'^~x) ]->
   [ Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -51,7 +50,7 @@ rule Send:
   in
   [ Fr(~m)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
-  --[ Send(~id, ~m) ]->
+  --[ Send(~m) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
   , Out(senc(~m, mk)) ]
 
@@ -69,8 +68,7 @@ rule ReceiverStart:
   , !PublicKeys($B, ltpk, prepk)
   , In(<pc, enc>) ]
   --[ Neq($A, $B)
-    , Receive(~id, sdec(enc, mk))
-    , SharedSecret(~id, pc, ss)
+    , Receive(sdec(enc, mk))
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~prek, $B, pc, rk, ck) ]
 
@@ -80,7 +78,7 @@ rule Receive:
   in
   [ In(enc)
   , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
-  --[ Receive(~id, sdec(enc, mk))
+  --[ Receive(sdec(enc, mk))
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
 
@@ -92,9 +90,7 @@ rule OuterRatchetToSender:
   in
   [ Fr(~x), Fr(~m)
   , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
-  --[ Send(~id, ~m)
-    , Honest('g'^~x)
-    , SharedSecret(~id, pc, dhss) ]->
+  --[ Send(~m) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -106,23 +102,15 @@ rule OuterRatchetToReceiver:
   in
   [ In(<pc, enc>)
   , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
-  --[ Receive(~id, sdec(enc, mk))
-    , SharedSecret(~id, pc, dhss)
+  --[ Receive(sdec(enc, mk))
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
 
 lemma Exec:
   exists-trace
-  "Ex id1 id2 m #x #y. Receive(id1, m) @ #x & Send(id2, m) @ #y"
+  "Ex m #x #y. Receive(m) @ #x & Send(m) @ #y"
 
 lemma Secrecy:
-  "All id m #t. Send(id, m) @ #t ==> (not Ex #x. K(m) @ #x)"
-
-lemma PostCompromiseSecurity:
-  "All id pc0 ss0 pc1 ss1 m #a #b #c #x.
-        ( SharedSecret(id, pc0, ss0) @ #a & K(ss0) @ #x
-        & SharedSecret(id, pc1, ss1) @ #b & Send(id, m) @ #b & #a < #b
-        & Honest(pc1) @ #c)
-    ==> (not Ex #t. K(m) @ #t)"
+  "All m #t. Send(m) @ #t ==> (not Ex #x. K(m) @ #x)"
 
 end
