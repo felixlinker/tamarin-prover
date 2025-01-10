@@ -1,4 +1,4 @@
-theory Signal
+theory SignalRevealing
 begin
 
 tactic: noeqs
@@ -26,6 +26,21 @@ rule KeyGen:
   , Out('g'^~ltk)
   , Out('g'^~prek) ]
 
+rule RevealLtk:
+  [ !SecretKeys($A, ~ltk, ~prek) ]
+  --[ Reveal('g'^~ltk) ]->
+  [ Out(~ltk) ]
+
+rule RevealPrek:
+  [ !SecretKeys($A, ~ltk, ~prek) ]
+  --[ Reveal('g'^~prek) ]->
+  [ Out(~prek) ]
+
+rule RevealEphemeral:
+  [ !EphemeralDH($A, ~x) ]
+  --[ Reveal('g'^~x) ]->
+  [ Out(~x) ]
+
 rule SenderStart:
   let dh1 = prepk^~ltk
       dh2 = ltpk^~x
@@ -39,8 +54,10 @@ rule SenderStart:
   , !SecretKeys($A, ~ltk, prek)
   , !PublicKeys($B, ltpk, prepk) ]
   --[ Neq($A, $B)
-    , Send(~m) ]->
-  [ Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
+    , Send(~m, 'g'^~x, prepk)
+    , GenEph('g'^~x) ]->
+  [ !EphemeralDH($A, ~x)
+  , Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
 rule Send:
@@ -49,7 +66,7 @@ rule Send:
   in
   [ Fr(~m)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
-  --[ Send(~m) ]->
+  --[ Send(~m, 'g'^~x, pc) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
   , Out(senc(~m, mk)) ]
 
@@ -89,8 +106,10 @@ rule OuterRatchetToSender:
   in
   [ Fr(~x), Fr(~m)
   , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
-  --[ Send(~m) ]->
-  [ Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
+  --[ Send(~m, 'g'^~x, pc)
+    , GenEph('g'^~x)  ]->
+  [ !EphemeralDH($A, ~x)
+  , Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
 rule OuterRatchetToReceiver:
@@ -107,9 +126,13 @@ rule OuterRatchetToReceiver:
 
 lemma Exec:
   exists-trace
-  "Ex m #x #y. Receive(m) @ #x & Send(m) @ #y"
+  "Ex m pc1 pc2 #x #y. Receive(m) @ #x & Send(m, pc1, pc2) @ #y"
 
 lemma Secrecy:
-  "All m #t. Send(m) @ #t ==> (not Ex #x. K(m) @ #x)"
+  "All m pc1 pc2 #t. Send(m, pc1, pc2) @ #t
+    ==>   (not Ex #x. K(m) @ #x)
+        | (Ex #x. Reveal(pc1) @ #x)
+        | (Ex #x. Reveal(pc2) @ #x)
+        | (not Ex #x. GenEph(pc2) @ #x)"
 
 end
