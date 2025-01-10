@@ -61,12 +61,12 @@ rule Success:
 
 
 // Provable: restricts the search space
-lemma Loop_Start [use_induction]:   // reuse
+lemma Loop_Start[use_induction,reuse]:
   "All lid k kOrig #i. Loop(lid, k, kOrig) @ i ==>
     Ex #j. Start(lid, kOrig) @ j & j < i"
 
 // Provable: restricts the search space
-lemma Loop_Success_ord [use_induction]:  // reuse
+lemma Loop_Success_ord[use_induction,reuse,hide_lemma=Loop_Start]:
   "All lid k kOrig1 kOrig2 #i #j.
        Loop(lid, k, kOrig1) @ i
      & Success(lid, kOrig2) @ j
@@ -75,17 +75,17 @@ lemma Loop_Success_ord [use_induction]:  // reuse
   "
 
 // Provable: connects an arbitrary loop step with its start.
-lemma Loop_charn [use_induction]:
+lemma Loop_charn[use_induction,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord]:
   "All lid k kOrig #i. Loop(lid, k, kOrig) @ i ==>
      Ex #j. Loop(lid, kOrig, kOrig) @ j"
 
-lemma Helper_Loop_and_success [use_induction, reuse]: 
+lemma Helper_Loop_and_success[use_induction,reuse,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord]: 
   "All lid kOrig k1 k2 #x #y #z.
       Loop(lid, k1, kOrig) @ #x & Loop(lid, k2, kOrig) @ #y & #y < #x
       & ChainKey(k1) @ #z
     ==> Ex #t. ChainKey(k2) @ #t"
 
-lemma Loop_and_success:
+lemma Loop_and_success[no_cyclic,hide_lemma=Loop_Start]:
   "All lid k kOrig1 kOrig2 #i #j.
        Loop(lid, k, kOrig1) @ i
      & Success(lid, kOrig2) @ j
@@ -93,20 +93,14 @@ lemma Loop_and_success:
      (Ex #j. ChainKey(k) @ j)
   "
 
-lemma Helper_Success_charn [use_induction, reuse]:  
+lemma Helper_Success_charn[use_induction,reuse,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord,hide_lemma=Helper_Loop_and_success]:
   "All lid k kOrig #x #y.
       ChainKey(k) @ #x & Loop(lid, k, kOrig) @ #y
     ==> Ex #z. ChainKey(kOrig) @ #z"
 
-lemma Success_charn [hide_lemma=Helper_Loop_and_success]:
+lemma Success_charn[no_cyclic,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord,hide_lemma=Helper_Loop_and_success]:
   "All lid k #i. Success(lid, k) @ i ==>
     Ex #j. ChainKey(k) @ j"
-
-lemma LoopTest:
-  "All lid k k_ kOrig #t1 #t2. Loop(lid, k, kOrig) @ #t1 & Loop(lid, k_, kOrig) @ #t2 ==> #t1 < #t2"
-
-// lemma TP:
-//   "All #x #y #z. #x < #y & #y < #z ==> #x < #z"
 
 /* A try on building the required 'smaller' relation in an axiomatic fashion.
    This interacts too strongly with
