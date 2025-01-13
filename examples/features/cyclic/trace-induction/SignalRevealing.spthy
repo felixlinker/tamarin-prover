@@ -1,0 +1,162 @@
+theory SignalRevealing
+begin
+
+builtins: diffie-hellman, symmetric-encryption
+functions: kdf/1, decrypts/2, true/0
+equations: decrypts(senc(m, k), k) = true
+
+heuristic: O "signal-revealing.py"
+
+restriction Eq:
+  "All a b #x. Eq(a, b) @ #x ==> a = b"
+
+restriction Neq:
+  "All a b #x. Neq(a, b) @ #x ==> not (a = b)"
+
+rule KeyGen:
+  [ Fr(~ltk), Fr(~prek) ]
+  -->
+  [ !SecretKeys($A, ~ltk, ~prek)
+  , !PublicKeys($A, 'g'^~ltk, 'g'^~prek)
+  , Out('g'^~ltk)
+  , Out('g'^~prek) ]
+
+rule RevealLtk:
+  [ !SecretKeys($A, ~ltk, ~prek) ]
+  --[ Reveal('g'^~ltk) ]->
+  [ Out(~ltk) ]
+
+rule RevealPrek:
+  [ !SecretKeys($A, ~ltk, ~prek) ]
+  --[ Reveal('g'^~prek) ]->
+  [ Out(~prek) ]
+
+rule RevealEphemeral:
+  [ !EphemeralDH($A, ~x) ]
+  --[ Reveal('g'^~x) ]->
+  [ Out(~x) ]
+
+rule SenderStart:
+  let dh1 = prepk^~ltk
+      dh2 = ltpk^~x
+      dh3 = prepk^~x
+      ss = kdf(<dh1, dh2, dh3>)
+      rk = kdf(<'rk', ss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ Fr(~id), Fr(~x), Fr(~m)
+  , !SecretKeys($A, ~ltk, prek)
+  , !PublicKeys($B, ltpk, prepk) ]
+  --[ Neq($A, $B)
+    , ToSender(~id, 'g'^~x, dh3)
+    , Send(~id, ~m, 'g'^~x, prepk, prepk^~x)
+    , GenEph('g'^~x) ]->
+  [ !EphemeralDH($A, ~x)
+  , Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
+  , Out(<'g'^~x, senc(~m, mk)>) ]
+
+rule Send:
+  let new_ck = kdf(<'ck', ck>)
+      mk = kdf(<'mk', new_ck>)
+  in
+  [ Fr(~m)
+  , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
+  --[ Send(~id, ~m, 'g'^~x, pc, pc^~x)
+    , ChainKey(~id, new_ck) ]->
+  [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
+  , Out(senc(~m, mk)) ]
+
+rule ReceiverStart:
+  let dh1 = ltpk^~prek
+      dh2 = pc^~ltk
+      dh3 = pc^~prek
+      ss = kdf(<dh1, dh2, dh3>)
+      rk = kdf(<'rk', ss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ Fr(~id)
+  , !SecretKeys($A, ~ltk, ~prek)
+  , !PublicKeys($B, ltpk, prepk)
+  , In(<pc, enc>) ]
+  --[ Neq($A, $B)
+    , Neq(pc, DH_neutral)
+    , ToReceiver(~id, 'g'^~prek)
+    , Receive(~id, sdec(enc, mk), 'g'^~prek, pc)
+    , Eq(decrypts(enc, mk), true) ]->
+  [ Session(~id, $A, 'R', ~prek, $B, pc, rk, ck) ]
+
+rule Receive:
+  let new_ck = kdf(<'ck', ck>)
+      mk = kdf(<'mk', new_ck>)
+  in
+  [ In(enc)
+  , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
+  --[ Receive(~id, sdec(enc, mk), 'g'^~x, pc)
+    , Use(~id, 'g'^~x)
+    , Eq(decrypts(enc, mk), true) ]->
+  [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
+
+rule OuterRatchetToSender:
+  let dhss = pc^~x
+      rk = kdf(<'rk', old_rk, dhss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ Fr(~x), Fr(~m)
+  , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
+  --[ ToSender(~id, 'g'^~x, dhss)
+    , Send(~id, ~m, 'g'^~x, pc, dhss)
+    , GenEph('g'^~x)  ]->
+  [ !EphemeralDH($A, ~x)
+  , Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
+  , Out(<'g'^~x, senc(~m, mk)>) ]
+
+rule OuterRatchetToReceiver:
+  let dhss = pc^~x
+      rk = kdf(<'rk', old_rk, dhss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ In(<pc, enc>)
+  , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
+  --[ Neq(pc, DH_neutral)
+    , ToReceiver(~id, 'g'^~x)
+    , Receive(~id, sdec(enc, mk), 'g'^~x, pc)
+    , Eq(decrypts(enc, mk), true) ]->
+  [ Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
+
+lemma Exec:
+  exists-trace
+  "Ex id1 id2 m pc1 pc2 ss #x #y. Receive(id1, m, pc1, pc2) @ #x
+    & Send(id2, m, pc2, pc1, ss) @ #y"
+
+lemma OuterLoopStepSender[reuse,use_induction]:
+  "All id m pc x ss #a. Send(id, m, pc, x, ss) @ #a & not ToSender(id, pc, ss) @ #a
+    ==> Ex #b. ToSender(id, pc, ss) @ #b & b < #a"
+
+// lemma OuterLoopStepReceiver[reuse,use_induction,hide_lemma=OuterLoopStepSender]:
+//   "All id m pc x #a. Receive(id, m, pc, x) @ #a & not ToReceiver(id, pc) @ #a
+//     ==> Ex #b. ToReceiver(id, pc) @ #b & (#b = #a | #b < #a)"
+
+lemma SSSecrecy[reuse,no_cyclic]:
+  "All id m pc1 pc2 ss #t. Send(id, m, pc1, pc2, ss) @ #t
+  ==>   (not Ex #x. KU(ss) @ #x)
+      | (Ex #x. Reveal(pc1) @ #x)
+      | (Ex #x. Reveal(pc2) @ #x)
+      | (not Ex #x. GenEph(pc2) @ #x)"
+
+lemma CkSecrecy[reuse,use_induction,hide_lemma=OuterLoopStepSender,hide_lemma=SSSecrecy]:
+  "All id m pc1 pc2 ss ck #a. ChainKey(id, ck) @ #a & Send(id, m, pc1, pc2, ss) @ #a
+    ==>   (not Ex #x. KU(ck) @ #x)
+        | (Ex #x. KU(ss) @ #x)"
+
+lemma Secrecy[no_cyclic,hide_lemma=OuterLoopStepSender]:
+  "All id m pc1 pc2 ss #t. Send(id, m, pc1, pc2, ss) @ #t
+    ==>   (not Ex #x. K(m) @ #x)
+        | (Ex #x. Reveal(pc1) @ #x)
+        | (Ex #x. Reveal(pc2) @ #x)
+        | (not Ex #x. GenEph(pc2) @ #x)"
+
+end
