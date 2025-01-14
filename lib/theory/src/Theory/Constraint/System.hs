@@ -549,13 +549,24 @@ equiv s1 s2 = and
   , onBoth sFormulas (==)
   , onBoth sSolvedFormulas (==)
   , onBoth sLemmas (==)
-  , onBoth sGoals (==)
-  , onBoth sNextGoalNr (==)
+  , onBoth sGoals equivGoals
   , onBoth sSourceKind (==)
   , onBoth sDiffSystem (==) ]
   where
     onBoth :: (System :-> a) -> (a -> a -> b) -> b
     onBoth l f = f (L.get l s1) (L.get l s2)
+
+    nonSyntheticGoal :: Goal -> Bool
+    nonSyntheticGoal (Weaken _) = False
+    nonSyntheticGoal (Cut _) = False
+    nonSyntheticGoal SearchBacklink = False
+    nonSyntheticGoal _ = True
+
+    filterGoals :: M.Map Goal GoalStatus -> M.Map Goal GoalStatus
+    filterGoals = M.filterWithKey (\g _ -> nonSyntheticGoal g)
+
+    equivGoals :: M.Map Goal GoalStatus -> M.Map Goal GoalStatus -> Bool
+    equivGoals (filterGoals -> m1) (filterGoals -> m2) = m1 == m2
 
 deriving instance Show System
 
