@@ -96,6 +96,7 @@ isProgressingAndSubSysUpTo mh smaller larger sub = do
   let cutLess = S.fromList $ map lessToFormula lessRelDiff
 
   unless (runReader (eqStoreInlcusionModR sub (L.get sEqStore smaller) (L.get sEqStore larger)) mh) (throwError EqStoreFail)
+  unless (apply sub (L.get sSubtermStore smaller) `subtermStoreInclusion` L.get sSubtermStore larger) (throwError SubTermStoreFail)
 
   let varsInSmaller =
             S.fromList (map fst lessAtomsSmaller) <> S.fromList (map snd lessAtomsSmaller)
