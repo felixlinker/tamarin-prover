@@ -82,8 +82,6 @@ data InclusionFailure = MissingEdge [Edge] | MissingLesRel [(NodeId, NodeId)] | 
 -- TODO: Document @System@ w.r.t. to how this functino works
 isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> LNSubst -> Either InclusionFailure MatchUpToWithVars
 isProgressingAndSubSysUpTo mh smaller larger sub = do
-  unless (isEmptySubtermStore $ L.get sSubtermStore smaller) (throwError SubTermStoreFail)
-
   -- Check edge inclusion
   let edgeDiff = apply sub (L.get sEdges smaller) `S.difference` L.get sEdges larger
   unless (S.null edgeDiff) (throwError (MissingEdge (S.toList edgeDiff)))
@@ -96,7 +94,7 @@ isProgressingAndSubSysUpTo mh smaller larger sub = do
   let cutLess = S.fromList $ map lessToFormula lessRelDiff
 
   unless (runReader (eqStoreInlcusionModR sub (L.get sEqStore smaller) (L.get sEqStore larger)) mh) (throwError EqStoreFail)
-  unless (apply sub (L.get sSubtermStore smaller) `subtermStoreInclusion` L.get sSubtermStore larger) (throwError SubTermStoreFail)
+  let stDiff = apply sub (L.get sSubtermStore smaller) `subtermStoreDiff` L.get sSubtermStore larger
 
   let varsInSmaller =
             S.fromList (map fst lessAtomsSmaller) <> S.fromList (map snd lessAtomsSmaller)
@@ -109,7 +107,7 @@ isProgressingAndSubSysUpTo mh smaller larger sub = do
 
   let diffFormulas = apply sub (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
   let diffActionGoals = apply sub (actionGoals smaller) `S.difference` actionGoals larger
-  return (sub, cutLess <> diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
+  return (sub, stDiff <> cutLess <> diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
   where
     actionGoals :: System -> S.Set AGTuple
     actionGoals = S.fromList . unsolvedActionAtoms

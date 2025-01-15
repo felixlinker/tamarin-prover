@@ -20,7 +20,7 @@
 module Theory.Tools.SubtermStore (
   -- ** Construction
     SubtermStore(..)
-  , subtermStoreInclusion
+  , subtermStoreDiff
   , negSubterms
   , posSubterms
   , solvedSubterms
@@ -102,18 +102,18 @@ instance Binary SubtermStore
 
 $(mkLabels [''SubtermStore])
 
-subtermStoreInclusion :: SubtermStore -> SubtermStore -> Bool
-subtermStoreInclusion s1 s2 = and
-  [ subSetOn negSubterms
-  , subSetOn posSubterms
-  , subSetOn solvedSubterms
-  , impliesOn isContradictory]
+subtermStoreDiff :: SubtermStore -> SubtermStore -> S.Set LNGuarded
+subtermStoreDiff smaller larger =
+  let negDiff = map (gnot . toGuarded) (diffOn negSubterms)
+      posDiff = map toGuarded (diffOn posSubterms)
+      solvedDiff = map toGuarded (diffOn solvedSubterms)
+  in S.fromList $ negDiff ++ posDiff ++ solvedDiff
   where
-    subSetOn :: Ord a => (SubtermStore :-> S.Set a) -> Bool
-    subSetOn f = L.get f s1 `S.isSubsetOf` L.get f s2
+    diffOn :: Ord a => (SubtermStore :-> S.Set a) -> [a]
+    diffOn f = S.toList $ L.get f smaller S.\\ L.get f larger
 
-    impliesOn :: (SubtermStore :-> Bool) -> Bool
-    impliesOn f = not (L.get f s1) || L.get f s2
+    toGuarded :: (LNTerm, LNTerm) -> LNGuarded
+    toGuarded (lTermToBTerm -> t1, lTermToBTerm -> t2) = GAto $ Subterm t1 t2
 
 -- | @emptyEqStore@ is the empty equation store.
 emptySubtermStore :: SubtermStore

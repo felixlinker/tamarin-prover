@@ -1,0 +1,19 @@
+theory Subterms
+begin
+
+functions: h/1
+
+rule Start:
+  [ Fr(~id) ]
+  -->
+  [ Loop(~id, $X) ]
+
+rule Loop:
+  [ Loop(~id, x) ]
+  --[ L(~id, h(x)) ]->
+  [ Loop(~id, h(x)) ]
+
+lemma Monotonicity:
+  "All id x1 x2 #t1 #t2. L(id, x1) @ #t1 & L(id, x2) @ #t2 & #t1 < #t2 ==> x1 << x2"
+
+end
