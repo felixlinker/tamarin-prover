@@ -136,10 +136,6 @@ lemma OuterLoopStepSender[reuse,use_induction]:
   "All id m pc x ss #a. Send(id, m, pc, x, ss) @ #a & not ToSender(id, pc, ss) @ #a
     ==> Ex #b. ToSender(id, pc, ss) @ #b & b < #a"
 
-// lemma OuterLoopStepReceiver[reuse,use_induction,hide_lemma=OuterLoopStepSender]:
-//   "All id m pc x #a. Receive(id, m, pc, x) @ #a & not ToReceiver(id, pc) @ #a
-//     ==> Ex #b. ToReceiver(id, pc) @ #b & (#b = #a | #b < #a)"
-
 lemma SSSecrecy[reuse,no_cyclic]:
   "All id m pc1 pc2 ss #t. Send(id, m, pc1, pc2, ss) @ #t
   ==>   (not Ex #x. KU(ss) @ #x)

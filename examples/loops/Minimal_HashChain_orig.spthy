@@ -61,12 +61,12 @@ rule Success:
 
 
 // Provable: restricts the search space
-lemma Loop_Start[use_induction,reuse]:
+lemma Loop_Start[use_induction]:
   "All lid k kOrig #i. Loop(lid, k, kOrig) @ i ==>
     Ex #j. Start(lid, kOrig) @ j & j < i"
 
 // Provable: restricts the search space
-lemma Loop_Success_ord[use_induction,reuse,hide_lemma=Loop_Start]:
+lemma Loop_Success_ord[use_induction,reuse]:
   "All lid k kOrig1 kOrig2 #i #j.
        Loop(lid, k, kOrig1) @ i
      & Success(lid, kOrig2) @ j
@@ -75,17 +75,17 @@ lemma Loop_Success_ord[use_induction,reuse,hide_lemma=Loop_Start]:
   "
 
 // Provable: connects an arbitrary loop step with its start.
-lemma Loop_charn[use_induction,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord]:
+lemma Loop_charn[use_induction,hide_lemma=Loop_Success_ord]:
   "All lid k kOrig #i. Loop(lid, k, kOrig) @ i ==>
      Ex #j. Loop(lid, kOrig, kOrig) @ j"
 
-lemma Helper_Loop_and_success[use_induction,reuse,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord]: 
+lemma Helper_Loop_and_success[use_induction,reuse,hide_lemma=Loop_Success_ord]: 
   "All lid kOrig k1 k2 #x #y #z.
       Loop(lid, k1, kOrig) @ #x & Loop(lid, k2, kOrig) @ #y & #y < #x
       & ChainKey(k1) @ #z
     ==> Ex #t. ChainKey(k2) @ #t"
 
-lemma Loop_and_success[no_cyclic,hide_lemma=Loop_Start]:
+lemma Loop_and_success[no_cyclic]:
   "All lid k kOrig1 kOrig2 #i #j.
        Loop(lid, k, kOrig1) @ i
      & Success(lid, kOrig2) @ j
@@ -93,12 +93,12 @@ lemma Loop_and_success[no_cyclic,hide_lemma=Loop_Start]:
      (Ex #j. ChainKey(k) @ j)
   "
 
-lemma Helper_Success_charn[use_induction,reuse,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord,hide_lemma=Helper_Loop_and_success]:
+lemma Helper_Success_charn[use_induction,reuse,hide_lemma=Loop_Success_ord,hide_lemma=Helper_Loop_and_success]:
   "All lid k kOrig #x #y.
       ChainKey(k) @ #x & Loop(lid, k, kOrig) @ #y
     ==> Ex #z. ChainKey(kOrig) @ #z"
 
-lemma Success_charn[no_cyclic,hide_lemma=Loop_Start,hide_lemma=Loop_Success_ord,hide_lemma=Helper_Loop_and_success]:
+lemma Success_charn[no_cyclic,hide_lemma=Loop_Success_ord,hide_lemma=Helper_Loop_and_success]:
   "All lid k #i. Success(lid, k) @ i ==>
     Ex #j. ChainKey(k) @ j"
 
