@@ -79,7 +79,7 @@ lemma Loop_charn:
   "All lid k kOrig #i. Loop(lid, k, kOrig) @ i ==>
      Ex #j. Loop(lid, kOrig, kOrig) @ j"
 
-lemma Helper_Loop_and_success:
+lemma Helper_Loop_and_success[reuse]:
   "All lid kOrig k1 k2 #x #y #z.
       Loop(lid, k1, kOrig) @ #x & Loop(lid, k2, kOrig) @ #y & #y < #x
       & ChainKey(k1) @ #z
@@ -93,16 +93,16 @@ lemma Loop_and_success:
      (Ex #j. ChainKey(k) @ j)
   "
 
-lemma Helper_Success_charn:
+lemma Helper_Success_charn[hide_lemma=Helper_Loop_and_success]:
   "All lid k kOrig #x #y.
       ChainKey(k) @ #x & Loop(lid, k, kOrig) @ #y
     ==> Ex #z. ChainKey(kOrig) @ #z"
 
-lemma Success_charn:
+lemma Success_charn[hide_lemma=Helper_Loop_and_success]:
   "All lid k #i. Success(lid, k) @ i ==>
     Ex #j. ChainKey(k) @ j"
 
-lemma LoopTest:
+lemma LoopTest[hide_lemma=Helper_Loop_and_success]:
   "All lid k k_ kOrig #t1 #t2. Loop(lid, k, kOrig) @ #t1 & Loop(lid, k_, kOrig) @ #t2 ==> #t1 < #t2"
 
 // lemma TP:

@@ -1,0 +1,470 @@
+theory Minimal_HashChain begin
+
+// Function signature and definition of the equational theory E
+
+functions: f/1, fst/1, pair/2, snd/1
+equations: fst(<x.1, x.2>) = x.1, snd(<x.1, x.2>) = x.2
+
+
+
+
+
+/* looping facts with injective instances: Gen/2, Loop/3 */
+
+rule (modulo E) Gen_Start:
+   [ Fr( seed ) ] --> [ Gen( seed, seed ), Out( seed ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Gen_Step:
+   [ Gen( seed, chain ) ]
+  --[ ChainKey( chain ) ]->
+   [ Gen( seed, f(chain) ) ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Gen_Stop:
+   [ Gen( seed, kZero ) ]
+  --[ ChainKey( kZero ) ]->
+   [ !Final( kZero ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Check0:
+   [ In( kOrig ), Fr( loopId ) ]
+  --[ Start( loopId, kOrig ) ]->
+   [ Loop( loopId, kOrig, kOrig ) ]
+
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Check:
+   [ Loop( loopId, k, kOrig ) ]
+  --[ Loop( loopId, k, kOrig ) ]->
+   [ Loop( loopId, f(k), kOrig ) ]
+
+  // loop breaker: [0]
+  /* has exactly the trivial AC variant */
+
+rule (modulo E) Success:
+   [ Loop( loopId, kZero, kOrig ), !Final( kZero ) ]
+  --[ Success( loopId, kOrig ) ]->
+   [ ]
+
+  /* has exactly the trivial AC variant */
+
+lemma Loop_Start:
+  all-traces
+  "∀ lid k kOrig #i.
+    (Loop( lid, k, kOrig ) @ #i) ⇒
+    (∃ #j. (Start( lid, kOrig ) @ #j) ∧ (#j < #i))"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig #i.
+  (Loop( lid, k, kOrig ) @ #i)
+ ∧
+  ∀ #j. (Start( lid, kOrig ) @ #j) ⇒ ¬(#j < #i)"
+*/
+simplify
+solve( Loop( loopId, k.1, kOrig.1 ) ▶₀ #i )
+  case Check
+  search for cycle
+  cut( ∀ #j. (Start( loopId, kOrig.1 ) @ #j) ⇒ ¬(#j < #vr) )
+    case cut
+    by contradiction /* cyclic backlink to CS id 2-00 */
+  next
+    case negate_0
+    by contradiction /* from formulas */
+  qed
+next
+  case Check0
+  by contradiction /* from formulas */
+qed
+
+lemma Loop_Success_ord:
+  all-traces
+  "∀ lid k kOrig1 kOrig2 #i #j.
+    ((Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)) ⇒
+    (#i < #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig1 kOrig2 #i #j.
+  (Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)
+ ∧
+  ¬(#i < #j)"
+*/
+simplify
+solve( Loop( loopId.1, kZero, kOrig.1 ) ▶₀ #j )
+  case Check
+  solve( !Final( f(k.2) ) ▶₁ #j )
+    case Gen_Stop
+    solve( Loop( loopId.1, k.1, kOrig.1 ) ▶₀ #i )
+      case Check
+      simplify
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 4-04 */
+    next
+      case Check0
+      by contradiction /* cyclic */
+    qed
+  qed
+next
+  case Check0
+  solve( !Final( kOrig.1 ) ▶₁ #j )
+    case Gen_Stop_case_1
+    solve( Loop( ~n, k.1, ~n.1 ) ▶₀ #i )
+      case Check
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 4-00 */
+    qed
+  next
+    case Gen_Stop_case_2
+    solve( Loop( ~n, k.1, f(chain) ) ▶₀ #i )
+      case Check
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 4-08 */
+    qed
+  qed
+qed
+
+lemma Loop_charn:
+  all-traces
+  "∀ lid k kOrig #i.
+    (Loop( lid, k, kOrig ) @ #i) ⇒
+    (∃ #j. Loop( lid, kOrig, kOrig ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig #i.
+  (Loop( lid, k, kOrig ) @ #i)
+ ∧
+  ∀ #j. (Loop( lid, kOrig, kOrig ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( Loop( loopId, k.1, kOrig.1 ) ▶₀ #i )
+  case Check
+  search for cycle
+  by contradiction /* cyclic backlink to CS id 2-00 */
+next
+  case Check0
+  by contradiction /* from formulas */
+qed
+
+lemma Helper_Loop_and_success [reuse]:
+  all-traces
+  "∀ lid kOrig k1 k2 #x #y #z.
+    ((((Loop( lid, k1, kOrig ) @ #x) ∧ (Loop( lid, k2, kOrig ) @ #y)) ∧
+      (#y < #x)) ∧
+     (ChainKey( k1 ) @ #z)) ⇒
+    (∃ #t. ChainKey( k2 ) @ #t)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid kOrig k1 k2 #x #y #z.
+  (Loop( lid, k1, kOrig ) @ #x) ∧
+  (Loop( lid, k2, kOrig ) @ #y) ∧
+  (ChainKey( k1 ) @ #z)
+ ∧
+  (#y < #x) ∧ (∀ #t. (ChainKey( k2 ) @ #t) ⇒ ⊥)"
+*/
+simplify
+solve( ChainKey( k ) @ #z )
+  case Gen_Step
+  solve( Loop( loopId.1, chain, kOrig.2 ) ▶₀ #x )
+    case Check
+    solve( Gen( seed, f(k.2) ) ▶₀ #z )
+      case Gen_Step
+      search for cycle
+      cut( #y < #vr , ¬(k.1 = k.2) , ¬(k.2 = k.1) )
+        case cut
+        by contradiction /* cyclic backlink to CS id 3-00 */
+      next
+        case negate_0
+        solve( (#y = #vr)  ∥ (#vr < #y) )
+          case case_1
+          by contradiction /* from formulas */
+        next
+          case case_2
+          by contradiction /* non-injective facts (#vr,#y,#x) */
+        qed
+      next
+        case negate_1
+        by contradiction /* from formulas */
+      next
+        case negate_2
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case Check0
+    by contradiction /* cyclic */
+  qed
+next
+  case Gen_Stop
+  solve( Gen( seed, kZero ) ▶₀ #z )
+    case Gen_Start
+    by contradiction /* cyclic */
+  next
+    case Gen_Step
+    search for cycle
+    minimize for cyclic proofs
+    solve( Loop( loopId.1, f(chain), kOrig.2 ) ▶₀ #x )
+      case Check
+      solve( Gen( seed, chain ) ▶₀ #vr )
+        case Gen_Start
+        solve( Loop( loopId.1, ~n, kOrig.2 ) ▶₀ #vr.1 )
+          case Check0
+          solve( Loop( ~n.1, k.1, ~n ) ▶₀ #y )
+            case Check
+            by contradiction /* non-injective facts (#vr.3,#y,#vr.1) */
+          next
+            case Check0
+            by contradiction /* from formulas */
+          qed
+        qed
+      next
+        case Gen_Step
+        search for cycle
+        cut( #y < #vr.1 , ¬(k.1 = f(chain.1)) , ¬(f(chain.1) = k.1) )
+          case cut
+          by contradiction /* cyclic backlink to CS id 6-0c */
+        next
+          case negate_0
+          solve( (#y = #vr.1)  ∥ (#vr.1 < #y) )
+            case case_1
+            by contradiction /* from formulas */
+          next
+            case case_2
+            by contradiction /* non-injective facts (#vr.1,#y,#x) */
+          qed
+        next
+          case negate_1
+          by contradiction /* from formulas */
+        next
+          case negate_2
+          by contradiction /* from formulas */
+        qed
+      qed
+    next
+      case Check0
+      by contradiction /* cyclic */
+    qed
+  qed
+qed
+
+lemma Loop_and_success:
+  all-traces
+  "∀ lid k kOrig1 kOrig2 #i #j.
+    ((Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)) ⇒
+    (∃ #j.1. ChainKey( k ) @ #j.1)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig1 kOrig2 #i #j.
+  (Loop( lid, k, kOrig1 ) @ #i) ∧ (Success( lid, kOrig2 ) @ #j)
+ ∧
+  ∀ #j.1. (ChainKey( k ) @ #j.1) ⇒ ⊥"
+*/
+simplify
+solve( Loop( loopId.1, kZero, kOrig.1 ) ▶₀ #j )
+  case Check
+  solve( !Final( f(k.2) ) ▶₁ #j )
+    case Gen_Stop
+    solve( (¬(#i < #vr))  ∥ (∃ #t. (ChainKey( k.1 ) @ #t)) )
+      case case_1
+      solve( (#i = #vr)  ∥ (#vr < #i) )
+        case case_1
+        by contradiction /* from formulas */
+      next
+        case case_2
+        weaken formula( ∀ #j. (ChainKey( k.1 ) @ #j) ⇒ ⊥ )
+        solve( Loop( loopId.1, k.1, kOrig.1 ) ▶₀ #i )
+          case Check
+          search for cycle
+          cut( #vr < #vr.3 , ¬(k.2 = k.3) , ¬(k.3 = k.2) )
+            case cut
+            by contradiction /* cyclic backlink to CS id 7-24 */
+          next
+            case negate_0
+            solve( (#vr = #vr.3)  ∥ (#vr.3 < #vr) )
+              case case_2
+              by contradiction /* non-injective facts (#vr.3,#vr,#i) */
+            qed
+          qed
+        next
+          case Check0
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case case_2
+      by contradiction /* from formulas */
+    qed
+  qed
+next
+  case Check0
+  solve( !Final( kOrig.1 ) ▶₁ #j )
+    case Gen_Stop_case_1
+    solve( Loop( ~n, k.1, ~n.1 ) ▶₀ #i )
+      case Check
+      solve( !KU( ~n.1 ) @ #vk )
+        case Gen_Start
+        weaken formula( ∀ #j. (ChainKey( f(k.2) ) @ #j) ⇒ ⊥ )
+        solve( Loop( ~n, k.2, ~n.1 ) ▶₀ #vr.3 )
+          case Check
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 7-00 */
+        qed
+      qed
+    qed
+  next
+    case Gen_Stop_case_2
+    weaken formula( ∀ #j. (ChainKey( k.1 ) @ #j) ⇒ ⊥ )
+    solve( Loop( ~n, k.1, f(chain) ) ▶₀ #i )
+      case Check
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 5-08 */
+    qed
+  qed
+qed
+
+lemma Helper_Success_charn [hide_lemma=Helper_Loop_and_success]:
+  all-traces
+  "∀ lid k kOrig #x #y.
+    ((ChainKey( k ) @ #x) ∧ (Loop( lid, k, kOrig ) @ #y)) ⇒
+    (∃ #z. ChainKey( kOrig ) @ #z)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k kOrig #x #y.
+  (ChainKey( k ) @ #x) ∧ (Loop( lid, k, kOrig ) @ #y)
+ ∧
+  ∀ #z. (ChainKey( kOrig ) @ #z) ⇒ ⊥"
+*/
+simplify
+solve( ChainKey( k.1 ) @ #x )
+  case Gen_Step
+  solve( Loop( loopId, chain, kOrig.1 ) ▶₀ #y )
+    case Check
+    search for cycle
+    minimize for cyclic proofs
+    solve( Gen( seed, f(k.2) ) ▶₀ #x )
+      case Gen_Step
+      solve( Loop( loopId, k.2, kOrig.1 ) ▶₀ #vr )
+        case Check
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 6-08 */
+      next
+        case Check0
+        by contradiction /* from formulas */
+      qed
+    qed
+  next
+    case Check0
+    by contradiction /* from formulas */
+  qed
+next
+  case Gen_Stop
+  solve( Gen( seed, kZero ) ▶₀ #x )
+    case Gen_Start
+    solve( Loop( loopId, ~n, kOrig.1 ) ▶₀ #y )
+      case Check0
+      by contradiction /* from formulas */
+    qed
+  next
+    case Gen_Step
+    solve( Loop( loopId, f(chain), kOrig.1 ) ▶₀ #y )
+      case Check
+      search for cycle
+      minimize for cyclic proofs
+      solve( Gen( seed, chain ) ▶₀ #vr )
+        case Gen_Start
+        solve( Loop( loopId, ~n, kOrig.1 ) ▶₀ #vr.1 )
+          case Check0
+          by contradiction /* from formulas */
+        qed
+      next
+        case Gen_Step
+        solve( Loop( loopId, f(chain.1), kOrig.1 ) ▶₀ #vr.1 )
+          case Check
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 7-1c */
+        next
+          case Check0
+          by contradiction /* from formulas */
+        qed
+      qed
+    next
+      case Check0
+      by contradiction /* from formulas */
+    qed
+  qed
+qed
+
+lemma Success_charn [hide_lemma=Helper_Loop_and_success]:
+  all-traces
+  "∀ lid k #i. (Success( lid, k ) @ #i) ⇒ (∃ #j. ChainKey( k ) @ #j)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k #i.
+  (Success( lid, k ) @ #i) ∧ ∀ #j. (ChainKey( k ) @ #j) ⇒ ⊥"
+*/
+simplify
+solve( Loop( loopId, kZero, kOrig ) ▶₀ #i )
+  case Check
+  solve( !Final( f(k.1) ) ▶₁ #i )
+    case Gen_Stop
+    search for cycle
+    minimize for cyclic proofs
+    solve( Loop( loopId, k.1, kOrig ) ▶₀ #vr )
+      case Check
+      solve( Gen( seed, f(k.2) ) ▶₀ #vr.2 )
+        case Gen_Step
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 6-04 */
+      qed
+    next
+      case Check0
+      by contradiction /* from formulas */
+    qed
+  qed
+next
+  case Check0
+  solve( !Final( kOrig ) ▶₁ #i )
+    case Gen_Stop_case_1
+    by contradiction /* from formulas */
+  next
+    case Gen_Stop_case_2
+    by contradiction /* from formulas */
+  qed
+qed
+
+lemma LoopTest [hide_lemma=Helper_Loop_and_success]:
+  all-traces
+  "∀ lid k k_ kOrig #t1 #t2.
+    ((Loop( lid, k, kOrig ) @ #t1) ∧ (Loop( lid, k_, kOrig ) @ #t2)) ⇒
+    (#t1 < #t2)"
+/*
+guarded formula characterizing all counter-examples:
+"∃ lid k k_ kOrig #t1 #t2.
+  (Loop( lid, k, kOrig ) @ #t1) ∧ (Loop( lid, k_, kOrig ) @ #t2)
+ ∧
+  ¬(#t1 < #t2)"
+*/
+by sorry /* removed */
+
+
+
+
+
+
+
+
+
+/* All wellformedness checks were successful. */
+
+/*
+Generated from:
+Tamarin version 1.11.0
+Maude version 3.2.1
+Git revision: 4d53012802d3c526e3d794810cb15551163f4462, branch: rewrite-prover-regression
+Compiled at: 2024-12-05 16:41:44.504428 UTC
+*/
+
+end
