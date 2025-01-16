@@ -25,7 +25,7 @@ import Theory.Model.Rule
 import Data.Maybe (mapMaybe, maybeToList )
 import Theory.Model.Signature (sigmMaudeHandle)
 import Theory.Model.Fact (LNFact, FactTag, Fact (factTag, factTerms))
-import Theory.Model.Atom (ProtoAtom(Action))
+import Theory.Model.Atom (ProtoAtom(Action, Less))
 import Theory.Proof.Cyclic
 import Utils.PartialOrd
 import Data.Bifunctor (Bifunctor(bimap, first))
@@ -105,7 +105,7 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
   let lessAtomsSmaller = map (apply r . lessAtomToEdge) $ S.toList $ L.get sLessAtoms smaller
   lessRelLarger <- maybe (throwError Internal) return $ fromSet (S.fromList (rawLessRel larger))
   let lessRelDiff = filter (not . uncurry (isSmaller lessRelLarger)) lessAtomsSmaller
-  unless (null lessRelDiff) (throwError (MissingLesRel lessRelDiff))
+  let cutLess = S.fromList $ map lessToFormula lessRelDiff
 
   unless (runReader (eqStoreInlcusionModR r (L.get sEqStore smaller) (L.get sEqStore larger)) mh) (throwError EqStoreFail)
 
@@ -120,7 +120,7 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
 
   let diffFormulas = apply r (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
   let diffActionGoals = apply r (actionGoals smaller) `S.difference` actionGoals larger
-  return (renaming, diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
+  return (renaming, cutLess <> diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
   where
     actionGoals :: System -> S.Set AGTuple
     actionGoals = S.fromList . unsolvedActionAtoms
@@ -130,6 +130,12 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
 
     atToFormula :: AGTuple -> LNGuarded
     atToFormula (v, f) = GAto $ Action (LIT $ Var $ Free v) (fmap lTermToBTerm f)
+
+    toBTerm :: NodeId -> BLTerm
+    toBTerm = lTermToBTerm . LIT . Var
+
+    lessToFormula :: (NodeId, NodeId) -> LNGuarded
+    lessToFormula (toBTerm -> t1, toBTerm -> t2) = GAto $ Less t1 t2
 
     checkProgresses :: TransClosedOrder LVar -> Renaming -> LVar -> Bool
     checkProgresses ord (Renaming subst _) j =
