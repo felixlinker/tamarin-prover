@@ -49,7 +49,6 @@ import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.System
 import           Theory.Model
 import           Theory.Text.Pretty
-import           Theory.Tools.InjectiveFactInstances
 
 -- | Apply CR-rules that don't result in case splitting until the constraint
 -- system does not change anymore.
@@ -295,18 +294,6 @@ solveUniqueActions = do
           | otherwise   = return Unchanged
 
     mconcat <$> mapM trySolve actionAtoms
-
--- | Reduce all formulas as far as possible. See 'insertFormula' for the
--- CR-rules exploited in this step. Note that this step is normally only
--- required to decompose the formula in the initial constraint system.
-reduceFormulas :: Reduction ChangeIndicator
-reduceFormulas = do
-    formulas <- getM sFormulas
-    applyChangeList $ do
-        fm <- S.toList formulas
-        guard (reducibleFormula fm)
-        return $ do modM sFormulas $ S.delete fm
-                    insertFormula fm
 
 -- | Try to simplify the atoms contained in the formulas. See
 -- 'partialAtomValuation' for an explanation of what CR-rules are exploited
@@ -707,7 +694,3 @@ addNonInjectiveFactInstances = do
   ctxt <- ask
   let list = map (\(x,y)-> LessAtom x y InjectiveFacts) $ nonInjectiveFactInstances ctxt se
   mapM_ insertLess list
-
-
-
- 

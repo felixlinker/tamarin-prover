@@ -21,6 +21,7 @@ module Theory.Constraint.Solver.Goals
   , solveGoal
   , plainOpenGoals
   , insertCyclicGoals
+  , reduceFormulas
   ) where
 
 import           Prelude                                 hiding (id, (.))
@@ -438,6 +439,18 @@ solveSubterm st = do
         
       return $ "SubtermSplit" ++ show i
 
+-- | Reduce all formulas as far as possible. See 'insertFormula' for the
+-- CR-rules exploited in this step. Note that this step is normally only
+-- required to decompose the formula in the initial constraint system.
+reduceFormulas :: Reduction ChangeIndicator
+reduceFormulas = do
+    formulas <- getM sFormulas
+    applyChangeList $ do
+        fm <- S.toList formulas
+        guard (reducibleFormula fm)
+        return $ do modM sFormulas $ S.delete fm
+                    insertFormula fm
+
 fromTail :: LoopInstance NodeId -> NE.NonEmpty NodeId -> LoopInstance NodeId
 fromTail li es@(h :| _) = li { start = h, loopEdges = es }
 
@@ -592,12 +605,14 @@ cut syss (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith negCas
     cutCase :: Reduction String
     cutCase = do
       insertFormulas phis
+      _ <- reduceFormulas
       searchBacklink False syss
       return "cut"
 
     negCase :: Int -> LNGuarded -> Reduction String
     negCase i phi = do
       insertFormulas [gnot phi]
+      _ <- reduceFormulas
       return $ "negate_" ++ show i
 
 searchBacklink :: Bool -> Maybe (NE.NonEmpty System) -> Reduction ()
