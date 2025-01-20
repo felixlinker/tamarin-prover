@@ -5,8 +5,8 @@
 module Theory.Constraint.System.Inclusion
   ( InclusionFailure(..)
   , BackLinkCandidate(..)
-  , getCycleRenamingsOnPath
-  , allRenamings ) where
+  , prefixMatchesOnPath
+  , allPrefixMatches ) where
 
 import qualified Extension.Data.Label as L
 import qualified Data.Set as S
@@ -14,7 +14,7 @@ import Theory.Constraint.System
 import Theory.Constraint.System.ID (SystemID)
 import Term.LTerm
 import Term.Maude.Process (MaudeHandle)
-import Theory.Constraint.Renaming
+import Theory.Constraint.SystemMatch
 import qualified Data.Map as M
 import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty((:|)))
@@ -31,7 +31,7 @@ import Utils.PartialOrd
 import Data.Bifunctor (Bifunctor(bimap, first))
 import Utils.Two (tuple, mapTwice)
 import Utils.Misc (addAt)
-import Term.Substitution (Apply(apply))
+import Term.Substitution (Apply(apply), LNSubst)
 import Control.Monad.Trans.Reader (runReader)
 import Data.Bool (bool)
 import Control.Monad.Except (MonadError (throwError))
@@ -53,8 +53,8 @@ instance Ord a => Ord (Node a) where
     GT  -> GT
     EQ  -> compare a1 a2
 
-instance Renamable a => Renamable (Node a) where
-  (Node nid1 a1) ~> (Node nid2 a2) = mapVarM nid1 nid2 (a1 ~> a2)
+instance Matchable a => Matchable (Node a) where
+  (Node nid1 a1) ~> (Node nid2 a2) = mapNode nid1 nid2 (a1 ~> a2)
 
 data TermKind = KFun FunSym | KConst | KVar LSort deriving (Show, Ord, Eq)
 termKind :: LNTerm -> TermKind
@@ -71,17 +71,17 @@ getColor :: ColoredNode -> Color
 getColor = bimap getRuleName (map afColor . afgs) . nannot
   where
     afColor :: LNFact -> (FactTag, [TermKind])
-    afColor f = (factTag f, map termKind (factTerms f))
+    afColor f = (factTag f, [])
 
 data BackLinkCandidate = PartialCyclicProof
  { blUpTo :: UpTo
  , bl :: BackLink }
   deriving ( Show )
 
-fromRenaming :: BackLinkEdge -> RenamingUpToWithVars -> BackLinkCandidate
-fromRenaming e (r, upTo, progressing) = PartialCyclicProof upTo (BackLink e r progressing)
+fromMatch :: BackLinkEdge -> MatchUpToWithVars -> BackLinkCandidate
+fromMatch e (m, upTo, progressing) = PartialCyclicProof upTo (BackLink e m progressing)
 
-type RenamingUpToWithVars = (Renaming, UpTo, ProgressingVars)
+type MatchUpToWithVars = (LNSubst, UpTo, ProgressingVars)
 
 type AGTuple = (LVar, LNFact)
 
@@ -90,24 +90,22 @@ data InclusionFailure = MissingEdge [Edge] | MissingLesRel [(NodeId, NodeId)] | 
 
 -- TODO: Handle last
 -- TODO: Document @System@ w.r.t. to how this functino works
-isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> Renaming -> Either InclusionFailure RenamingUpToWithVars
-isProgressingAndSubSysUpTo mh smaller larger renaming = do
-  let r = toSubst renaming
-
+isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> LNSubst -> Either InclusionFailure MatchUpToWithVars
+isProgressingAndSubSysUpTo mh smaller larger sub = do
   unless (isEmptySubtermStore $ L.get sSubtermStore smaller) (throwError SubTermStoreFail)
 
   -- Check edge inclusion
-  let edgeDiff = apply r (L.get sEdges smaller) `S.difference` L.get sEdges larger
+  let edgeDiff = apply sub (L.get sEdges smaller) `S.difference` L.get sEdges larger
   unless (S.null edgeDiff) (throwError (MissingEdge (S.toList edgeDiff)))
 
   -- Check that all elements in the smaller relation are contained in the larger
   -- relation.
-  let lessAtomsSmaller = map (apply r . lessAtomToEdge) $ S.toList $ L.get sLessAtoms smaller
+  let lessAtomsSmaller = map (apply sub . lessAtomToEdge) $ S.toList $ L.get sLessAtoms smaller
   lessRelLarger <- maybe (throwError Internal) return $ fromSet (S.fromList (rawLessRel larger))
   let lessRelDiff = filter (not . uncurry (isSmaller lessRelLarger)) lessAtomsSmaller
   let cutLess = S.fromList $ map lessToFormula lessRelDiff
 
-  unless (runReader (eqStoreInlcusionModR r (L.get sEqStore smaller) (L.get sEqStore larger)) mh) (throwError EqStoreFail)
+  unless (runReader (eqStoreInlcusionModR sub (L.get sEqStore smaller) (L.get sEqStore larger)) mh) (throwError EqStoreFail)
 
   let varsInSmaller =
             S.fromList (map fst lessAtomsSmaller) <> S.fromList (map snd lessAtomsSmaller)
@@ -115,12 +113,12 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
   let varsInLarger = universe lessRelLarger <> M.keysSet (L.get sNodes larger) <> actionNodes larger
 
   let pres = varsInSmaller `S.intersection` varsInLarger
-  let prog = S.filter (checkProgresses lessRelLarger renaming) pres
+  let prog = S.filter (checkProgresses lessRelLarger) pres
   when (S.null prog) (throwError NoProgress)
 
-  let diffFormulas = apply r (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
-  let diffActionGoals = apply r (actionGoals smaller) `S.difference` actionGoals larger
-  return (renaming, cutLess <> diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
+  let diffFormulas = apply sub (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
+  let diffActionGoals = apply sub (actionGoals smaller) `S.difference` actionGoals larger
+  return (sub, cutLess <> diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
   where
     actionGoals :: System -> S.Set AGTuple
     actionGoals = S.fromList . unsolvedActionAtoms
@@ -132,24 +130,25 @@ isProgressingAndSubSysUpTo mh smaller larger renaming = do
     atToFormula (v, f) = GAto $ Action (LIT $ Var $ Free v) (fmap lTermToBTerm f)
 
     toBTerm :: NodeId -> BLTerm
-    toBTerm = lTermToBTerm . LIT . Var
+    toBTerm = lTermToBTerm . varTerm
 
     lessToFormula :: (NodeId, NodeId) -> LNGuarded
     lessToFormula (toBTerm -> t1, toBTerm -> t2) = GAto $ Less t1 t2
 
-    checkProgresses :: TransClosedOrder LVar -> Renaming -> LVar -> Bool
-    checkProgresses ord (Renaming subst _) j =
-      maybe False (\sigma_j -> isSmaller ord sigma_j j) (M.lookup j subst)
+    checkProgresses :: TransClosedOrder LVar -> LVar -> Bool
+    checkProgresses ord j = case viewTerm (apply sub (varTerm j :: LNTerm)) of
+      Lit (Var sigma_j) -> isSmaller ord sigma_j j
+      _ -> False
 
-allRenamings :: MaudeHandle -> System -> System -> [Renaming]
-allRenamings mh smallerSys largerSys = mapMaybe (runRenaming mh) (allNodeMappings smallerSys largerSys)
+allPrefixMatches :: MaudeHandle -> System -> System -> [LNSubst]
+allPrefixMatches mh smallerSys largerSys = mapMaybe (runSystemMatch mh) (allNodeMappings smallerSys largerSys)
 
-isContainedInModRenamingUpTo :: MaudeHandle -> System -> System -> [Either InclusionFailure RenamingUpToWithVars]
-isContainedInModRenamingUpTo mh smaller larger =
-  map (isProgressingAndSubSysUpTo mh smaller larger) (allRenamings mh smaller larger)
+prefixMatchesUpTo :: MaudeHandle -> System -> System -> [Either InclusionFailure MatchUpToWithVars]
+prefixMatchesUpTo mh smaller larger =
+  map (isProgressingAndSubSysUpTo mh smaller larger) (allPrefixMatches mh smaller larger)
 
-getCycleRenamingsOnPath :: ProofContext -> NonEmpty System -> Either [(SystemID, [InclusionFailure])] [BackLinkCandidate]
-getCycleRenamingsOnPath ctx (leaf:|candidates) = concat <$> anyRights (map tryRenaming candidates)
+prefixMatchesOnPath :: ProofContext -> NonEmpty System -> Either [(SystemID, [InclusionFailure])] [BackLinkCandidate]
+prefixMatchesOnPath ctx (leaf:|candidates) = concat <$> anyRights (map tryMatch candidates)
   where
     anyRights :: [Either a b] -> Either [a] [b]
     anyRights eithers =
@@ -159,37 +158,37 @@ getCycleRenamingsOnPath ctx (leaf:|candidates) = concat <$> anyRights (map tryRe
     hnd :: MaudeHandle
     hnd = L.get sigmMaudeHandle $ L.get pcSignature ctx
 
-    tryRenaming :: System -> Either (SystemID, [InclusionFailure]) [BackLinkCandidate]
-    tryRenaming inner =
+    tryMatch :: System -> Either (SystemID, [InclusionFailure]) [BackLinkCandidate]
+    tryMatch inner =
       let blEdge = (L.get sId leaf, L.get sId inner)
-      in bimap (L.get sId inner,) (map (fromRenaming blEdge)) (anyRights (isContainedInModRenamingUpTo hnd inner leaf))
+      in bimap (L.get sId inner,) (map (fromMatch blEdge)) (anyRights (prefixMatchesUpTo hnd inner leaf))
 
--- | Explores all possible renamings between two lists while trying to reject as
+-- | Explores all possible matchess between two lists while trying to reject as
 --   many candidates as possible. The applicative monoid @m b@ can be used as an
---   accumulator. Whenever two elements of type @a@ are chosen to be renamed to
+--   accumulator. Whenever two elements of type @a@ are chosen to be matched to
 --   one another, the accumulator will be called and should return and update
---   function (within the monoid). After a complete renaming has been generated,
+--   function (within the monoid). After a complete match has been generated,
 --   the test function will be called, and the candidate is only considered when
 --   the test function returns @True@.
 allMappings :: Semigroup s =>
-      (a -> a -> PartialRenaming)
-  -- ^ Function to generate a renaming
+      (a -> a -> SystemMatch)
+  -- ^ Function to generate a match
   ->  (a -> a -> (s -> s))
   -- ^ Function to update the testing semigroup
   ->  (s -> Bool)
-  -- ^ Test function to early-reject a renaming candiate
+  -- ^ Test function to early-reject a match candiate
   ->  s
   -- ^ Initial accumulator for semigroup
-  ->  PartialRenaming
-  -- ^ Renaming to extend
+  ->  SystemMatch
+  -- ^ Matching to extend
   ->  [a]
-  -- ^ List of left-candidates for renamings
+  -- ^ List of left-candidates for mathcings
   ->  [a]
-  -- ^ List of right-candidates for renamings. Can be larger than list of left
+  -- ^ List of right-candidates for matchings. Can be larger than list of left
   --   candidates.
-  ->  [(s, PartialRenaming)]
-  -- ^ Potential renamings with the accumulator
-allMappings _ _ _ _ NoRenaming _ _ = []
+  ->  [(s, SystemMatch)]
+  -- ^ Potential matchings with the accumulator
+allMappings _ _ _ _ NoSystemMatch _ _ = []
 allMappings _ _ testF acc r [] _ = [(acc, r) | testF acc]
 allMappings (~~>) genF testF baseM baseR als ars = rec baseM als ars
   where
@@ -205,28 +204,28 @@ allMappings (~~>) genF testF baseM baseR als ars = rec baseM als ars
           in extendWith (a ~~> a') mappedTail ++ differentlyMappedHead
 
 allMappingsGrouped :: (Ord k, Monoid m) =>
-      (a -> a -> PartialRenaming)
-  -- ^ Function to generate a renaming
+      (a -> a -> SystemMatch)
+  -- ^ Function to generate a matching
   ->  (a -> a -> (m -> m))
   -- ^ Function to update the testing monoid
   ->  (m -> Bool)
-  -- ^ Test function to early-reject a renaming candiate
-  ->  PartialRenaming
-  -- ^ Renaming to extend
+  -- ^ Test function to early-reject a matching candiate
+  ->  SystemMatch
+  -- ^ Matching to extend
   ->  M.Map k [a]
-  -- ^ List of left-candidates for renamings
+  -- ^ List of left-candidates for matchings
   ->  M.Map k [a]
-  -- ^ List of right-candidates for renamings. Can be larger than list of left
+  -- ^ List of right-candidates for matchings. Can be larger than list of left
   --   candidates.
-  ->  [(m, PartialRenaming)]
-  -- ^ Potential renamings with the accumulator
-allMappingsGrouped _ _ _ NoRenaming _ _ = []
+  ->  [(m, SystemMatch)]
+  -- ^ Potential matchings with the accumulator
+allMappingsGrouped _ _ _ NoSystemMatch _ _ = []
 allMappingsGrouped (~~>) genF testF baseR als ars
   | M.null als = [(mempty, baseR)]
   | otherwise =
     let pairs = M.foldrWithKey foldToMatching (Just []) als
         -- ^ First look whether we have a matching key in the right map for every
-        --   key in the left map. This is more efficient than exploring renamings
+        --   key in the left map. This is more efficient than exploring matchings
         --   and thus should help with early termination.
     in  maybe [] (foldr (\(as, as') -> concatMap (allMs as as')) [(mempty, baseR)]) pairs
   where
@@ -245,19 +244,19 @@ instance Semigroup Or where
 instance Monoid Or where
   mempty = Any False
 
--- | Tries to rename loops into one another s.t. some of the renamed loops
+-- | Tries to match loops to one another s.t. some of the matched loops
 --   *could* make progress. We early-test whether we could make progress by
 --   checking that whether some loop is shorter than the loop it got mapped to.
---   If no loops are provided, we say there are no renamings. Technically, the
---   identity would be a valid renamings, but this renaming will not make
---   progress. We expect that only renamings of loops will progress.
-allLoopMappings :: [LoopInstance ColoredNode] -> [LoopInstance ColoredNode] -> [PartialRenaming]
+--   If no loops are provided, we say there are no macthings. Technically, the
+--   identity would be a valid matchings, but this matching will not make
+--   progress. We expect that only matchings of loops will progress.
+allLoopMappings :: [LoopInstance ColoredNode] -> [LoopInstance ColoredNode] -> [SystemMatch]
 allLoopMappings [] _ = []
 allLoopMappings _ [] = []
 allLoopMappings lisSml lisLrg =
     map snd
   $ filter (didProgress . fst)
-  $ allMappingsGrouped (~>) couldProgress (const True) (Pure idRenaming) (groupF lisSml) (groupF lisLrg)
+  $ allMappingsGrouped (~>) couldProgress (const True) mempty (groupF lisSml) (groupF lisLrg)
   where
     groupF :: [LoopInstance ColoredNode] -> M.Map Color [LoopInstance ColoredNode]
     groupF = groupByColor (getColor . start)
@@ -276,28 +275,28 @@ allLoopMappings lisSml lisLrg =
     didProgress :: Or -> Bool
     didProgress (Any p) = p
 
-mapAlongEdges :: (Renamable a, Ord a, Ord k) =>
+mapAlongEdges :: (Matchable a, Ord a, Ord k) =>
      (a -> NodeId)
   -> ([a] -> M.Map k [a])
   -> TransClosedOrder a
   -> TransClosedOrder a
   -> [a]
   -> [a]
-  -> PartialRenaming
-  -> [PartialRenaming]
+  -> SystemMatch
+  -> [SystemMatch]
 mapAlongEdges nidF groupF topoSml topoLrg = go
   where
     go [] _ r = [r]
     go ns1 ns2 r =
-      let (mapped1, notMapped1) = L.partition ((`S.member` nonMonadicDomain r) . nidF) ns1
-          (mapped2, notMapped2) = L.partition ((`S.member` nonMonadicImage r) . nidF) ns2
+      let (mapped1, notMapped1) = L.partition ((`S.member` graphDomain r) . nidF) ns1
+          (mapped2, notMapped2) = L.partition ((`S.member` graphImage r) . nidF) ns2
           mapped2M = M.fromList (map (\a -> (nidF a, a)) mapped2)
           mapped = mapMaybe (getMappedTo mapped2M) mapped1
           rs = allMappingsGrouped (~>) (\a1 a2 -> ((a1, a2):)) (const True) r (groupF notMapped1) (groupF notMapped2)
       in concatMap (uncurry rec . first (mapped ++)) rs
       where
         getMappedTo m a = do
-          to <- M.lookup (applyR (nonMonadicRenaming r) (nidF a)) m
+          to <- (`M.lookup` m) =<< M.lookup (nidF a) (graphMatch r)
           return (a, to)
 
     rec [] r = [r]
@@ -369,11 +368,11 @@ loopsAndsystemSpanningOrder s = do
 groupByColor :: (a -> Color) -> [a] -> M.Map Color [a]
 groupByColor f = foldr (\n -> addAt (f n) n) M.empty
 
-allNodeMappings :: System -> System -> [PartialRenaming]
+allNodeMappings :: System -> System -> [SystemMatch]
 allNodeMappings smaller larger = do
   (lsSml, spanningSml) <- maybeToList (loopsAndsystemSpanningOrder smaller)
   (lsLrg, spanningLrg) <- maybeToList (loopsAndsystemSpanningOrder larger)
-  r0 <- if null lsSml then [Pure idRenaming] else allLoopMappings lsSml lsLrg
+  r0 <- if null lsSml then [mempty] else allLoopMappings lsSml lsLrg
   mapAlongEdges nnid (groupByColor getColor) spanningSml spanningLrg (startAt spanningSml) (startAt spanningLrg) r0
   where
     startAt :: TransClosedOrder ColoredNode -> [ColoredNode]

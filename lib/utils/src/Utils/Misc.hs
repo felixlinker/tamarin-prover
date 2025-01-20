@@ -34,6 +34,7 @@ module Utils.Misc (
   -- * Map operations
   , invertMap
   , addAt
+  , mergeDisjoint
 
   -- * unsafeEq
   , unsafeEq
@@ -52,11 +53,13 @@ import Data.List.NonEmpty (NonEmpty((:|)),(<|))
 import qualified Data.List.NonEmpty as NE
 import System.Environment
 import System.IO.Unsafe
+import Data.Functor (($>))
 import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set           as S
 import Data.Map ( Map )
 import qualified Data.Map           as M
+import           Data.Map.Merge.Lazy
 import qualified Data.Map.Strict    as M'
 
 import Data.Digest.Pure.SHA      (bytestringDigest, sha256)
@@ -68,6 +71,7 @@ import qualified Blaze.ByteString.Builder.Char.Utf8 as Utf8 (fromString)
 
 import GHC.Exts (reallyUnsafePtrEquality#, Int (I#))
 import Data.Bifunctor (Bifunctor(first))
+import Control.Basics (guard)
 
 -- | @fst3 (x, y, z)@ returns the first element @x@ of the triple
 fst3 :: (a, b, c) -> a
@@ -220,3 +224,11 @@ zipWithStrictLeft :: (a -> b -> c) -> [a] -> [b] -> Maybe [c]
 zipWithStrictLeft _ [] _ = Just []
 zipWithStrictLeft _ _ [] = Nothing
 zipWithStrictLeft f (a:as) (b:bs) = (f a b :) <$> zipWithStrictLeft f as bs
+
+-- | Merge two maps that are disjoint in that whenever they share a key, that
+-- key must map to the same value. The condition is checked.
+mergeDisjoint :: (Ord k, Eq v) => M.Map k v -> M.Map k v -> Maybe (M.Map k v)
+mergeDisjoint = mergeA keep keep checkEqual
+  where
+    keep = mapMaybeMissing (const Just)
+    checkEqual = zipWithMaybeMatched $ const (\a b -> guard (a == b) $> a)

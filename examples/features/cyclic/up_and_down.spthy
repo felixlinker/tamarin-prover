@@ -1,0 +1,40 @@
+theory UpAndDown
+begin
+
+functions: h/1
+
+rule Start:
+  [ Fr(~x) ]
+  --[ Gen(~x) ]->
+  [ Up(~x, ~x) ]
+
+rule Up:
+  [ Up(id, x) ]
+  --[ Gen(h(x)) ]->
+  [ Up(id, h(x)) ]
+
+rule DownStart:
+  [ Up(idUp, x), Fr(~idDown) ]
+  -->
+  [ Down(~idDown, x) ]
+
+rule Down:
+  [ Down(id, h(x)) ]
+  --[ Destr(h(x)) ]->
+  [ Down(id, x) ]
+
+rule DownEnd:
+    // Note: If we replace x with ~x, the lemma would also not be provable after
+    // searching for backlinks under substitutions.
+  [ Down(id, x) ]
+  --[ End(x)
+    , Destr(x) ]->
+  []
+
+lemma Correctness1:
+  "All x #a. Destr(x) @ #a ==> Ex #b. Gen(x) @ #b"
+
+lemma Correctness2:
+  "All x #a. End(x) @ #a ==> Ex #b. Gen(x) @ #b"
+
+end

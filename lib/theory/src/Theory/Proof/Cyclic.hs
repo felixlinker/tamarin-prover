@@ -14,13 +14,13 @@ module Theory.Proof.Cyclic
 import qualified Data.Set as S
 import Theory.Constraint.System.ID
 import Term.LTerm
+import Term.Substitution (LNSubst)
 import GHC.Generics (Generic)
 import Control.DeepSeq (NFData)
 import Data.Binary (Binary)
 import qualified Data.Map as M
 import Control.Monad
 import Utils.PartialOrd (TransClosedOrder(..), PartialOrder (pempty, pinsert), PartialOrdering(..), unionDisjoint)
-import Theory.Constraint.Renaming (Renaming)
 
 data ProgressingVars = PVs
   { pvProgresses :: S.Set NodeId
@@ -67,7 +67,7 @@ defaultOrderWhenInSCS e@(es, et) e'@(es', et') = case checkRelation et et' of
 
 data BackLink = BackLink
   { edge :: BackLinkEdge
-  , renaming :: Renaming
+  , match :: LNSubst
   , pvs :: ProgressingVars }
   deriving( Eq, Ord, Show, Generic, NFData, Binary )
 

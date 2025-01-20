@@ -298,7 +298,7 @@ import           Data.Label                           ((:->), mkLabels)
 import qualified Extension.Data.Label                 as L
 
 import           GHC.IO                               (unsafePerformIO)
-import           Theory.Constraint.Renaming
+import           Theory.Constraint.SystemMatch
 
 import           Logic.Connectives
 import           Theory.Constraint.System.Constraints 
@@ -430,7 +430,7 @@ data Usefulness =
 type AnnotatedGoal = (Goal, (GoalAge, Usefulness))
 
 -- | Type a stores nodes. Most of the time, this will be a NodeId, but for
---   finding renamings, we annotate it with the corresponding rule, too.
+--   finding matches, we annotate it with the corresponding rule, too.
 data LoopInstance a = LoopInstance
   { loopFact :: FactTag
   , loopId :: LVar
@@ -462,10 +462,10 @@ instance HasFrees (LoopInstance NodeId) where
       <*> mapFrees f s
       <*> mapFrees f e
 
-instance Renamable a => Renamable (LoopInstance a) where
+instance Matchable a => Matchable (LoopInstance a) where
   (LoopInstance ft li (e :| es) _ _) ~> (LoopInstance ft' li' (e' :| es') _ _)
-    | ft /= ft' = NoRenaming
-    | otherwise = sconcat ((li ~> li') :| (e ~> e') : fromMaybe [NoRenaming] (zipWithStrictLeft (~>) es es'))
+    | ft /= ft' = NoSystemMatch
+    | otherwise = sconcat ((li ~> li') :| (e ~> e') : fromMaybe [NoSystemMatch] (zipWithStrictLeft (~>) es es'))
 
 isLongLoop :: LoopInstance a -> Bool
 isLongLoop = not . null . NE.tail . loopEdges

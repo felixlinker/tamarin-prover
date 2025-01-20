@@ -81,7 +81,6 @@ library
       Theory.Proof.CyclicTest
       Theory.ProofSkeleton
 
-      Theory.Constraint.Renaming
       Theory.Constraint.Solver
       Theory.Constraint.Solver.Sources
       Theory.Constraint.Solver.Contradictions
@@ -102,6 +101,7 @@ library
       Theory.Constraint.System.Graph.Simplification
       Theory.Constraint.System.Graph.Graph
       Theory.Constraint.System.Results
+      Theory.Constraint.SystemMatch
 
       Theory.Sapic.Term
       Theory.Sapic.Pattern

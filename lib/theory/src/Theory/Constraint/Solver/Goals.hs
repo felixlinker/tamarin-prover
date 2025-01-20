@@ -53,7 +53,7 @@ import           Term.Builtin.Convenience
 
 import Utils.Misc (twoPartitions, peakTail, splitBetween, peak)
 import Data.Maybe (isNothing, catMaybes, isJust, fromJust, mapMaybe)
-import Theory.Constraint.System.Inclusion (InclusionFailure, BackLinkCandidate (blUpTo, bl), getCycleRenamingsOnPath)
+import Theory.Constraint.System.Inclusion (InclusionFailure, BackLinkCandidate (blUpTo, bl), prefixMatchesOnPath)
 import Data.List.NonEmpty as NE (NonEmpty((:|)))
 import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
 import Data.Tuple (swap)
@@ -620,7 +620,7 @@ searchBacklink asMethod syssToRoot = do
   ctxt <- ask
   s <- St.get
   let syss = bool (s NE.<|) id asMethod <$> syssToRoot
-  maybe mzero (either traceFailure cycleFound . getCycleRenamingsOnPath ctxt) syss
+  maybe mzero (either traceFailure cycleFound . prefixMatchesOnPath ctxt) syss
   where
     insertCut :: [BackLinkCandidate] -> Reduction ()
     insertCut = when asMethod . mapM_ (\(blUpTo -> ut) -> insertGoal (Cut ut) False)
@@ -636,7 +636,7 @@ searchBacklink asMethod syssToRoot = do
     traceFailureSystem (sid, fails) = do
       traceM $ " * For system " ++ show sid
       if null fails
-        then traceM "   * No renaming found"
+        then traceM "   * No match found"
         else mapM_ (traceM . ("   * " ++) . showNEFails) $ mapMaybe NE.nonEmpty $ group $ sort fails
 
     traceFailure :: [(SystemID, [InclusionFailure])] -> Reduction ()

@@ -91,7 +91,6 @@ module Theory.Model.Fact (
   , LFact
   , LNFact
   , unifyLNFactEqs
-  , unifyLNFactEqsOriented
   , unifyLNFacts
   , unifiableLNFacts
   , newVariables
@@ -468,9 +467,6 @@ unifyFactEqs unif eqs
 -- | Unify a list of @LFact@ equalities.
 unifyLNFactEqs :: [Equal LNFact] -> WithMaude [LNSubstVFresh]
 unifyLNFactEqs = fmap runIdentity . unifyFactEqs (fmap Identity . unifyLNTerm)
-
-unifyLNFactEqsOriented :: [Equal LNFact] -> WithMaude (Maybe [LVarSubst])
-unifyLNFactEqsOriented = unifyFactEqs unifyLNTermOriented
 
 unifyLNFacts :: LNFact -> LNFact -> WithMaude [LNSubstVFresh]
 unifyLNFacts fa1 fa2 = unifyLNFactEqs [Equal fa1 fa2]

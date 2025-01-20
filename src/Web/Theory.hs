@@ -88,7 +88,6 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import Theory.Proof.Cyclic (CyclicProof(MaybeSoundProof, UnsoundProof), ProofSoundness (Unsound, Sound, Undetermined), soundness, BackLink (BackLink), ProgressingVars (PVs))
 import Theory.Constraint.System.Results (prettyResult, Contradiction (Cyclic))
 import Data.Semigroup (Semigroup(sconcat))
-import Theory.Constraint.Renaming (prettyRenaming)
 
 ------------------------------------------------------------------------------
 -- Various other functions
@@ -587,7 +586,7 @@ subProofSnippet renderUrl renderImgUrl tidx ti lemma proofPath ctxt prf syss@(se
     prettyCyclicContradiction (Cyclic (BackLink (_, tgtId) subst (PVs (S.toList  -> progresses) (S.toList -> preserves)))) =
       [ withTag "h3" [] (text "Cyclic backlink details")
       , withTag "h4" [] (text "Substitution")
-      , preformatted Nothing $ prettyRenaming subst
+      , preformatted Nothing $ prettyLNSubst subst
       , preformatted Nothing $ text "Progresses:" <-> maybe (text "none") sconcat (NE.nonEmpty (punctuate (comma <> space) (map (text . show) progresses)))
       , preformatted Nothing $ text "Preserves:" <-> maybe (text "none") sconcat (NE.nonEmpty (punctuate (comma <> space) (map (text . show) preserves)))
       , withTag "h4" [] (text "Backlink target system")
