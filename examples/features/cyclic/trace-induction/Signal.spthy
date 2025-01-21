@@ -1,0 +1,180 @@
+theory Signal
+begin
+
+builtins: diffie-hellman, symmetric-encryption
+functions: kdf/1, decrypts/2, true/0
+equations: decrypts(senc(m, k), k) = true
+
+heuristic: O "signal.py"
+
+restriction Eq:
+  "All a b #x. Eq(a, b) @ #x ==> a = b"
+
+restriction Neq:
+  "All a b #x. Neq(a, b) @ #x ==> not (a = b)"
+
+rule KeyGen:
+  [ Fr(~ltk), Fr(~prek) ]
+  -->
+  [ !SecretKeys($A, ~ltk, ~prek)
+  , !PublicKeys($A, 'g'^~ltk, 'g'^~prek)
+  , Out('g'^~ltk)
+  , Out('g'^~prek) ]
+
+rule SenderStart:
+  let dh1 = prepk^~ltk
+      dh2 = ltpk^~x
+      dh3 = prepk^~x
+      ss = kdf(<dh1, dh2, dh3>)
+      rk = kdf(<'rk', ss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ Fr(~id), Fr(~x), Fr(~m)
+  , !SecretKeys($A, ~ltk, prek)
+  , !PublicKeys($B, ltpk, prepk) ]
+  --[ Neq($A, $B)
+    , Send(~m)
+    , Honest('g'^~x)
+    , DHSecrets(~id, ~x, prepk, dh3, rk)
+    , NewDHSecrets(~id, ~x, prepk, dh3, rk)
+    , ChainKey(~id, dh3, ck)
+    , MessageKey(~id, dh3, mk) ]->
+  [ Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
+  , Out(<'g'^~x, senc(~m, mk)>) ]
+
+rule Send:
+  let new_ck = kdf(<'ck', ck>)
+      mk = kdf(<'mk', new_ck>)
+  in
+  [ Fr(~m)
+  , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
+  --[ Send(~m)
+    , DHSecrets(~id, ~x, pc, pc^~x, rk)
+    , ChainKey(~id, pc^~x, new_ck)
+    , MessageKey(~id, pc^~x, mk) ]->
+  [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
+  , Out(senc(~m, mk)) ]
+
+rule ReceiverStart:
+  let dh1 = ltpk^~prek
+      dh2 = pc^~ltk
+      dh3 = pc^~prek
+      ss = kdf(<dh1, dh2, dh3>)
+      rk = kdf(<'rk', ss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ Fr(~id)
+  , !SecretKeys($A, ~ltk, ~prek)
+  , !PublicKeys($B, ltpk, prepk)
+  , In(<pc, enc>) ]
+  --[ Neq($A, $B)
+    , Neq(pc, DH_neutral)
+    , Neq(pc, 'g')
+    , Honest('g'^~prek)
+    , Receive(sdec(enc, mk))
+    , DHSecrets(~id, ~prek, pc, dh3, rk)
+    , NewDHSecrets(~id, ~prek, pc, dh3, rk)
+    , Eq(decrypts(enc, mk), true) ]->
+  [ Session(~id, $A, 'R', ~prek, $B, pc, rk, ck) ]
+
+rule Receive:
+  let new_ck = kdf(<'ck', ck>)
+      mk = kdf(<'mk', new_ck>)
+  in
+  [ In(enc)
+  , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
+  --[ Receive(sdec(enc, mk))
+    , DHSecrets(~id, ~x, pc, pc^~x, rk)
+    , Eq(decrypts(enc, mk), true) ]->
+  [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
+
+rule OuterRatchetToSender:
+  let dhss = pc^~x
+      rk = kdf(<'rk', old_rk, dhss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ Fr(~x), Fr(~m)
+  , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
+  --[ ToSender(~id, 'g'^~x, dhss)
+    , Send(~m)
+    , Honest('g'^~x)
+    , DHSecrets(~id, ~x, pc, dhss, rk)
+    , NewDHSecrets(~id, ~x, pc, dhss, rk)
+    , ChainKey(~id, dhss, ck)
+    , MessageKey(~id, dhss, mk) ]->
+  [ Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
+  , Out(<'g'^~x, senc(~m, mk)>) ]
+
+rule OuterRatchetToReceiver:
+  let dhss = pc^~x
+      rk = kdf(<'rk', old_rk, dhss>)
+      ck = kdf(<'ck', rk>)
+      mk = kdf(<'mk', ck>)
+  in
+  [ In(<pc, enc>)
+  , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
+  --[ Neq(pc, DH_neutral)
+    , Neq(pc, 'g')
+    , PCWellFormed(dhss, rk)
+    , Receive(sdec(enc, mk))
+    , DHSecrets(~id, ~x, pc, dhss, rk)
+    , NewDHSecrets(~id, ~x, pc, dhss, rk)
+    , Eq(decrypts(enc, mk), true) ]->
+  [ Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
+
+lemma Exec:
+  exists-trace
+  "Ex m #x #y. Receive(m) @ #x & Send(m) @ #y"
+
+lemma OuterLoopStepSender[reuse,use_induction]:
+  "All m id sc pc ss rk #a.
+          DHSecrets(id, sc, pc, ss, rk) @ #a
+        & Send(m) @ #a
+        & not NewDHSecrets(id, sc, pc, ss, rk) @ #a
+    ==> Ex m #b.
+            NewDHSecrets(id, sc, pc, ss, rk) @ #b
+          & Send(m) @ #b
+          & b < #a"
+
+lemma OuterLoopStepReceiver[reuse,use_induction]:
+  "All m id sc pc ss rk #a.
+          DHSecrets(id, sc, pc, ss, rk) @ #a
+        & Receive(m) @ #a
+        & not NewDHSecrets(id, sc, pc, ss, rk) @ #a
+    ==> Ex m #b.
+            NewDHSecrets(id, sc, pc, ss, rk) @ #b
+          & Receive(m) @ #b
+          & b < #a"
+
+lemma NoDHNeutral[reuse,use_induction,hide_lemma=OuterLoopStepSender]:
+  "All id sc ss rk #t. DHSecrets(id, sc, DH_neutral, ss, rk) @ #t ==> F"
+
+lemma NoGenerator[reuse,use_induction,hide_lemma=OuterLoopStepSender,hide_lemma=NoDHNeutral]:
+  "All id sc ss rk #t. DHSecrets(id, sc, 'g', ss, rk) @ #t ==> F"
+
+lemma CkSecrecy[reuse,use_induction,hide_lemma=OuterLoopStepSender,hide_lemma=NoDHNeutral,hide_lemma=NoGenerator,hide_lemma=SSSecrecy]:
+  "All id ss ck #a #b.
+        ChainKey(id, ss, ck) @ #a
+      & KU(ck) @ #b
+  ==> (Ex #x. KU(ss) @ #x)"
+
+lemma MkSecrecy[reuse,hide_lemma=NoDHNeutral,hide_lemma=NoGenerator,hide_lemma=OuterLoopStepSender,hide_lemma=OuterLoopStepReceiver]:
+  "All id ss mk #a #b.
+        MessageKey(id, ss, mk) @ #a
+      & KU(mk) @ #b
+  ==> (Ex #x. KU(ss) @ #x)"
+
+lemma KeysHonest:
+  "All id sc pc ss rk #x. DHSecrets(id, sc, pc, ss, rk) @ #x ==> Ex #y. Honest(pc) @ #y"
+
+lemma SSSecrecy[reuse,use_induction]:
+  "All id sc pc ss rk #t. DHSecrets(id, sc, pc, ss, rk) @ #t
+  ==> (not Ex #x. KU(ss) @ #x)"
+
+lemma Secrecy[no_cyclic,hide_lemma=OuterLoopStepSender,hide_lemma=NoDHNeutral]:
+  "All m #t. Send(m) @ #t ==> (not Ex #x. K(m) @ #x)"
+
+end

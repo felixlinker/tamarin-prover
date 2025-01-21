@@ -55,7 +55,7 @@ rule WrapKey:
  *
  * Tamarin can prove this property automatically.
  */
-lemma NewKey_invariant[reuse,use_induction]:
+lemma NewKey_invariant:
   "not(Ex #i #j h k. NewKey(h, k) @ i & KU(k) @ j) "
 
 /* This property talks only about standard traces that do not refer to the
@@ -63,7 +63,7 @@ lemma NewKey_invariant[reuse,use_induction]:
  * NewKey_invariant proven before. Try an interactive proof after removing the
  * 'reuse' flag above to see what goes wrong without induction and the 'Ded'
  * facts. */
-lemma NewKey_secrecy[no_cyclic]:
+lemma NewKey_secrecy:
   "not(Ex #i #j h k. NewKey(h, k) @ i & K(k) @ j) "
 
 end

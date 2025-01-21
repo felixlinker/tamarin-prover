@@ -1,0 +1,12 @@
+theory subtermtest begin
+
+builtins: hashing
+
+rule Intro:
+  [ In(x) ] --[ H(x) ]-> []
+
+lemma Test:
+  exists-trace
+  "Ex x y #i #j. H(x) @ #i & H(y) @ #j & h(x) << y & not (h(h(x)) << y)"
+
+end

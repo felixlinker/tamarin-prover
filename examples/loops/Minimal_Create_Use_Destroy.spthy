@@ -29,26 +29,12 @@ rule Destroy:
   --[ Destroy(x) ]->
     []
 
-lemma Use_charn: // [reuse, use_induction]:
+lemma Use_charn[reuse,use_induction]:
   "All x #j. Use(x) @ j ==>
     (Ex #i. Create(x) @ i & i < j)
   "
 
-// Destroy_charn as three separate lemmas for a better overiew 
-
-lemma Destroy_Create: // [use_induction]:
-  "All x #j. Destroy(x) @ j ==> (Ex #i. Create(x) @ i & i < j)"
-
-lemma Destroy_Use: // [use_induction]:
-  "All x #j #i. Destroy(x) @ j & Use(x) @ i ==> i < j"
-
-lemma Destroy_unique: // [use_induction]:
-  "All x #j #i. Destroy(x) @ j & Destroy(x) @ i ==> #i = #j"
-
-
-// All together now
-
-lemma Destroy_charn: // [use_induction]:
+lemma Destroy_charn[use_induction]:
   "All x #j. Destroy(x) @ j ==>
     ( (Ex #i. Create(x) @ i & i < j)
     & (All #i. Use(x) @ i  ==>  i < j)

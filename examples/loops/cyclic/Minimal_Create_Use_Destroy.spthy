@@ -1,0 +1,99 @@
+theory Minimal_Create_Use_Destroy begin
+
+
+
+text{*
+  Author: Simon Meier <simon.meier@inf.ethz.ch>
+  Date:   2011 12 01
+  Status: Working
+
+  One model of the key mechanism for certificate revocation.
+  For every certificate, we create a single fact denoting that
+  it has not yet been revoked. In every use of the certificate,
+  we check that this fact still exists.
+
+*}
+
+rule Create:
+    [ Fr(x) ]
+  --[ Create(x) ]->
+    [ Object(x) ]
+
+rule Use:
+    [ Object(x) ]
+  --[ Use(x) ]->
+    [ Object(x) ]
+
+rule Destroy:
+    [ Object(x) ]
+  --[ Destroy(x) ]->
+    []
+
+lemma Use_charn:
+  "All x #j. Use(x) @ j ==>
+    (Ex #i. Create(x) @ i & i < j)
+  "
+
+lemma Destroy_charn:
+  "All x #j. Destroy(x) @ j ==>
+    ( (Ex #i. Create(x) @ i & i < j)
+    & (All #i. Use(x) @ i  ==>  i < j)
+    & (All #i. Destroy(x) @ i  ==>  #i = #j)
+    )
+  "
+simplify
+solve( (∀ #i. (Create( x.1 ) @ #i) ⇒ ¬(#i < #j))  ∥
+       (∃ #i. (Use( x.1 ) @ #i) ∧ ¬(#i < #j))  ∥
+       (∃ #i. (Destroy( x.1 ) @ #i) ∧ ¬(#i = #j)) )
+  case case_1
+  by sorry /* removed */
+next
+  case case_2
+  solve( Object( x.2 ) ▶₀ #i )
+    case Create
+    by contradiction /* cyclic */
+  next
+    case Use
+    search for cycle
+    by contradiction /* cyclic backlink to CS id 4-04 */
+  qed
+next
+  case case_3
+  solve( (#i < #j)  ∥ (#j < #i) )
+    case case_1
+    solve( Object( x.2 ) ▶₀ #j )
+      case Create
+      by contradiction /* cyclic */
+    next
+      case Use
+      weaken node( #j )
+      solve( Object( x.2 ) ▶₀ #vr )
+        case Create
+        by contradiction /* cyclic */
+      next
+        case Use
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 7-28 */
+      qed
+    qed
+  next
+    case case_2
+    solve( Object( x.2 ) ▶₀ #i )
+      case Create
+      by contradiction /* cyclic */
+    next
+      case Use
+      weaken node( #i )
+      solve( Object( x.2 ) ▶₀ #vr )
+        case Create
+        by contradiction /* cyclic */
+      next
+        case Use
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 7-38 */
+      qed
+    qed
+  qed
+qed
+
+end

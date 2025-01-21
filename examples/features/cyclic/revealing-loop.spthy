@@ -29,7 +29,10 @@ lemma SeedsMatch:
         & Compute(id2, seed2, x) @ #t2
     ==> (seed1 = seed2)"
 
-lemma SecrecyWeakened:
+tactic: ku_h
+prio: regex "KU\( h"
+
+lemma SecrecyWeakened[heuristic={ku_h}]:
   "All id seed x #t. Compute(id, seed, x) @ #t
     ==>   (not Ex #x. K(x) @ #x)
         | (Ex id2 y #x. RevealElement(id2, y) @ #x & (y << x | y = x))"
@@ -39,7 +42,7 @@ lemma IdsMatch[reuse]:
         & Compute(id2, seed2, x) @ #t2
     ==> (id1 = id2)"
 
-lemma Secrecy:
+lemma Secrecy[heuristic={ku_h}]:
   "All id seed x #t. Compute(id, seed, x) @ #t
     ==>   (not Ex #x. K(x) @ #x)
         | (Ex y #x. RevealElement(id, y) @ #x & (y << x | y = x))"

@@ -37,4 +37,8 @@ lemma Correctness1:
 lemma Correctness2:
   "All x #a. End(x) @ #a ==> Ex #b. Gen(x) @ #b"
 
+// Not provable
+lemma Correspondence:
+  "All x #a #b. Destr(x) @ #a & Destr(x) @ #b ==> #a = #b"
+
 end

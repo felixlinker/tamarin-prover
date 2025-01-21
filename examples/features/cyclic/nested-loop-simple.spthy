@@ -38,7 +38,7 @@ lemma SeedSecrecy:
   "All id k seed #t1 #t2. Key(id, k, seed) @ #t1 & KU(k) @ #t2
     ==> (Ex #x. KU(seed) @ #x)"
 
-lemma KeySecrecy:
+lemma KeySecrecy[heuristic=i]:
   "All id k seed #t. Key(id, k, seed) @ #t
     ==>   (not Ex #x. K(k) @ #x)
         | (Ex x #x1 #x2. FreshSeed(id, seed, x) @ #x1
