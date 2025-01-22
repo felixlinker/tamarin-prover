@@ -65,13 +65,10 @@ termKind t = case viewTerm t of
 
 type ColoredNode = Node (Either RuleACInst AFGoals)
 
-type Color = Either String [(FactTag, [TermKind])]
+type Color = Either String [FactTag]
 
 getColor :: ColoredNode -> Color
-getColor = bimap getRuleName (map afColor . afgs) . nannot
-  where
-    afColor :: LNFact -> (FactTag, [TermKind])
-    afColor f = (factTag f, [])
+getColor = bimap getRuleName (map factTag . afgs) . nannot
 
 data BackLinkCandidate = PartialCyclicProof
  { blUpTo :: UpTo
