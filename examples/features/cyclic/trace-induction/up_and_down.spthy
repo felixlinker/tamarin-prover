@@ -30,17 +30,16 @@ rule DownEnd:
   --[ End(x) ]->
   []
 
-lemma CorrectnessInvariant[reuse]:
+lemma CorrectnessInvariant[use_induction,reuse]:
   "All x #a. Destr(x) @ #a ==> Ex #b. Gen(x) @ #b"
 
-lemma CorrectnessEnd[hide_lemma=CorrectnessInvariant]:
+lemma CorrectnessEnd:
   "All x #a. End(x) @ #a ==> Ex #b. Gen(x) @ #b"
 
-lemma GenUnique[reuse,hide_lemma=CorrectnessInvariant]:
+lemma GenUnique[reuse,use_induction]:
   "All x #a #b. Gen(x) @ #a & Gen(x) @ #b ==> #a = #b"
 
-// Not provable
-lemma Correspondence:
+lemma Correspondence[use_induction]:
   "All x #a #b. Destr(x) @ #a & Destr(x) @ #b ==> #a = #b"
 
 end

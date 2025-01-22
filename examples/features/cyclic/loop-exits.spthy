@@ -1,0 +1,28 @@
+theory LoopExits
+begin
+
+functions: h/1
+
+rule Start:
+  [ Fr(~x) ]
+  --[ GenProvable(~x) ]->
+  [ Up(~x, ~x) ]
+
+rule Up:
+  [ Up(id, x) ]
+  --[ GenProvable(h(x))
+    , GenUnprovable(x) ]->
+  [ Up(id, h(x)) ]
+
+rule Stop:
+  [ Up(id, x) ]
+  --[ GenUnprovable(x) ]->
+  []
+
+lemma CorrespondenceProvable:
+  "All x #a #b. GenProvable(x) @ #a & GenProvable(x) @ #b ==> #a = #b"
+
+lemma CorrespondenceUnprovable:
+  "All x #a #b. GenUnprovable(x) @ #a & GenUnprovable(x) @ #b ==> #a = #b"
+
+end
