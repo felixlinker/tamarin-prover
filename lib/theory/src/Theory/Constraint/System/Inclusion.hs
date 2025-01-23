@@ -56,13 +56,6 @@ instance Ord a => Ord (Node a) where
 instance Matchable a => Matchable (Node a) where
   (Node nid1 a1) ~> (Node nid2 a2) = mapNode nid1 nid2 (a1 ~> a2)
 
-data TermKind = KFun FunSym | KConst | KVar LSort deriving (Show, Ord, Eq)
-termKind :: LNTerm -> TermKind
-termKind t = case viewTerm t of
-  FApp sym _ -> KFun sym
-  Lit (Con _) -> KConst
-  Lit (Var (LVar _ sort _)) -> KVar sort
-
 type ColoredNode = Node (Either RuleACInst AFGoals)
 
 type Color = Either String [FactTag]
