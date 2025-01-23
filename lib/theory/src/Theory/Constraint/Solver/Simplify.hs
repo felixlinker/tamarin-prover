@@ -239,37 +239,6 @@ enforceFreshAndKuNodeUniqueness =
             mappend <$> solver         (map (Equal xKeep . fst . snd) remove)
                     <*> solveNodeIdEqs (map (Equal iKeep . snd . snd) remove)
 
-
--- | CR-rules *DG2_1* and *DG3*: merge multiple incoming edges to all facts
--- and multiple outgoing edges from linear facts.
-enforceEdgeUniqueness :: Reduction ChangeIndicator
-enforceEdgeUniqueness = do
-    se <- gets id
-    let edges = S.toList (get sEdges se)
-    (<>) <$> mergeNodes eSrc eTgt edges
-         <*> mergeNodes eTgt eSrc (filter (proveLinearConc se . eSrc) edges)
-  where
-    -- | @proveLinearConc se (v,i)@ tries to prove that the @i@-th
-    -- conclusion of node @v@ is a linear fact.
-    proveLinearConc se (v, i) =
-        maybe False (isLinearFact . (get (rConc i))) $
-            M.lookup v $ get sNodes se
-
-    -- merge the nodes on the 'mergeEnd' for edges that are equal on the
-    -- 'compareEnd'
-    mergeNodes mergeEnd compareEnd edges
-      | null eqs  = return Unchanged
-      | otherwise = do
-            -- all indices of merged premises and conclusions must be equal
-            contradictoryIf (not $ and [snd l == snd r | Equal l r <- eqs])
-            -- nodes must be equal
-            solveNodeIdEqs $ map (fmap fst) eqs
-      where
-        eqs = concatMap (merge mergeEnd) $ groupSortOn compareEnd edges
-
-        merge _    []            = error "exploitEdgeProps: impossible"
-        merge proj (keep:remove) = map (Equal (proj keep) . proj) remove
-
 -- | Special version of CR-rule *S_at*, which is only applied to solve actions
 -- that are guaranteed not to result in case splits.
 solveUniqueActions :: Reduction ChangeIndicator

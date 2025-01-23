@@ -22,6 +22,7 @@ module Theory.Constraint.Solver.Goals
   , plainOpenGoals
   , insertCyclicGoals
   , reduceFormulas
+  , enforceEdgeUniqueness
   ) where
 
 import           Prelude                                 hiding (id, (.))
@@ -62,6 +63,7 @@ import Theory.Constraint.System.Results (Result(Contradictory), Contradiction (C
 import Data.Bool (bool)
 import Data.List (find, group, sort, intersperse, intercalate)
 import Debug.Trace (traceM)
+import Extension.Prelude (groupSortOn)
 
 ------------------------------------------------------------------------------
 -- Extracting Goals
@@ -451,6 +453,36 @@ reduceFormulas = do
         return $ do modM sFormulas $ S.delete fm
                     insertFormula fm
 
+-- | CR-rules *DG2_1* and *DG3*: merge multiple incoming edges to all facts
+-- and multiple outgoing edges from linear facts.
+enforceEdgeUniqueness :: Reduction ChangeIndicator
+enforceEdgeUniqueness = do
+    se <- gets id
+    let edges = S.toList (get sEdges se)
+    (<>) <$> mergeNodes eSrc eTgt edges
+         <*> mergeNodes eTgt eSrc (filter (proveLinearConc se . eSrc) edges)
+  where
+    -- | @proveLinearConc se (v,i)@ tries to prove that the @i@-th
+    -- conclusion of node @v@ is a linear fact.
+    proveLinearConc se (v, i) =
+        maybe False (isLinearFact . (get (rConc i))) $
+            M.lookup v $ get sNodes se
+
+    -- merge the nodes on the 'mergeEnd' for edges that are equal on the
+    -- 'compareEnd'
+    mergeNodes mergeEnd compareEnd edges
+      | null eqs  = return Unchanged
+      | otherwise = do
+            -- all indices of merged premises and conclusions must be equal
+            contradictoryIf (not $ and [snd l == snd r | Equal l r <- eqs])
+            -- nodes must be equal
+            solveNodeIdEqs $ map (fmap fst) eqs
+      where
+        eqs = concatMap (merge mergeEnd) $ groupSortOn compareEnd edges
+
+        merge _    []            = error "exploitEdgeProps: impossible"
+        merge proj (keep:remove) = map (Equal (proj keep) . proj) remove
+
 fromTail :: LoopInstance NodeId -> NE.NonEmpty NodeId -> LoopInstance NodeId
 fromTail li es@(h :| _) = li { start = h, loopEdges = es }
 
@@ -534,6 +566,13 @@ weaken el = do
     go :: WeakenEl -> Reduction ()
     go WeakenCyclic = do
       loops <- L.getM sLoops
+      let toCut = loopCuts loops
+      unless (null toCut) (do
+        -- Nothing deactivates backlink search
+        _ <- cut Nothing (loopCuts loops)
+        _ <- substSystem
+        void enforceEdgeUniqueness)
+
       mFwd <- forwardReachability
       mBackwd <- backwardReachability
       when (not (null loops) && isJust mFwd && isJust mBackwd) $ do
@@ -552,6 +591,24 @@ weaken el = do
         let isLeafNow n = isLeaf n || any (S.member n . getDirectlyLarger backwd . fst) kLeafs
         mapM_ (keepKuChainShort backwd . fst) $ filters all [isConstrRule . snd, isLeafNow . fst] nodes
       where
+        loopCuts :: [LoopInstance NodeId] -> S.Set LNGuarded
+        loopCuts [] = S.empty
+        loopCuts (l:ls) = rec l ls <> loopCuts ls
+          where
+            toBTerm :: NodeId -> BLTerm
+            toBTerm = lTermToBTerm . varTerm
+
+            unifGuard :: LoopInstance NodeId -> LoopInstance NodeId -> Maybe LNGuarded
+            unifGuard (LoopInstance { loopFact = f, loopEdges = es }) (LoopInstance { loopFact = f', loopEdges = es' }) = do
+              guard (f == f')
+              let loopNodesEqual = NE.zipWith (\t1 t2 -> GAto (EqE (toBTerm t1) (toBTerm t2))) es es'
+              guard (not $ null $ NE.tail loopNodesEqual)
+              return (gdisj [ gnot (NE.head loopNodesEqual), NE.last loopNodesEqual ])
+
+            rec :: LoopInstance NodeId -> [LoopInstance NodeId] -> S.Set LNGuarded
+            rec _ [] = S.empty
+            rec li (li':t) = maybe id S.insert (unifGuard li li') (rec li t)
+
         filters acc ps = filter (\a -> acc ($ a) ps)
 
         reachability :: (System -> [(NodeId, NodeId)]) -> Reduction (Maybe (TransClosedOrder NodeId))
