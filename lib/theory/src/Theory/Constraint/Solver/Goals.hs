@@ -620,7 +620,7 @@ searchBacklink asMethod syssToRoot = do
   ctxt <- ask
   s <- St.get
   let syss = bool (s NE.<|) id asMethod <$> syssToRoot
-  maybe mzero (either traceFailure cycleFound . prefixMatchesOnPath ctxt) syss
+  maybe (return ()) (either traceFailure cycleFound . prefixMatchesOnPath ctxt) syss
   where
     insertCut :: [BackLinkCandidate] -> Reduction ()
     insertCut = when asMethod . mapM_ (\(blUpTo -> ut) -> insertGoal (Cut ut) False)
