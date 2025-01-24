@@ -12,9 +12,9 @@ theory Minimal_Loop_Example begin
 
 */
 
-rule Start: [ Fr(x) ] --[ Start(x) ]-> [ A(x) ]
+rule Start[color=#FF6961]: [ Fr(x) ] --[ Start(x) ]-> [ A(x) ]
 
-rule Loop:  [ A(x) ]  --[ Loop(x)  ]-> [ A(x) ]
+rule Loop[color=#B4D9EF]:  [ A(x) ]  --[ Loop(x)  ]-> [ A(x) ]
 
 rule Stop:  [ A(x) ]  --[ Stop(x)  ]-> [ ]
 

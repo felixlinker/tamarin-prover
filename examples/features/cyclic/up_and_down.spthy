@@ -5,12 +5,12 @@ functions: h/1
 
 rule Start:
   [ Fr(~x) ]
-  --[ Gen(~x) ]->
+  --[ Gen(~x, ~x) ]->
   [ Up(~x, ~x) ]
 
 rule Up:
   [ Up(id, x) ]
-  --[ Gen(h(x)) ]->
+  --[ Gen(id, h(x)) ]->
   [ Up(id, h(x)) ]
 
 rule DownStart:
@@ -31,13 +31,16 @@ rule DownEnd:
   []
 
 lemma CorrectnessInvariant[reuse]:
-  "All x #a. Destr(x) @ #a ==> Ex #b. Gen(x) @ #b"
+  "All x #a. Destr(x) @ #a ==> Ex id #b. Gen(id, x) @ #b"
 
 lemma CorrectnessEnd[hide_lemma=CorrectnessInvariant]:
-  "All x #a. End(x) @ #a ==> Ex #b. Gen(x) @ #b"
+  "All x #a. End(x) @ #a ==> Ex id #b. Gen(id, x) @ #b"
 
 lemma GenUnique[reuse,hide_lemma=CorrectnessInvariant]:
-  "All x #a #b. Gen(x) @ #a & Gen(x) @ #b ==> #a = #b"
+  "All id1 id2 x #a #b. Gen(id1, x) @ #a & Gen(id2, x) @ #b ==> #a = #b"
+
+lemma GenInvariant[reuse,hide_lemma=CorrectnessInvariant]:
+  "All id1 id2 x y #a #b. Gen(id1, x) @ #a & Gen(id2, y) @ #b & (x << y | x = y) ==> id1 = id2"
 
 // Not provable
 lemma Correspondence:

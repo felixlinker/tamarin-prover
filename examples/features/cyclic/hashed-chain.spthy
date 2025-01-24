@@ -1,0 +1,35 @@
+theory HashedChain
+begin
+
+functions: h/2
+
+restriction Neq:
+  "All a b #t. Neq(a, b) @ #t ==> not (a = b)"
+
+rule Start:
+  [ Fr(~loopId), In(hash_start), In(hash_target), In(element) ]
+  --[ StartVerify(element, hash_target) ]->
+  [ CheckLoop(~loopId, hash_start, hash_target, element) ]
+
+rule CheckLoopDone:
+  [ CheckLoop(~loopId, hash_target, hash_target, element) ]
+  --[ Done(element, hash_target) ]->
+  [ !Verified(element, hash_target) ]
+
+rule CheckLoopOther:
+  [ CheckLoop(~loopId, hash_loop, hash_target, element), In(other_element) ]
+  --[ Neq(hash_loop, hash_target)
+    , Neq(element, other_element) ]->
+  [ CheckLoop(~loopId, h(hash_loop, element), hash_target, element) ]
+
+rule CheckLoopFound:
+  [ CheckLoop(~loopId, hash_loop, hash_target, element), In(element) ]
+  --[ Neq(hash_loop, hash_target)
+    , Included(element, hash_target) ]->
+  [ CheckLoop(~loopId, h(hash_loop, element), hash_target, element) ]
+
+lemma Executability:
+  exists-trace
+  "Ex e t #a #b #c. StartVerify(e, t) @ #a & Included(e, t) @ #b & Done(e, t) @ #c"
+
+end
