@@ -512,30 +512,23 @@ splitLoopsAtEdge e@(Edge (src, _) (tgt, _)) (li@(LoopInstance { loopEdges = es }
 
 data WeakenMode = Preserve | Prune deriving Eq
 
+-- NOTE: It is critical for soundness that weakening introduces no new
+-- constraints (unless they are cut). In particular, no constraints marked as
+-- solved (formulas or goals or ...) must be marked as unsolved. Cyclic proofs
+-- consider solved goals as implicitly weakened, i.e., they should only be
+-- reintroduced if a constraint solving rule would allow for this.
 weaken :: WeakenEl -> Reduction ()
 weaken el = do
   sid <- L.getM sId
   L.setM sWeakenedFrom (Just sid)
   go el
   where
-    activateGoals :: (Goal -> Bool) -> Reduction ()
-    activateGoals p = L.modM sGoals modGoals
-      where
-        modGoals :: M.Map Goal GoalStatus -> M.Map Goal GoalStatus
-        modGoals goals = foldr (M.update (Just . set gsSolved False)) goals (filter p (M.keys goals))
-
     weakenEdge :: WeakenMode -> Edge -> Reduction ()
-    weakenEdge mode e@(Edge conc prem) = do
+    weakenEdge mode e = do
       L.modM sEdges (S.delete e)
       L.modM sLoops (splitLoopsAtEdge e)
       when (mode == Preserve) $ do
         L.modM sLessAtoms (S.insert (lessAtomFromEdge KeepWeakened e))
-        activateGoals premiseAndChainGoals
-      where
-        premiseAndChainGoals :: Goal -> Bool
-        premiseAndChainGoals (PremiseG prem' _) = prem' == prem
-        premiseAndChainGoals (ChainG conc' prem') = conc' == conc && prem' == prem
-        premiseAndChainGoals _ = False
 
     weakenNode :: WeakenMode -> NodeId -> Reduction ()
     weakenNode mode i = do
@@ -545,20 +538,14 @@ weaken el = do
         (toKeep, toDeleteOutgoing) <- S.partition ((/= i) . fst . eSrc) <$> L.getM sEdges
         let (_, toDeleteIncoming) = S.partition ((/= i) . fst . eTgt) toKeep
         mapM_ (weakenEdge mode) toDeleteOutgoing
-        -- KU goals are similar to premise goals and thus we re-active them
         mapM_ (weakenEdge mode) toDeleteIncoming
-        when (mode == Preserve) (activateGoals kuGoals)
         when (mode == Prune) (L.modM sLessAtoms (S.filter keepLessAtom))
       where
-        keepGoal :: Goal -> a -> Bool
+        keepGoal :: Goal -> GoalStatus -> Bool
         keepGoal (PremiseG (i', _) _) _ = i /= i'
         keepGoal (ChainG _ (i', _)) _ = i' /= i
-        keepGoal (ActionG i' _) _ = mode == Preserve || i' /= i
+        keepGoal (ActionG i' _) _ = i' /= i
         keepGoal _ _ = True
-
-        kuGoals :: Goal -> Bool
-        kuGoals (ActionG i' f) = i' == i && isKUFact f
-        kuGoals _ = False
 
         keepLessAtom :: LessAtom -> Bool
         keepLessAtom (LessAtom nid1 nid2 _) = nid1 /= i && nid2 /= i
