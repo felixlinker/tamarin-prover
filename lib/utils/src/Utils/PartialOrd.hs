@@ -18,6 +18,7 @@ module Utils.PartialOrd (
   , unionDisjoint
   , minima
   , expand
+  , restrict
   , isSmaller
   , isLarger
   , getLarger
@@ -40,7 +41,6 @@ import Control.Applicative ((<|>))
 import Data.Maybe (fromMaybe)
 import Data.List (groupBy)
 import Utils.Two
-import Utils.Misc (addAt)
 
 data PartialOrdering = PLT | PEQ | PGT | PINCOMP deriving (Eq, Show)
 
@@ -147,6 +147,11 @@ minima tco = (domain tco <> maxima tco) S.\\ image tco
 expand :: Foldable t => M.Map a (t a) -> [(a, a)]
 expand = concatMap (\(a, as) -> map (a,) (F.toList as)) . M.toList
 
+restrict :: (a -> Bool) -> TransClosedOrder a -> TransClosedOrder a
+restrict p (TransClosedOrder _ ord maxes) =
+  let ord' = M.map (S.filter p) $ M.filterWithKey (\k _ -> p k) ord
+  in TransClosedOrder ord' ord' (S.filter p maxes)
+
 -- | Take the union of two orders closed under transitivity assuming that their
 --   elements are disjoint. The precondition is not checked.
 unionDisjoint :: Ord a => TransClosedOrder a -> TransClosedOrder a -> TransClosedOrder a
@@ -221,21 +226,18 @@ toRawRelation (TransClosedOrder raw _ _) = expand raw
 
 type EdgeMap a = M.Map a [a]
 
-spanningOrder :: (Ord a, Foldable t1, Foldable t2) => t1 a -> t2 (a, a) -> (EdgeMap a, TransClosedOrder a)
-spanningOrder roots es =
-  let edgeMap = foldr (uncurry addAt) M.empty es
-      (remainingEdges, (\d -> foldr addAsUnordered d roots) -> forwardDAG) = insertEdges edgeMap mempty roots
-      (remaingInverted, spanning) = insertEdges (invert remainingEdges) forwardDAG (universe forwardDAG)
-  in  (invert remaingInverted, spanning)
+spanningOrder :: (Show a, Ord a) => [(a, a)] -> S.Set a -> (TransClosedOrder a, [(a, a)])
+spanningOrder = rec mempty
   where
-    insertEdges :: (Ord a, Foldable t) => EdgeMap a -> TransClosedOrder a -> t a -> (EdgeMap a, TransClosedOrder a)
-    insertEdges eM = foldr go . (eM,)
-      where
-        go node (edgeMap, dag) =
-          let greater = M.findWithDefault [] node edgeMap
-              dag' = foldr (pinsert . (node,)) dag greater
-              edgeMap' = M.delete node edgeMap
-          in foldr go (edgeMap', dag') greater
-
-    invert :: Ord a => EdgeMap a -> EdgeMap a
-    invert = M.foldrWithKey (\k as m -> foldr (`addAt` k) m as) M.empty
+    rec :: (Show a, Ord a) => TransClosedOrder a -> [(a, a)] -> S.Set a -> (TransClosedOrder a, [(a, a)])
+    rec ord es roots
+      | null es = (ord, [])
+      | otherwise =
+        let (ord', remaining) = foldr go (ord, mempty) es
+        in  if ord == ord' then (ord, es)
+            else rec ord' remaining (universe ord')
+        where
+          go e@(src, tgt) (acc, other)
+            | src `S.member` roots = (pinsert (src, tgt) acc, other)
+            | tgt `S.member` roots = (pinsert (tgt, src) acc, other)
+            | otherwise = (acc, e:other)

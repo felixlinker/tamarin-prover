@@ -18,13 +18,12 @@ import Theory.Constraint.SystemMatch
 import qualified Data.Map as M
 import qualified Data.List as L
 import Data.List.NonEmpty (NonEmpty((:|)))
-import qualified Data.List.NonEmpty as NE
 import Control.Monad
 import Control.Applicative ((<|>))
 import Theory.Model.Rule
 import Data.Maybe (mapMaybe, maybeToList )
 import Theory.Model.Signature (sigmMaudeHandle)
-import Theory.Model.Fact (LNFact, FactTag, Fact (factTag, factTerms))
+import Theory.Model.Fact (LNFact, FactTag, Fact (factTag))
 import Theory.Model.Atom (ProtoAtom(Action, Less))
 import Theory.Proof.Cyclic
 import Utils.PartialOrd
@@ -164,8 +163,6 @@ allMappings :: Semigroup s =>
   -- ^ Function to generate a match
   ->  (a -> a -> (s -> s))
   -- ^ Function to update the testing semigroup
-  ->  (s -> Bool)
-  -- ^ Test function to early-reject a match candiate
   ->  s
   -- ^ Initial accumulator for semigroup
   ->  SystemMatch
@@ -177,11 +174,11 @@ allMappings :: Semigroup s =>
   --   candidates.
   ->  [(s, SystemMatch)]
   -- ^ Potential matchings with the accumulator
-allMappings _ _ _ _ NoSystemMatch _ _ = []
-allMappings _ _ testF acc r [] _ = [(acc, r) | testF acc]
-allMappings (~~>) genF testF baseM baseR als ars = rec baseM als ars
+allMappings _ _ _ NoSystemMatch _ _ = []
+allMappings _ _ acc r [] _ = [(acc, r)]
+allMappings (~~>) genF baseM baseR als ars = rec baseM als ars
   where
-    rec m [] _ = [(m, baseR) | testF m]
+    rec m [] _ = [(m, baseR)]
     rec _ _ [] = []
     rec m (a:as) la' = withListAcc [] la'
       where
@@ -197,8 +194,6 @@ allMappingsGrouped :: (Ord k, Monoid m) =>
   -- ^ Function to generate a matching
   ->  (a -> a -> (m -> m))
   -- ^ Function to update the testing monoid
-  ->  (m -> Bool)
-  -- ^ Test function to early-reject a matching candiate
   ->  SystemMatch
   -- ^ Matching to extend
   ->  M.Map k [a]
@@ -208,8 +203,8 @@ allMappingsGrouped :: (Ord k, Monoid m) =>
   --   candidates.
   ->  [(m, SystemMatch)]
   -- ^ Potential matchings with the accumulator
-allMappingsGrouped _ _ _ NoSystemMatch _ _ = []
-allMappingsGrouped (~~>) genF testF baseR als ars
+allMappingsGrouped _ _ NoSystemMatch _ _ = []
+allMappingsGrouped (~~>) genF baseR als ars
   | M.null als = [(mempty, baseR)]
   | otherwise =
     let pairs = M.foldrWithKey foldToMatching (Just []) als
@@ -218,25 +213,17 @@ allMappingsGrouped (~~>) genF testF baseR als ars
         --   and thus should help with early termination.
     in  maybe [] (foldr (\(as, as') -> concatMap (allMs as as')) [(mempty, baseR)]) pairs
   where
-    allMs as as' (accM, r) = allMappings (~~>) genF testF accM r as as'
+    allMs as as' (accM, r) = allMappings (~~>) genF accM r as as'
     foldToMatching k as ml = do
       l <- ml
       as' <- M.lookup k ars
       guard (length as <= length as')
       return $ (as, as'):l
 
-newtype Or = Any Bool
-
-instance Semigroup Or where
-  (Any b1) <> (Any b2) = Any (b1 || b2)
-
-instance Monoid Or where
-  mempty = Any False
-
 -- | Tries to match loops to one another s.t. some of the matched loops
 --   *could* make progress. We early-test whether we could make progress by
 --   checking that whether some loop is shorter than the loop it got mapped to.
---   If no loops are provided, we say there are no macthings. Technically, the
+--   If no loops are provided, we say there are no matchings. Technically, the
 --   identity would be a valid matchings, but this matching will not make
 --   progress. We expect that only matchings of loops will progress.
 allLoopMappings :: [LoopInstance ColoredNode] -> [LoopInstance ColoredNode] -> [SystemMatch]
@@ -244,31 +231,16 @@ allLoopMappings [] _ = []
 allLoopMappings _ [] = []
 allLoopMappings lisSml lisLrg =
     map snd
-  $ filter (didProgress . fst)
-  $ allMappingsGrouped (~>) couldProgress (const True) mempty (groupF lisSml) (groupF lisLrg)
+  $ allMappingsGrouped (~>) (\_ _ _ -> ()) mempty (groupF lisSml) (groupF lisLrg)
   where
     groupF :: [LoopInstance ColoredNode] -> M.Map Color [LoopInstance ColoredNode]
     groupF = groupByColor (getColor . start)
 
-    leftShorter :: NE.NonEmpty a -> NE.NonEmpty a -> Bool
-    leftShorter (NE.toList -> l) (NE.toList -> r) = rec l r
-      where
-        rec [] [] = False
-        rec [] _ = True
-        rec _ [] = False
-        rec (_:tl) (_:tr) = rec tl tr
-
-    couldProgress :: LoopInstance ColoredNode -> LoopInstance ColoredNode -> (Or -> Or)
-    couldProgress l1 l2 = (Any (leftShorter (loopEdges l1) (loopEdges l2)) <>)
-
-    didProgress :: Or -> Bool
-    didProgress (Any p) = p
-
 mapAlongEdges :: (Matchable a, Ord a, Ord k) =>
      (a -> NodeId)
   -> ([a] -> M.Map k [a])
-  -> TransClosedOrder a
-  -> TransClosedOrder a
+  -> M.Map a (S.Set a)
+  -> M.Map a (S.Set a)
   -> [a]
   -> [a]
   -> SystemMatch
@@ -281,16 +253,19 @@ mapAlongEdges nidF groupF topoSml topoLrg = go
           (mapped2, notMapped2) = L.partition ((`S.member` graphImage r) . nidF) ns2
           mapped2M = M.fromList (map (\a -> (nidF a, a)) mapped2)
           mapped = mapMaybe (getMappedTo mapped2M) mapped1
-          rs = allMappingsGrouped (~>) (\a1 a2 -> ((a1, a2):)) (const True) r (groupF notMapped1) (groupF notMapped2)
+          rs = allMappingsGrouped (~>) (\a1 a2 -> ((a1, a2):)) r (groupF notMapped1) (groupF notMapped2)
       in concatMap (uncurry rec . first (mapped ++)) rs
       where
         getMappedTo m a = do
           to <- (`M.lookup` m) =<< M.lookup (nidF a) (graphMatch r)
           return (a, to)
 
+    largerIn :: Ord k => M.Map k (S.Set a) -> k -> [a]
+    largerIn m = maybe [] S.toList . (m M.!?)
+
     rec [] r = [r]
     rec mappedNodes r =
-      let larger = map (bimap (S.toList . getDirectlyLarger topoSml) (S.toList . getDirectlyLarger topoLrg)) mappedNodes
+      let larger = map (bimap (largerIn topoSml) (largerIn topoLrg)) mappedNodes
       in foldr (\(ns1, ns2) -> concatMap (go ns1 ns2)) [r] larger
 
 colorAnnotated :: System -> NodeId -> Maybe ColoredNode
@@ -302,16 +277,16 @@ colorAFG afs nid = Node nid . Right . AFGoals <$> M.lookup nid afs
 colorNid :: System -> AFMap -> NodeId -> Maybe ColoredNode
 colorNid s afs nid = colorAnnotated s nid <|> colorAFG afs nid
 
-toposortedEdges :: System -> AFMap -> Maybe (TransClosedOrder ColoredNode)
+toposortedEdges :: System -> AFMap -> Maybe (TransClosedOrder ColoredNode, TransClosedOrder ColoredNode)
 toposortedEdges s afs =
-  let kRelRaw = colorList (colorNid s afs) (kLessRel s)
+  let lessRel = colorList (colorNid s afs) (rawLessRel s)
       nodeRel = colorList (colorAnnotated s) (rawEdgeRel s)
-      afNodes = map mkAFG (M.toList afs) :: [ColoredNode]
+      afNodes = S.fromList $ map mkAFG (M.toList afs) :: S.Set ColoredNode
       nodes = map mkAnnotated (M.toList $ L.get sNodes s) :: [ColoredNode]
   in do
-    kRel <- toRelation <$> fromSet (S.fromList kRelRaw)
-    ord <- fromSet (S.fromList nodeRel <> S.fromList kRel)
-    return $ foldr addAsUnordered ord (afNodes ++ nodes)
+    nodeOrder <- fromSet (S.fromList nodeRel)
+    let withLess = foldr pinsert nodeOrder lessRel
+    return (foldr addAsUnordered nodeOrder nodes, restrict (`S.member` afNodes) (foldr addAsUnordered withLess afNodes))
   where
     colorList :: Ord a => (a -> Maybe ColoredNode) -> [(a, a)] -> [(ColoredNode, ColoredNode)]
     colorList f = mapMaybe (fmap tuple . sequence . mapTwice f)
@@ -332,21 +307,21 @@ unsolvedAFGoals s =
   let afts = unsolvedActionAtoms s
   in foldr (uncurry addAt) M.empty afts
 
-loopsAndsystemSpanningOrder :: System -> Maybe ([LoopInstance ColoredNode], TransClosedOrder ColoredNode)
+loopsAndsystemSpanningOrder :: System -> Maybe ([LoopInstance ColoredNode], TransClosedOrder ColoredNode, TransClosedOrder ColoredNode)
 loopsAndsystemSpanningOrder s = do
   let afs = unsolvedAFGoals s
-  es <- toposortedEdges s afs
+  (nodeOrd, afLessOrd) <- toposortedEdges s afs
   let ls = loops s
-  let roots = startFrom es ls
-  let (rest, spanning) = spanningOrder roots (toRawRelation es)
-  unless (M.null rest) (error "spanning DAG computation invariant violated")
-  return (ls, foldr addAsUnordered spanning (unordered es))
+  let roots = startFrom nodeOrd ls
+  let (spanning, rest) = spanningOrder (toRawRelation nodeOrd) roots
+  guard (null rest)
+  return (ls, foldr addAsUnordered spanning (unordered nodeOrd), afLessOrd)
   where
     startFrom :: TransClosedOrder ColoredNode -> [LoopInstance ColoredNode] -> S.Set ColoredNode
     startFrom ord ls =
       let roots = foldr skipFr S.empty (minima ord)
           starts = map start ls
-      in  foldr S.insert (S.filter ((`all` starts) . cannotReach ) roots) starts
+      in  foldr S.insert (S.filter ((`all` starts) . cannotReach) roots) starts
       where
         cannotReach :: ColoredNode -> ColoredNode -> Bool
         cannotReach from to = not $ to `S.member` getLarger ord from
@@ -359,10 +334,13 @@ groupByColor f = foldr (\n -> addAt (f n) n) M.empty
 
 allNodeMappings :: System -> System -> [SystemMatch]
 allNodeMappings smaller larger = do
-  (lsSml, spanningSml) <- maybeToList (loopsAndsystemSpanningOrder smaller)
-  (lsLrg, spanningLrg) <- maybeToList (loopsAndsystemSpanningOrder larger)
+  (lsSml, spanningSml, afsOrdSml) <- maybeToList (loopsAndsystemSpanningOrder smaller)
+  (lsLrg, spanningLrg, afsOrdLrg) <- maybeToList (loopsAndsystemSpanningOrder larger)
   r0 <- if null lsSml then [mempty] else allLoopMappings lsSml lsLrg
-  mapAlongEdges nnid (groupByColor getColor) spanningSml spanningLrg (startAt spanningSml) (startAt spanningLrg) r0
+  r1 <- mapF (raw spanningSml) (raw spanningLrg) (startAt spanningSml) (startAt spanningLrg) r0
+  mapF (toGreater afsOrdSml) (toGreater afsOrdLrg) (startAt afsOrdSml) (startAt afsOrdLrg) r1
   where
+    mapF = mapAlongEdges nnid (groupByColor getColor)
+
     startAt :: TransClosedOrder ColoredNode -> [ColoredNode]
     startAt = S.toList . minima
