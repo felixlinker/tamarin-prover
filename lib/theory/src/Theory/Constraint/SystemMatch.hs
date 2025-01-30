@@ -37,31 +37,44 @@ singleton v t = Subst $ M.singleton v t
 data SystemMatch = NoSystemMatch | SystemMatch
   { graphMatch :: M.Map NodeId NodeId
   , graphImage :: S.Set LVar
-  , matchProblem :: Match LNTerm }
-  deriving Eq
+  , subst :: MatchLNSubst
+  , acProblem :: Match LNTerm }
+  deriving (Show, Eq)
 
 fromMatching :: Match LNTerm -> SystemMatch
-fromMatching = SystemMatch M.empty S.empty
+fromMatching match = either fromFailure fromSuccess (runMatchRaw match M.empty)
+  where
+    fromFailure :: MatchFailure -> SystemMatch
+    fromFailure NoMatcher = NoSystemMatch
+    fromFailure ACProblem = SystemMatch M.empty S.empty M.empty match
+
+    fromSuccess :: MatchLNSubst -> SystemMatch
+    fromSuccess subst = SystemMatch M.empty S.empty subst (DelayedMatches [])
 
 graphDomain :: SystemMatch -> S.Set LVar
 graphDomain NoSystemMatch = S.empty
-graphDomain (SystemMatch nids _ _) = M.keysSet nids
+graphDomain (SystemMatch nids _ _ _) = M.keysSet nids
 
 runSystemMatch :: MaudeHandle -> SystemMatch -> Maybe LNSubst
 runSystemMatch _ NoSystemMatch = Nothing
-runSystemMatch mh (SystemMatch nids _ matching) =
-  peak $ mapMaybe (mergeSubsts (Subst $ fmap varTerm nids)) (runMatchLNTerm mh matching)
+runSystemMatch mh (SystemMatch (Subst . fmap varTerm -> nidSubst) _ (substFromMap -> termSubst) matching) =
+  peak $ mapMaybe joinSubsts (runMatchLNTerm mh matching)
+  where
+    joinSubsts :: LNSubst -> Maybe LNSubst
+    joinSubsts acSubst = foldr (\a -> (>>= mergeSubsts a)) (Just acSubst) [nidSubst, termSubst]
 
 instance Semigroup SystemMatch where
+  (<>) :: SystemMatch -> SystemMatch -> SystemMatch
   NoSystemMatch <> _ = NoSystemMatch
   _ <> NoSystemMatch = NoSystemMatch
-  (SystemMatch nidM1 nidD1 match1) <> (SystemMatch nidM2 nidD2 match2) =
+  (SystemMatch nidM1 nidD1 subst1 match1) <> (SystemMatch nidM2 nidD2 subst2 match2) =
     fromMaybe NoSystemMatch $ do
       nidM <- mergeDisjoint nidM1 nidM2
-      return $ SystemMatch nidM (nidD1 <> nidD2) (match1 <> match2)
+      subst <- mergeDisjoint subst1 subst2
+      return $ SystemMatch nidM (nidD1 <> nidD2) subst (match1 <> match2)
 
 instance Monoid SystemMatch where
-  mempty = SystemMatch M.empty S.empty (DelayedMatches [])
+  mempty = SystemMatch M.empty S.empty M.empty (DelayedMatches [])
 
 extendWith :: Functor f => SystemMatch -> [f SystemMatch] -> [f SystemMatch]
 extendWith NoSystemMatch _ = []
@@ -69,7 +82,7 @@ extendWith pr l = map (fmap (pr <>)) l
 
 mapNode :: NodeId -> NodeId -> SystemMatch -> SystemMatch
 mapNode _ _ NoSystemMatch = NoSystemMatch
-mapNode from to r@(SystemMatch m i _)
+mapNode from to r@(SystemMatch m i _ _)
   -- | If to is already in the image, it must be mapped by the same variable.
   --   Otherwise, this will not be a match.
   | to `S.member` i = fromMaybe NoSystemMatch $ do

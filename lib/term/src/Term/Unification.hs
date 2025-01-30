@@ -30,7 +30,10 @@ module Term.Unification (
 
   -- * matching modulo AC
   -- ** Constructing matching problems
+  , MatchFailure(..)
   , matchLVar
+  , MatchLNSubst
+  , runMatchRaw
 
   -- ** Solving matching problems
   , solveMatchLTerm
@@ -105,7 +108,7 @@ import qualified Term.Maude.Process as UM
 import           Term.Maude.Process
                    (MaudeHandle, WithMaude, startMaude, getMaudeStats, mhMaudeSig, mhFilePath)
 import           Term.Maude.Signature
-import Data.Maybe (isJust, mapMaybe)
+import Data.Maybe (isJust, fromMaybe)
 import Utils.Misc (mergeDisjoint)
 
 -- Unification modulo AC
@@ -262,6 +265,13 @@ solveMatchLNTerm = solveMatchLTerm sortOfName
 runMatchLNTerm :: MaudeHandle -> Match LNTerm -> [Subst Name LVar]
 runMatchLNTerm mh = (`runReader` mh) . solveMatchLNTerm
 
+runMatchRaw :: Match LNTerm -> MatchLNSubst -> Either MatchFailure MatchLNSubst
+runMatchRaw matchProblem s = fromMaybe (Left NoMatcher) $ do
+  ms <- flattenMatch matchProblem
+  let matchM = forM_ ms (uncurry (matchRaw sortOfName))
+  let (result, subst) = runState (runExceptT matchM) s
+  return (subst <$ result)
+
 -- Free unification with lazy AC-equation solving.
 --------------------------------------------------------------------
 
@@ -326,13 +336,18 @@ instance Semigroup MatchFailure where
 instance Monoid MatchFailure where
   mempty = NoMatcher
 
+type MatchLSubst c = Map LVar (VTerm c LVar)
+type MatchLNSubst = MatchLSubst Name
+
+type Matcher c = ExceptT MatchFailure (State (MatchLSubst c)) ()
+
 -- | Ensure that the computed substitution @sigma@ satisfies
 -- @t ==_AC apply sigma p@ after the delayed equations are solved.
 matchRaw :: IsConst c
          => (c -> LSort)
          -> LTerm c -- ^ Term @t@
          -> LTerm c -- ^ Pattern @p@.
-         -> ExceptT MatchFailure (State (Map LVar (VTerm c LVar))) ()
+         -> Matcher c
 matchRaw sortOf t p = do
     mappings <- get
     case (viewTerm t, viewTerm p) of
