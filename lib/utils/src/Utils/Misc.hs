@@ -231,4 +231,4 @@ mergeDisjoint :: (Ord k, Eq v) => M.Map k v -> M.Map k v -> Maybe (M.Map k v)
 mergeDisjoint = mergeA keep keep checkEqual
   where
     keep = mapMaybeMissing (const Just)
-    checkEqual = zipWithMaybeMatched $ const (\a b -> guard (a == b) $> a)
+    checkEqual = zipWithMaybeAMatched $ const (\a b -> guard (a == b) $> Just a)
