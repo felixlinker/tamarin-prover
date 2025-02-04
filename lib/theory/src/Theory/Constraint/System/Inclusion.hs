@@ -105,7 +105,7 @@ isProgressingAndSubSysUpTo mh smaller larger sub = do
 
   let diffFormulas = apply sub (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
   let diffActionGoals = apply sub (actionGoals smaller) `S.difference` actionGoals larger
-  when (apply sub (L.get sLastAtom smaller) == L.get sLastAtom larger) (throwError LastFail)
+  unless (apply sub (L.get sLastAtom smaller) == L.get sLastAtom larger) (throwError LastFail)
   return (sub, stDiff <> cutLess <> diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
   where
     actionGoals :: System -> S.Set AGTuple
