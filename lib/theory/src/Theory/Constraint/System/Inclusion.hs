@@ -74,10 +74,11 @@ type MatchUpToWithVars = (LNSubst, UpTo, ProgressingVars)
 
 type AGTuple = (LVar, LNFact)
 
-data InclusionFailure = MissingEdge [Edge] | MissingLesRel [(NodeId, NodeId)] | EqStoreFail | SubTermStoreFail | NoProgress | Internal | LastFail
+data InclusionFailure = MissingEdge [Edge] | MissingLesRel [(NodeId, NodeId)] | EqStoreFail | SubTermStoreFail | NoProgress | Internal
   deriving (Eq, Ord, Show)
 
--- TODO: Document @System@ w.r.t. to how this function works
+-- TODO: Handle last
+-- TODO: Document @System@ w.r.t. to how this functino works
 isProgressingAndSubSysUpTo :: MaudeHandle -> System -> System -> LNSubst -> Either InclusionFailure MatchUpToWithVars
 isProgressingAndSubSysUpTo mh smaller larger sub = do
   -- Check edge inclusion
@@ -105,7 +106,6 @@ isProgressingAndSubSysUpTo mh smaller larger sub = do
 
   let diffFormulas = apply sub (L.get sFormulas smaller) `S.difference` L.get sFormulas larger
   let diffActionGoals = apply sub (actionGoals smaller) `S.difference` actionGoals larger
-  when (apply sub (L.get sLastAtom smaller) == L.get sLastAtom larger) (throwError LastFail)
   return (sub, stDiff <> cutLess <> diffFormulas <> S.map atToFormula diffActionGoals, PVs prog pres)
   where
     actionGoals :: System -> S.Set AGTuple
