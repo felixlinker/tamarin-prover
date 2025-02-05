@@ -19,10 +19,10 @@ rule Stop:
   --[ GenRequiringCut(x) ]->
   []
 
-lemma Correspondence:
+lemma Correspondence[use_induction]:
   "All x #a #b. Gen(x) @ #a & Gen(x) @ #b ==> #a = #b"
 
-lemma CorrespondenceRequiringCut:
+lemma CorrespondenceRequiringCut[use_induction]:
   "All x #a #b. GenRequiringCut(x) @ #a & GenRequiringCut(x) @ #b ==> #a = #b"
 
 end
