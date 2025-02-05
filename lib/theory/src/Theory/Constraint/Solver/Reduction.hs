@@ -624,7 +624,6 @@ substLoops          = do
   where
     joinLoops :: [LoopInstance NodeId] -> [LoopInstance NodeId]
     joinLoops [] = []
-    joinLoops [l] = [l]
     joinLoops (l:lt) = maybe (l:joinLoops lt) joinLoops (extendLoopsWith l lt)
 substNextGoalNr     = return ()
 

@@ -474,21 +474,20 @@ simpleLoop :: NodeId -> FactTag -> LVar -> LoopInstance NodeId
 simpleLoop nid tag var = LoopInstance tag var (NE.singleton nid) nid nid
 
 extendLoopsWith :: LoopInstance NodeId -> [LoopInstance NodeId] -> Maybe [LoopInstance NodeId]
-extendLoopsWith l ls = go l ls False
+extendLoopsWith = go False
   where
-    go :: LoopInstance NodeId -> [LoopInstance NodeId] -> Bool -> Maybe [LoopInstance NodeId]
-    go li [] modified = if modified then Just [li] else Nothing
-    go li@(LoopInstance { loopId = lid, start = s, end = e, loopEdges = es })
+    go :: Bool -> LoopInstance NodeId -> [LoopInstance NodeId] -> Maybe [LoopInstance NodeId]
+    go modified li [] = if modified then Just [li] else Nothing
+    go modified li@(LoopInstance { loopId = lid, start = s, end = e, loopEdges = es })
       (li'@(LoopInstance { loopId = lid', start = s', end = e', loopEdges = es'}):t)
-      modified
       | lid /= lid' = continue
-      | s == e' = go (li { start = s', loopEdges = NE.appendList es' (NE.tail es) }) t True
-      | e == s' = go (li { end = e', loopEdges = NE.appendList es (NE.tail es') }) t True
-      | e `elem` es' = go (mergeOrdered li li') t True
-      | e' `elem` es = go (mergeOrdered li' li) t True
+      | s == e' = go True (li { start = s', loopEdges = NE.appendList es' (NE.tail es) }) t
+      | e == s' = go True (li { end = e', loopEdges = NE.appendList es (NE.tail es') }) t
+      | e `elem` es' = go True (mergeOrdered li li') t
+      | e' `elem` es = go True (mergeOrdered li' li) t
       | otherwise = continue
       where
-        continue = (li':) <$> go li t modified
+        continue = (li':) <$> go modified li t
 
     -- We assume that the end of the first loop is contained in the second
     -- loop. This implies that fact tag and loop ID are equal.
