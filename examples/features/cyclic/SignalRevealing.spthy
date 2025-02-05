@@ -149,37 +149,37 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
             case OuterRatchetToSender_case_1
             solve( !KU( ~x.12 ) @ #vk.24 )
               case RevealEphemeral
-              by contradiction /* from formulas */
+              by contradiction
             qed
           next
             case OuterRatchetToSender_case_2
             solve( !KU( ~x.12 ) @ #vk.24 )
               case RevealEphemeral_case_1
-              by contradiction /* from formulas */
+              by contradiction
             next
               case RevealEphemeral_case_2
-              by contradiction /* from formulas */
+              by contradiction
             next
               case RevealEphemeral_case_3
-              by contradiction /* from formulas */
+              by contradiction
             qed
           next
             case OuterRatchetToSender_case_3
             solve( !KU( ~x.13 ) @ #vk.24 )
               case RevealEphemeral
-              by contradiction /* from formulas */
+              by contradiction
             qed
           next
             case OuterRatchetToSender_case_4
             solve( !KU( ~x.13 ) @ #vk.24 )
               case RevealEphemeral
-              by contradiction /* from formulas */
+              by contradiction
             qed
           next
             case c_exp
             solve( !KU( ~x.6 ) @ #vk.26 )
               case RevealEphemeral
-              by contradiction /* from formulas */
+              by contradiction
             qed
           qed
         next
@@ -188,19 +188,19 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
             case OuterRatchetToSender
             solve( !KU( ~x.12 ) @ #vk.24 )
               case RevealEphemeral
-              by contradiction /* from formulas */
+              by contradiction
             qed
           next
             case SenderStart
             solve( !KU( ~x.12 ) @ #vk.24 )
               case RevealEphemeral
-              by contradiction /* from formulas */
+              by contradiction
             qed
           next
             case c_exp
             solve( !KU( ~x.6 ) @ #vk.26 )
               case RevealEphemeral
-              by contradiction /* from formulas */
+              by contradiction
             qed
           qed
         qed
@@ -213,37 +213,37 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
           case OuterRatchetToSender_case_1
           solve( !KU( ~x.12 ) @ #vk.24 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case OuterRatchetToSender_case_2
           solve( !KU( ~x.12 ) @ #vk.24 )
             case RevealEphemeral_case_1
-            by contradiction /* from formulas */
+            by contradiction
           next
             case RevealEphemeral_case_2
-            by contradiction /* from formulas */
+            by contradiction
           next
             case RevealEphemeral_case_3
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case OuterRatchetToSender_case_3
           solve( !KU( ~x.13 ) @ #vk.24 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case OuterRatchetToSender_case_4
           solve( !KU( ~x.13 ) @ #vk.24 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case c_exp
           solve( !KU( ~x.6 ) @ #vk.26 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         qed
       next
@@ -252,19 +252,19 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
           case OuterRatchetToSender
           solve( !KU( ~x.12 ) @ #vk.24 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case SenderStart
           solve( !KU( ~x.12 ) @ #vk.24 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case c_exp
           solve( !KU( ~x.6 ) @ #vk.26 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         qed
       qed
@@ -276,37 +276,37 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
           case OuterRatchetToSender_case_1
           solve( !KU( ~x.12 ) @ #vk.29 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case OuterRatchetToSender_case_2
           solve( !KU( ~x.12 ) @ #vk.29 )
             case RevealEphemeral_case_1
-            by contradiction /* from formulas */
+            by contradiction
           next
             case RevealEphemeral_case_2
-            by contradiction /* from formulas */
+            by contradiction
           next
             case RevealEphemeral_case_3
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case OuterRatchetToSender_case_3
           solve( !KU( ~x.13 ) @ #vk.29 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case OuterRatchetToSender_case_4
           solve( !KU( ~x.13 ) @ #vk.29 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case c_exp
           solve( !KU( ~x.6 ) @ #vk.31 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         qed
       next
@@ -315,19 +315,19 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
           case OuterRatchetToSender
           solve( !KU( ~x.12 ) @ #vk.29 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case SenderStart
           solve( !KU( ~x.12 ) @ #vk.29 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         next
           case c_exp
           solve( !KU( ~x.6 ) @ #vk.31 )
             case RevealEphemeral
-            by contradiction /* from formulas */
+            by contradiction
           qed
         qed
       qed
@@ -349,37 +349,37 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
               case OuterRatchetToSender_case_1
               solve( !KU( ~x.10 ) @ #vk.14 )
                 case RevealEphemeral
-                by contradiction /* from formulas */
+                by contradiction
               qed
             next
               case OuterRatchetToSender_case_2
               solve( !KU( ~x.11 ) @ #vk.14 )
                 case RevealEphemeral
-                by contradiction /* from formulas */
+                by contradiction
               qed
             next
               case OuterRatchetToSender_case_3
               solve( !KU( ~x.11 ) @ #vk.14 )
                 case RevealEphemeral_case_1
-                by contradiction /* from formulas */
+                by contradiction
               next
                 case RevealEphemeral_case_2
-                by contradiction /* from formulas */
+                by contradiction
               next
                 case RevealEphemeral_case_3
-                by contradiction /* from formulas */
+                by contradiction
               qed
             next
               case OuterRatchetToSender_case_4
               solve( !KU( ~x.11 ) @ #vk.14 )
                 case RevealEphemeral
-                by contradiction /* from formulas */
+                by contradiction
               qed
             next
               case c_exp
               solve( !KU( ~x.7 ) @ #vk.16 )
                 case RevealEphemeral
-                by contradiction /* from formulas */
+                by contradiction
               qed
             qed
           qed
@@ -404,19 +404,19 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
                   case OuterRatchetToSender
                   solve( !KU( ~x.12 ) @ #vk.14 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case SenderStart
                   solve( !KU( ~x.11 ) @ #vk.14 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case c_exp
                   solve( !KU( ~x.7 ) @ #vk.16 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 qed
               qed
@@ -453,37 +453,37 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
                 case OuterRatchetToSender_case_1
                 solve( !KU( ~x.14 ) @ #vk.21 )
                   case RevealEphemeral
-                  by contradiction /* from formulas */
+                  by contradiction
                 qed
               next
                 case OuterRatchetToSender_case_2
                 solve( !KU( ~x.15 ) @ #vk.21 )
                   case RevealEphemeral
-                  by contradiction /* from formulas */
+                  by contradiction
                 qed
               next
                 case OuterRatchetToSender_case_3
                 solve( !KU( ~x.15 ) @ #vk.21 )
                   case RevealEphemeral
-                  by contradiction /* from formulas */
+                  by contradiction
                 qed
               next
                 case OuterRatchetToSender_case_4
                 solve( !KU( ~x.15 ) @ #vk.21 )
                   case RevealEphemeral_case_1
-                  by contradiction /* from formulas */
+                  by contradiction
                 next
                   case RevealEphemeral_case_2
-                  by contradiction /* from formulas */
+                  by contradiction
                 next
                   case RevealEphemeral_case_3
-                  by contradiction /* from formulas */
+                  by contradiction
                 qed
               next
                 case c_exp
                 solve( !KU( ~x.7 ) @ #vk.23 )
                   case RevealEphemeral
-                  by contradiction /* from formulas */
+                  by contradiction
                 qed
               qed
             qed
@@ -520,19 +520,19 @@ solve( Send( x.2, pc1, pc2 ) @ #t )
                     case OuterRatchetToSender
                     solve( !KU( ~x.16 ) @ #vk.21 )
                       case RevealEphemeral
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   next
                     case SenderStart
                     solve( !KU( ~x.15 ) @ #vk.21 )
                       case RevealEphemeral
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   next
                     case c_exp
                     solve( !KU( ~x.7 ) @ #vk.23 )
                       case RevealEphemeral
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   qed
                 qed
@@ -583,37 +583,37 @@ next
                       case OuterRatchetToSender_case_1
                       solve( !KU( ~x.10 ) @ #vk.27 )
                         case RevealEphemeral
-                        by contradiction /* from formulas */
+                        by contradiction
                       qed
                     next
                       case OuterRatchetToSender_case_2
                       solve( !KU( ~x.10 ) @ #vk.27 )
                         case RevealEphemeral_case_1
-                        by contradiction /* from formulas */
+                        by contradiction
                       next
                         case RevealEphemeral_case_2
-                        by contradiction /* from formulas */
+                        by contradiction
                       next
                         case RevealEphemeral_case_3
-                        by contradiction /* from formulas */
+                        by contradiction
                       qed
                     next
                       case OuterRatchetToSender_case_3
                       solve( !KU( ~x.11 ) @ #vk.27 )
                         case RevealEphemeral
-                        by contradiction /* from formulas */
+                        by contradiction
                       qed
                     next
                       case OuterRatchetToSender_case_4
                       solve( !KU( ~x.11 ) @ #vk.27 )
                         case RevealEphemeral
-                        by contradiction /* from formulas */
+                        by contradiction
                       qed
                     next
                       case c_exp
                       solve( !KU( ~x.6 ) @ #vk.29 )
                         case RevealEphemeral
-                        by contradiction /* from formulas */
+                        by contradiction
                       qed
                     qed
                   qed
@@ -631,37 +631,37 @@ next
                   case OuterRatchetToSender_case_1
                   solve( !KU( ~x.10 ) @ #vk.17 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case OuterRatchetToSender_case_2
                   solve( !KU( ~x.11 ) @ #vk.17 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case OuterRatchetToSender_case_3
                   solve( !KU( ~x.11 ) @ #vk.17 )
                     case RevealEphemeral_case_1
-                    by contradiction /* from formulas */
+                    by contradiction
                   next
                     case RevealEphemeral_case_2
-                    by contradiction /* from formulas */
+                    by contradiction
                   next
                     case RevealEphemeral_case_3
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case OuterRatchetToSender_case_4
                   solve( !KU( ~x.11 ) @ #vk.17 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case c_exp
                   solve( !KU( ~x.6 ) @ #vk.19 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 qed
               qed
@@ -684,37 +684,37 @@ next
                     case OuterRatchetToSender_case_1
                     solve( !KU( ~x.11 ) @ #vk.24 )
                       case RevealEphemeral
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   next
                     case OuterRatchetToSender_case_2
                     solve( !KU( ~x.12 ) @ #vk.24 )
                       case RevealEphemeral
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   next
                     case OuterRatchetToSender_case_3
                     solve( !KU( ~x.12 ) @ #vk.24 )
                       case RevealEphemeral
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   next
                     case OuterRatchetToSender_case_4
                     solve( !KU( ~x.12 ) @ #vk.24 )
                       case RevealEphemeral_case_1
-                      by contradiction /* from formulas */
+                      by contradiction
                     next
                       case RevealEphemeral_case_2
-                      by contradiction /* from formulas */
+                      by contradiction
                     next
                       case RevealEphemeral_case_3
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   next
                     case c_exp
                     solve( !KU( ~x.6 ) @ #vk.26 )
                       case RevealEphemeral
-                      by contradiction /* from formulas */
+                      by contradiction
                     qed
                   qed
                 qed
@@ -726,156 +726,128 @@ next
               case c_kdf
               search for cycle
               minimize for cyclic proofs
-              solve( Session( ~id.1, $A.1, 'S', ~x.4, $B.1, 'g'^~x.5, rk.1, ck.2
-                     ) ▶₁ #vr.2 )
-                case OuterRatchetToSender_case_1
-                solve( !KU( kdf(<'ck', 
-                                 kdf(<'rk', 
-                                      kdf(<'rk', 
-                                           kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 
-                                                'g'^(~prek*~x.7)>)
-                                          >), 
-                                      'g'^(~x.6*~x.7)>)
-                                >)
-                       ) @ #vk.10 )
-                  case c_kdf
-                  solve( !KU( kdf(<'rk', 
+                case weaken
+                solve( Session( ~id.1, $A.1, 'S', ~x.4, $B.1, 'g'^~x.5, rk.1, ck.2
+                       ) ▶₁ #vr.2 )
+                  case OuterRatchetToSender_case_1
+                  solve( !KU( kdf(<'ck', 
                                    kdf(<'rk', 
-                                        kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 'g'^(~prek*~x.7)>)
-                                       >), 
-                                   'g'^(~x.6*~x.7)>)
-                         ) @ #vk.16 )
+                                        kdf(<'rk', 
+                                             kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 
+                                                  'g'^(~prek*~x.7)>)
+                                            >), 
+                                        'g'^(~x.6*~x.7)>)
+                                  >)
+                         ) @ #vk.10 )
                     case c_kdf
                     solve( !KU( kdf(<'rk', 
-                                     kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 'g'^(~prek*~x.7)>)>)
-                           ) @ #vk.20 )
+                                     kdf(<'rk', 
+                                          kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 'g'^(~prek*~x.7)
+                                              >)
+                                         >), 
+                                     'g'^(~x.6*~x.7)>)
+                           ) @ #vk.16 )
                       case c_kdf
-                      solve( !KU( kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 
-                                       'g'^(~prek*~x.7)>)
-                             ) @ #vk.24 )
+                      solve( !KU( kdf(<'rk', 
+                                       kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 'g'^(~prek*~x.7)>)
+                                      >)
+                             ) @ #vk.20 )
                         case c_kdf
-                        solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
-                          case OuterRatchetToSender_case_1
-                          solve( !KU( ~x.10 ) @ #vk.30 )
-                            case RevealEphemeral
-                            by contradiction /* from formulas */
-                          qed
-                        next
-                          case OuterRatchetToSender_case_2
-                          solve( !KU( ~x.10 ) @ #vk.30 )
-                            case RevealEphemeral_case_1
-                            by contradiction /* from formulas */
+                        solve( !KU( kdf(<'g'^(~ltk*~prek), 'g'^(~ltk.1*~x.7), 
+                                         'g'^(~prek*~x.7)>)
+                               ) @ #vk.24 )
+                          case c_kdf
+                          solve( Session( ~id.2, $A.2, 'R', drop, $B.2, pc.2, old_rk, old_ck
+                                 ) ▶₂ #x.1 )
+                            case OuterRatchetToReceiver
+                            solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                              case OuterRatchetToSender_case_1
+                              solve( !KU( ~x.12 ) @ #vk.33 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            next
+                              case OuterRatchetToSender_case_2
+                              solve( !KU( ~x.13 ) @ #vk.33 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            next
+                              case c_exp
+                              solve( !KU( ~x.6 ) @ #vk.35 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            qed
                           next
-                            case RevealEphemeral_case_2
-                            by contradiction /* from formulas */
+                            case Receive
+                            solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                              case OuterRatchetToSender_case_1
+                              solve( !KU( ~x.11 ) @ #vk.31 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            next
+                              case OuterRatchetToSender_case_2
+                              solve( !KU( ~x.12 ) @ #vk.31 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            next
+                              case c_exp
+                              solve( !KU( ~x.6 ) @ #vk.33 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            qed
                           next
-                            case RevealEphemeral_case_3
-                            by contradiction /* from formulas */
-                          qed
-                        next
-                          case OuterRatchetToSender_case_3
-                          solve( !KU( ~x.11 ) @ #vk.30 )
-                            case RevealEphemeral
-                            by contradiction /* from formulas */
-                          qed
-                        next
-                          case OuterRatchetToSender_case_4
-                          solve( !KU( ~x.11 ) @ #vk.30 )
-                            case RevealEphemeral
-                            by contradiction /* from formulas */
-                          qed
-                        next
-                          case c_exp
-                          solve( !KU( ~x.6 ) @ #vk.32 )
-                            case RevealEphemeral
-                            by contradiction /* from formulas */
+                            case ReceiverStart
+                            solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                              case OuterRatchetToSender_case_1
+                              solve( !KU( ~x.11 ) @ #vk.33 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            next
+                              case OuterRatchetToSender_case_2
+                              solve( !KU( ~x.11 ) @ #vk.33 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            next
+                              case c_exp
+                              solve( !KU( ~x.6 ) @ #vk.35 )
+                                case RevealEphemeral
+                                by contradiction /* from formulas */
+                              qed
+                            qed
                           qed
                         qed
                       qed
                     qed
                   qed
-                qed
-              next
-                case OuterRatchetToSender_case_2
-                solve( !KU( kdf(<'ck', kdf(<'rk', old_rk.1, 'g'^(~x.6*~x.8)>)>)
-                       ) @ #vk.10 )
-                  case c_kdf
-                  solve( !KU( kdf(<'rk', old_rk.1, 'g'^(~x.6*~x.8)>) ) @ #vk.14 )
+                next
+                  case OuterRatchetToSender_case_2
+                  solve( !KU( kdf(<'ck', kdf(<'rk', old_rk.1, 'g'^(~x.6*~x.8)>)>)
+                         ) @ #vk.10 )
                     case c_kdf
-                    solve( !KU( 'g'^(~x.6*~x.8) ) @ #vk.19 )
-                      case OuterRatchetToSender_case_1
-                      solve( !KU( ~x.10 ) @ #vk.20 )
-                        case RevealEphemeral
-                        by contradiction /* from formulas */
-                      qed
-                    next
-                      case OuterRatchetToSender_case_2
-                      solve( !KU( ~x.11 ) @ #vk.20 )
-                        case RevealEphemeral
-                        by contradiction /* from formulas */
-                      qed
-                    next
-                      case OuterRatchetToSender_case_3
-                      solve( !KU( ~x.11 ) @ #vk.20 )
-                        case RevealEphemeral_case_1
-                        by contradiction /* from formulas */
-                      next
-                        case RevealEphemeral_case_2
-                        by contradiction /* from formulas */
-                      next
-                        case RevealEphemeral_case_3
-                        by contradiction /* from formulas */
-                      qed
-                    next
-                      case OuterRatchetToSender_case_4
-                      solve( !KU( ~x.11 ) @ #vk.20 )
-                        case RevealEphemeral
-                        by contradiction /* from formulas */
-                      qed
-                    next
-                      case c_exp
-                      solve( !KU( ~x.6 ) @ #vk.22 )
-                        case RevealEphemeral
-                        by contradiction /* from formulas */
-                      qed
-                    qed
-                  qed
-                qed
-              next
-                case OuterRatchetToSender_case_3
-                solve( !KU( kdf(<'ck', 
-                                 kdf(<'rk', kdf(<'rk', old_rk.1, 'g'^(~x.7*~x.9)>), 'g'^(~x.6*~x.7)
-                                     >)
-                                >)
-                       ) @ #vk.10 )
-                  case c_kdf
-                  solve( !KU( kdf(<'rk', kdf(<'rk', old_rk.1, 'g'^(~x.7*~x.9)>), 
-                                   'g'^(~x.6*~x.7)>)
-                         ) @ #vk.16 )
-                    case c_kdf
-                    solve( !KU( kdf(<'rk', old_rk.1, 'g'^(~x.7*~x.9)>) ) @ #vk.20 )
+                    solve( !KU( kdf(<'rk', old_rk.1, 'g'^(~x.6*~x.8)>) ) @ #vk.14 )
                       case c_kdf
-                      solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                      solve( !KU( 'g'^(~x.6*~x.8) ) @ #vk.19 )
                         case OuterRatchetToSender_case_1
-                        solve( !KU( ~x.11 ) @ #vk.27 )
+                        solve( !KU( ~x.10 ) @ #vk.20 )
                           case RevealEphemeral
                           by contradiction /* from formulas */
                         qed
                       next
                         case OuterRatchetToSender_case_2
-                        solve( !KU( ~x.12 ) @ #vk.27 )
+                        solve( !KU( ~x.11 ) @ #vk.20 )
                           case RevealEphemeral
                           by contradiction /* from formulas */
                         qed
                       next
                         case OuterRatchetToSender_case_3
-                        solve( !KU( ~x.12 ) @ #vk.27 )
-                          case RevealEphemeral
-                          by contradiction /* from formulas */
-                        qed
-                      next
-                        case OuterRatchetToSender_case_4
-                        solve( !KU( ~x.12 ) @ #vk.27 )
+                        solve( !KU( ~x.11 ) @ #vk.20 )
                           case RevealEphemeral_case_1
                           by contradiction /* from formulas */
                         next
@@ -886,21 +858,81 @@ next
                           by contradiction /* from formulas */
                         qed
                       next
+                        case OuterRatchetToSender_case_4
+                        solve( !KU( ~x.11 ) @ #vk.20 )
+                          case RevealEphemeral
+                          by contradiction /* from formulas */
+                        qed
+                      next
                         case c_exp
-                        solve( !KU( ~x.6 ) @ #vk.29 )
+                        solve( !KU( ~x.6 ) @ #vk.22 )
                           case RevealEphemeral
                           by contradiction /* from formulas */
                         qed
                       qed
                     qed
                   qed
-                qed
-              next
-                case Send
-                solve( !KU( kdf(<'ck', ck.3>) ) @ #vk.10 )
-                  case c_kdf
-                  search for cycle
-                  by contradiction /* cyclic backlink to CS id 13-0084 */
+                next
+                  case OuterRatchetToSender_case_3
+                  solve( !KU( kdf(<'ck', 
+                                   kdf(<'rk', kdf(<'rk', old_rk.1, 'g'^(~x.7*~x.9)>), 
+                                        'g'^(~x.6*~x.7)>)
+                                  >)
+                         ) @ #vk.10 )
+                    case c_kdf
+                    solve( !KU( kdf(<'rk', kdf(<'rk', old_rk.1, 'g'^(~x.7*~x.9)>), 
+                                     'g'^(~x.6*~x.7)>)
+                           ) @ #vk.16 )
+                      case c_kdf
+                      solve( !KU( kdf(<'rk', old_rk.1, 'g'^(~x.7*~x.9)>) ) @ #vk.20 )
+                        case c_kdf
+                        solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                          case OuterRatchetToSender_case_1
+                          solve( !KU( ~x.11 ) @ #vk.27 )
+                            case RevealEphemeral
+                            by contradiction /* from formulas */
+                          qed
+                        next
+                          case OuterRatchetToSender_case_2
+                          solve( !KU( ~x.12 ) @ #vk.27 )
+                            case RevealEphemeral
+                            by contradiction /* from formulas */
+                          qed
+                        next
+                          case OuterRatchetToSender_case_3
+                          solve( !KU( ~x.12 ) @ #vk.27 )
+                            case RevealEphemeral
+                            by contradiction /* from formulas */
+                          qed
+                        next
+                          case OuterRatchetToSender_case_4
+                          solve( !KU( ~x.12 ) @ #vk.27 )
+                            case RevealEphemeral_case_1
+                            by contradiction /* from formulas */
+                          next
+                            case RevealEphemeral_case_2
+                            by contradiction /* from formulas */
+                          next
+                            case RevealEphemeral_case_3
+                            by contradiction /* from formulas */
+                          qed
+                        next
+                          case c_exp
+                          solve( !KU( ~x.6 ) @ #vk.29 )
+                            case RevealEphemeral
+                            by contradiction /* from formulas */
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                next
+                  case Send
+                  solve( !KU( kdf(<'ck', ck.3>) ) @ #vk.10 )
+                    case c_kdf
+                    search for cycle
+                    by contradiction /* cyclic backlink to CS id 13-0084 */
+                  qed
                 qed
               qed
             qed
@@ -961,19 +993,19 @@ next
                         case OuterRatchetToSender
                         solve( !KU( ~x.11 ) @ #vk.27 )
                           case RevealEphemeral
-                          by contradiction /* from formulas */
+                          by contradiction
                         qed
                       next
                         case SenderStart
                         solve( !KU( ~x.11 ) @ #vk.27 )
                           case RevealEphemeral
-                          by contradiction /* from formulas */
+                          by contradiction
                         qed
                       next
                         case c_exp
                         solve( !KU( ~x.6 ) @ #vk.29 )
                           case RevealEphemeral
-                          by contradiction /* from formulas */
+                          by contradiction
                         qed
                       qed
                     qed
@@ -1018,7 +1050,7 @@ next
                             case KeyGen
                             solve( !KU( ~x.9 ) @ #vk.28 )
                               case RevealEphemeral
-                              by contradiction /* from formulas */
+                              by contradiction
                             qed
                           next
                             case SenderStart
@@ -1028,7 +1060,7 @@ next
                                 case KeyGen
                                 solve( !KU( ~x.10 ) @ #vk.29 )
                                   case RevealEphemeral
-                                  by contradiction /* from formulas */
+                                  by contradiction
                                 qed
                               next
                                 case SenderStart
@@ -1056,19 +1088,19 @@ next
                                       case OuterRatchetToSender
                                       solve( !KU( ~x.12 ) @ #vk.38 )
                                         case RevealEphemeral
-                                        by contradiction /* from formulas */
+                                        by contradiction
                                       qed
                                     next
                                       case SenderStart
                                       solve( !KU( ~x.12 ) @ #vk.38 )
                                         case RevealEphemeral
-                                        by contradiction /* from formulas */
+                                        by contradiction
                                       qed
                                     next
                                       case c_exp
                                       solve( !KU( ~x.6 ) @ #vk.40 )
                                         case RevealEphemeral
-                                        by contradiction /* from formulas */
+                                        by contradiction
                                       qed
                                     qed
                                   qed
@@ -1077,7 +1109,7 @@ next
                                 case c_exp
                                 solve( !KU( ~x.9 ) @ #vk.32 )
                                   case RevealEphemeral
-                                  by contradiction /* from formulas */
+                                  by contradiction
                                 qed
                               qed
                             qed
@@ -1085,7 +1117,7 @@ next
                             case c_exp
                             solve( !KU( ~x.7 ) @ #vk.31 )
                               case RevealEphemeral
-                              by contradiction /* from formulas */
+                              by contradiction
                             qed
                           qed
                         qed
@@ -1097,7 +1129,7 @@ next
                             case KeyGen
                             solve( !KU( ~x.9 ) @ #vk.28 )
                               case RevealEphemeral
-                              by contradiction /* from formulas */
+                              by contradiction
                             qed
                           next
                             case SenderStart
@@ -1107,7 +1139,7 @@ next
                                 case KeyGen
                                 solve( !KU( ~x.10 ) @ #vk.29 )
                                   case RevealEphemeral
-                                  by contradiction /* from formulas */
+                                  by contradiction
                                 qed
                               next
                                 case SenderStart
@@ -1137,19 +1169,19 @@ next
                                         case OuterRatchetToSender
                                         solve( !KU( ~x.12 ) @ #vk.38 )
                                           case RevealEphemeral
-                                          by contradiction /* from formulas */
+                                          by contradiction
                                         qed
                                       next
                                         case SenderStart
                                         solve( !KU( ~x.12 ) @ #vk.38 )
                                           case RevealEphemeral
-                                          by contradiction /* from formulas */
+                                          by contradiction
                                         qed
                                       next
                                         case c_exp
                                         solve( !KU( ~x.6 ) @ #vk.40 )
                                           case RevealEphemeral
-                                          by contradiction /* from formulas */
+                                          by contradiction
                                         qed
                                       qed
                                     qed
@@ -1161,7 +1193,7 @@ next
                                   case RevealPrek
                                   solve( !KU( ~x.9 ) @ #vk.32 )
                                     case RevealEphemeral
-                                    by contradiction /* from formulas */
+                                    by contradiction
                                   qed
                                 qed
                               qed
@@ -1172,7 +1204,7 @@ next
                               case RevealLtk
                               solve( !KU( ~x.7 ) @ #vk.31 )
                                 case RevealEphemeral
-                                by contradiction /* from formulas */
+                                by contradiction
                               qed
                             qed
                           qed
@@ -1205,7 +1237,7 @@ next
                                   case KeyGen
                                   solve( !KU( ~x.9 ) @ #vk.39 )
                                     case RevealEphemeral
-                                    by contradiction /* from formulas */
+                                    by contradiction
                                   qed
                                 next
                                   case SenderStart
@@ -1215,7 +1247,7 @@ next
                                       case KeyGen
                                       solve( !KU( ~x.10 ) @ #vk.42 )
                                         case RevealEphemeral
-                                        by contradiction /* from formulas */
+                                        by contradiction
                                       qed
                                     next
                                       case SenderStart
@@ -1223,26 +1255,26 @@ next
                                         case OuterRatchetToSender
                                         solve( !KU( ~x.12 ) @ #vk.45 )
                                           case RevealEphemeral
-                                          by contradiction /* from formulas */
+                                          by contradiction
                                         qed
                                       next
                                         case SenderStart
                                         solve( !KU( ~x.12 ) @ #vk.45 )
                                           case RevealEphemeral
-                                          by contradiction /* from formulas */
+                                          by contradiction
                                         qed
                                       next
                                         case c_exp
                                         solve( !KU( ~x.6 ) @ #vk.47 )
                                           case RevealEphemeral
-                                          by contradiction /* from formulas */
+                                          by contradiction
                                         qed
                                       qed
                                     next
                                       case c_exp
                                       solve( !KU( ~x.9 ) @ #vk.45 )
                                         case RevealEphemeral
-                                        by contradiction /* from formulas */
+                                        by contradiction
                                       qed
                                     qed
                                   qed
@@ -1252,7 +1284,7 @@ next
                                     case RevealLtk
                                     solve( !KU( ~x.7 ) @ #vk.42 )
                                       case RevealEphemeral
-                                      by contradiction /* from formulas */
+                                      by contradiction
                                     qed
                                   qed
                                 qed
@@ -1277,19 +1309,19 @@ next
                   case OuterRatchetToSender
                   solve( !KU( ~x.11 ) @ #vk.17 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case SenderStart
                   solve( !KU( ~x.10 ) @ #vk.17 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case c_exp
                   solve( !KU( ~x.6 ) @ #vk.19 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 qed
               qed
@@ -1309,19 +1341,19 @@ next
                   case OuterRatchetToSender
                   solve( !KU( ~x.12 ) @ #vk.19 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case SenderStart
                   solve( !KU( ~x.11 ) @ #vk.19 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 next
                   case c_exp
                   solve( !KU( ~x.6 ) @ #vk.21 )
                     case RevealEphemeral
-                    by contradiction /* from formulas */
+                    by contradiction
                   qed
                 qed
               qed
@@ -1332,129 +1364,132 @@ next
               case c_kdf
               search for cycle
               minimize for cyclic proofs
-              solve( Session( ~id.1, $A.1, 'S', ~x.4, $B.1, 'g'^~x.5, rk.1, ck.2
-                     ) ▶₁ #vr.2 )
-                case OuterRatchetToSender_case_1
-                solve( !KU( kdf(<'ck', 
-                                 kdf(<'rk', 
-                                      kdf(<'rk', 
-                                           kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
-                                                'g'^(~prek.1*~x.7)>)
-                                          >), 
-                                      'g'^(~x.6*~x.7)>)
-                                >)
-                       ) @ #vk.10 )
-                  case c_kdf
-                  solve( !KU( kdf(<'rk', 
+                case weaken
+                solve( Session( ~id.1, $A.1, 'S', ~x.4, $B.1, 'g'^~x.5, rk.1, ck.2
+                       ) ▶₁ #vr.2 )
+                  case OuterRatchetToSender_case_1
+                  solve( !KU( kdf(<'ck', 
                                    kdf(<'rk', 
-                                        kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
-                                             'g'^(~prek.1*~x.7)>)
-                                       >), 
-                                   'g'^(~x.6*~x.7)>)
-                         ) @ #vk.16 )
+                                        kdf(<'rk', 
+                                             kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
+                                                  'g'^(~prek.1*~x.7)>)
+                                            >), 
+                                        'g'^(~x.6*~x.7)>)
+                                  >)
+                         ) @ #vk.10 )
                     case c_kdf
                     solve( !KU( kdf(<'rk', 
-                                     kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
-                                          'g'^(~prek.1*~x.7)>)
-                                    >)
-                           ) @ #vk.20 )
+                                     kdf(<'rk', 
+                                          kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
+                                               'g'^(~prek.1*~x.7)>)
+                                         >), 
+                                     'g'^(~x.6*~x.7)>)
+                           ) @ #vk.16 )
                       case c_kdf
-                      solve( !KU( kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
-                                       'g'^(~prek.1*~x.7)>)
-                             ) @ #vk.24 )
+                      solve( !KU( kdf(<'rk', 
+                                       kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
+                                            'g'^(~prek.1*~x.7)>)
+                                      >)
+                             ) @ #vk.20 )
                         case c_kdf
-                        solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
-                          case OuterRatchetToSender
-                          solve( !KU( ~x.10 ) @ #vk.30 )
-                            case RevealEphemeral
-                            by contradiction /* from formulas */
-                          qed
-                        next
-                          case SenderStart
-                          solve( !KU( ~x.10 ) @ #vk.30 )
-                            case RevealEphemeral
-                            by contradiction /* from formulas */
-                          qed
-                        next
-                          case c_exp
-                          solve( !KU( ~x.6 ) @ #vk.32 )
-                            case RevealEphemeral
-                            by contradiction /* from formulas */
+                        solve( !KU( kdf(<'g'^(~ltk.1*~prek.1), 'g'^(~ltk.2*~x.7), 
+                                         'g'^(~prek.1*~x.7)>)
+                               ) @ #vk.24 )
+                          case c_kdf
+                          solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                            case OuterRatchetToSender
+                            solve( !KU( ~x.10 ) @ #vk.30 )
+                              case RevealEphemeral
+                              by contradiction /* from formulas */
+                            qed
+                          next
+                            case SenderStart
+                            solve( !KU( ~x.10 ) @ #vk.30 )
+                              case RevealEphemeral
+                              by contradiction /* from formulas */
+                            qed
+                          next
+                            case c_exp
+                            solve( !KU( ~x.6 ) @ #vk.32 )
+                              case RevealEphemeral
+                              by contradiction /* from formulas */
+                            qed
                           qed
                         qed
                       qed
                     qed
                   qed
-                qed
-              next
-                case OuterRatchetToSender_case_2
-                solve( !KU( kdf(<'ck', kdf(<'rk', old_rk, 'g'^(~x.6*~x.8)>)>)
-                       ) @ #vk.10 )
-                  case c_kdf
-                  solve( !KU( kdf(<'rk', old_rk, 'g'^(~x.6*~x.8)>) ) @ #vk.14 )
+                next
+                  case OuterRatchetToSender_case_2
+                  solve( !KU( kdf(<'ck', kdf(<'rk', old_rk, 'g'^(~x.6*~x.8)>)>)
+                         ) @ #vk.10 )
                     case c_kdf
-                    solve( !KU( 'g'^(~x.6*~x.8) ) @ #vk.19 )
-                      case OuterRatchetToSender
-                      solve( !KU( ~x.11 ) @ #vk.20 )
-                        case RevealEphemeral
-                        by contradiction /* from formulas */
-                      qed
-                    next
-                      case SenderStart
-                      solve( !KU( ~x.10 ) @ #vk.20 )
-                        case RevealEphemeral
-                        by contradiction /* from formulas */
-                      qed
-                    next
-                      case c_exp
-                      solve( !KU( ~x.6 ) @ #vk.22 )
-                        case RevealEphemeral
-                        by contradiction /* from formulas */
-                      qed
-                    qed
-                  qed
-                qed
-              next
-                case OuterRatchetToSender_case_3
-                solve( !KU( kdf(<'ck', 
-                                 kdf(<'rk', kdf(<'rk', old_rk, 'g'^(~x.7*~x.9)>), 'g'^(~x.6*~x.7)>)
-                                >)
-                       ) @ #vk.10 )
-                  case c_kdf
-                  solve( !KU( kdf(<'rk', kdf(<'rk', old_rk, 'g'^(~x.7*~x.9)>), 
-                                   'g'^(~x.6*~x.7)>)
-                         ) @ #vk.16 )
-                    case c_kdf
-                    solve( !KU( kdf(<'rk', old_rk, 'g'^(~x.7*~x.9)>) ) @ #vk.20 )
+                    solve( !KU( kdf(<'rk', old_rk, 'g'^(~x.6*~x.8)>) ) @ #vk.14 )
                       case c_kdf
-                      solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                      solve( !KU( 'g'^(~x.6*~x.8) ) @ #vk.19 )
                         case OuterRatchetToSender
-                        solve( !KU( ~x.12 ) @ #vk.27 )
+                        solve( !KU( ~x.11 ) @ #vk.20 )
                           case RevealEphemeral
                           by contradiction /* from formulas */
                         qed
                       next
                         case SenderStart
-                        solve( !KU( ~x.11 ) @ #vk.27 )
+                        solve( !KU( ~x.10 ) @ #vk.20 )
                           case RevealEphemeral
                           by contradiction /* from formulas */
                         qed
                       next
                         case c_exp
-                        solve( !KU( ~x.6 ) @ #vk.29 )
+                        solve( !KU( ~x.6 ) @ #vk.22 )
                           case RevealEphemeral
                           by contradiction /* from formulas */
                         qed
                       qed
                     qed
                   qed
-                qed
-              next
-                case Send
-                solve( !KU( kdf(<'ck', ck.3>) ) @ #vk.10 )
-                  case c_kdf
-                  search for cycle
-                  by contradiction /* cyclic backlink to CS id 13-0004 */
+                next
+                  case OuterRatchetToSender_case_3
+                  solve( !KU( kdf(<'ck', 
+                                   kdf(<'rk', kdf(<'rk', old_rk, 'g'^(~x.7*~x.9)>), 'g'^(~x.6*~x.7)
+                                       >)
+                                  >)
+                         ) @ #vk.10 )
+                    case c_kdf
+                    solve( !KU( kdf(<'rk', kdf(<'rk', old_rk, 'g'^(~x.7*~x.9)>), 
+                                     'g'^(~x.6*~x.7)>)
+                           ) @ #vk.16 )
+                      case c_kdf
+                      solve( !KU( kdf(<'rk', old_rk, 'g'^(~x.7*~x.9)>) ) @ #vk.20 )
+                        case c_kdf
+                        solve( !KU( 'g'^(~x.6*~x.7) ) @ #vk.21 )
+                          case OuterRatchetToSender
+                          solve( !KU( ~x.12 ) @ #vk.27 )
+                            case RevealEphemeral
+                            by contradiction /* from formulas */
+                          qed
+                        next
+                          case SenderStart
+                          solve( !KU( ~x.11 ) @ #vk.27 )
+                            case RevealEphemeral
+                            by contradiction /* from formulas */
+                          qed
+                        next
+                          case c_exp
+                          solve( !KU( ~x.6 ) @ #vk.29 )
+                            case RevealEphemeral
+                            by contradiction /* from formulas */
+                          qed
+                        qed
+                      qed
+                    qed
+                  qed
+                next
+                  case Send
+                  solve( !KU( kdf(<'ck', ck.3>) ) @ #vk.10 )
+                    case c_kdf
+                    search for cycle
+                    by contradiction /* cyclic backlink to CS id 13-0004 */
+                  qed
                 qed
               qed
             qed
