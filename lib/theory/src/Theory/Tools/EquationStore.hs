@@ -140,19 +140,26 @@ eqStoreInlcusionModR r s1 s2 =
     hasEmptySubst = M.null . sMap . L.get eqsSubst
 
     findMatchConj :: S.Set LNSubstVFresh -> WithMaude Bool
-    findMatchConj s = or <$> mapM (substsMatch s . snd) (L.get eqsConj s2)
+    findMatchConj s = or <$> mapM (substsMatch (S.toList s) . S.toList . snd) (L.get eqsConj s2)
 
     toFree :: LNSubstVFresh -> LNSubstVFresh -> (LNSubst, LNSubst)
     toFree fresh1 fresh2 =
       let free1 = freshToFreeAvoiding fresh1 nothingUsed
       in (free1, freshToFreeAvoiding fresh2 (avoid free1))
 
-    substsMatch :: S.Set LNSubstVFresh -> S.Set LNSubstVFresh -> WithMaude Bool
-    substsMatch (S.toAscList -> substs) (S.toAscList -> substs') =
-      -- TODO: This is an under-approximation. It could be that the order
-      -- differs. I never encountered such a case, so I keep the code simple for
-      -- now.
-      and <$> zipWithM (\s -> uncurry eqSubsts . toFree s) substs substs'
+    substsMatch :: [LNSubstVFresh] -> [LNSubstVFresh] -> WithMaude Bool
+    substsMatch [] [] = return True
+    substsMatch [] _ = return False
+    substsMatch _ [] = return False
+    substsMatch (s:ss1) ss2 = do
+      unmatched <- matchS ss2
+      maybe (return False) (substsMatch ss1) unmatched
+      where
+        matchS :: [LNSubstVFresh] -> WithMaude (Maybe [LNSubstVFresh])
+        matchS [] = return Nothing
+        matchS (s':ss') = do
+          eq <- uncurry eqSubsts (toFree s s')
+          if eq then return (Just ss') else fmap (s':) <$> matchS ss'
 
 -- | @emptyEqStore@ is the empty equation store.
 emptyEqStore :: EqStore
