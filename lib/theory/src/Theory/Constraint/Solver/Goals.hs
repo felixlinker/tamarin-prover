@@ -52,16 +52,15 @@ import           Theory.Model
 import           Term.Builtin.Convenience
 
 
-import Utils.Misc (twoPartitions, peakTail, splitBetween, peak)
-import Data.Maybe (isNothing, catMaybes, isJust, fromJust, mapMaybe)
+import Utils.Misc (twoPartitions, peakTail, splitBetween)
+import Data.Maybe (isNothing, catMaybes, mapMaybe, fromMaybe)
 import Theory.Constraint.System.Inclusion (InclusionFailure, BackLinkCandidate (blUpTo, bl), prefixMatchesOnPath)
 import Data.List.NonEmpty as NE (NonEmpty((:|)))
-import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger)
-import Data.Tuple (swap)
+import Utils.PartialOrd (TransClosedOrder(..), fromSet, getLarger, getDirectlyLarger, minima)
 import Control.Monad.RWS (MonadReader(ask), MonadWriter (tell))
 import Theory.Constraint.System.Results (Result(Contradictory), Contradiction (Cyclic))
 import Data.Bool (bool)
-import Data.List (find, group, sort, intersperse, intercalate)
+import Data.List (find, group, sort)
 import Debug.Trace (traceM)
 import Extension.Prelude (groupSortOn)
 
@@ -218,7 +217,7 @@ solveGoal syss goal = do
       SplitG i      -> solveSplit i
       DisjG disj    -> solveDisjunction disj
       SubtermG st   -> solveSubterm st
-      Weaken el     -> weaken el >> return ""
+      Weaken el     -> weaken el
       Cut el        -> cut syss el
       SearchBacklink -> searchBacklink True syss >> return ""
 
@@ -517,20 +516,21 @@ data WeakenMode = Preserve | Prune deriving Eq
 -- solved (formulas or goals or ...) must be marked as unsolved. Cyclic proofs
 -- consider solved goals as implicitly weakened, i.e., they should only be
 -- reintroduced if a constraint solving rule would allow for this.
-weaken :: WeakenEl -> Reduction ()
+weaken :: WeakenEl -> Reduction String
 weaken el = do
   sid <- L.getM sId
   L.setM sWeakenedFrom (Just sid)
   go el
   where
-    weakenEdge :: WeakenMode -> Edge -> Reduction ()
+    weakenEdge :: WeakenMode -> Edge -> Reduction String
     weakenEdge mode e = do
       L.modM sEdges (S.delete e)
       L.modM sLoops (splitLoopsAtEdge e)
       when (mode == Preserve) $ do
         L.modM sLessAtoms (S.insert (lessAtomFromEdge KeepWeakened e))
+      return "weaken"
 
-    weakenNode :: WeakenMode -> NodeId -> Reduction ()
+    weakenNode :: WeakenMode -> NodeId -> Reduction String
     weakenNode mode i = do
         L.modM sNodes $ M.delete i
         L.modM sGoals $ M.filterWithKey keepGoal
@@ -540,6 +540,7 @@ weaken el = do
         mapM_ (weakenEdge mode) toDeleteOutgoing
         mapM_ (weakenEdge mode) toDeleteIncoming
         when (mode == Prune) (L.modM sLessAtoms (S.filter keepLessAtom))
+        return "weaken"
       where
         keepGoal :: Goal -> GoalStatus -> Bool
         keepGoal (PremiseG (i', _) _) _ = i /= i'
@@ -550,34 +551,71 @@ weaken el = do
         keepLessAtom :: LessAtom -> Bool
         keepLessAtom (LessAtom nid1 nid2 _) = nid1 /= i && nid2 /= i
 
-    go :: WeakenEl -> Reduction ()
+    go :: WeakenEl -> Reduction String
     go WeakenCyclic = do
       loops <- L.getM sLoops
-      let toCut = loopCuts loops
-      unless (null toCut) (do
-        -- Nothing deactivates backlink search
-        _ <- cut Nothing (loopCuts loops)
-        _ <- substSystem
-        void enforceEdgeUniqueness)
-
+      -- Nothing deactivates backlink search
+      let (toWeaken NE.:| cutNegation) = cutCases Nothing (loopCuts loops)
       mFwd <- forwardReachability
-      mBackwd <- backwardReachability
-      when (not (null loops) && isJust mFwd && isJust mBackwd) $ do
-        let fwd = fromJust mFwd
-        let backwd = fromJust mBackwd
-        let loopNodes = foldr (flip (foldr S.insert)) S.empty loops
-
-        mapM_ (mapM_ (weakenNode Prune) . getLarger fwd . end) loops
-        mapM_ (keepLoopShort loopNodes fwd backwd) loops
-        nodes <- M.toList <$> L.getM sNodes
-        -- Delete all K nodes
-        nonLeafs <- gets (S.fromList . map fst . rawLessRel)
-        let isLeaf = not . (`S.member` nonLeafs)
-        let kLeafs = filters all [isISendRule . snd, isLeaf . fst] nodes
-        mapM_ (weakenNode Prune . fst) kLeafs
-        let isLeafNow n = isLeaf n || any (S.member n . getDirectlyLarger backwd . fst) kLeafs
-        mapM_ (keepKuChainShort backwd . fst) $ filters all [isConstrRule . snd, isLeafNow . fst] nodes
+      join $ disjunctionOfList $ (toWeaken >> doWeakening loops mFwd) : map (<* unifyEdges) cutNegation
       where
+        doWeakening :: [LoopInstance NodeId] -> Maybe (TransClosedOrder NodeId) -> Reduction String
+        doWeakening [] _ = return "weaken"
+        doWeakening _ Nothing = return "weaken"
+        doWeakening loops (Just fwd) = do
+          nodes <- L.getM sNodes
+          let starts = S.fromList $ map start loops
+          let loopTails = foldr (S.union . (S.\\ starts) . getLarger fwd . start) S.empty loops
+          let kuToWeakenFrom = kuWeakenSources nodes
+          let kLeafs = S.fromList
+                $ map fst
+                $ filter (S.null . getDirectlyLarger fwd . fst)
+                $ filter (isISendRule . snd)
+                $ M.toList nodes
+          let kuToWeaken = foldr (S.union . getLarger fwd) S.empty kuToWeakenFrom
+          let (nodesToWeaken, _) = foldr addPremisesToWeaken (loopTails <> kLeafs <> kuToWeaken, starts <> kuToWeakenFrom) (minima fwd)
+          mapM_ (\n -> weakenNode (if n `S.member` loopTails then Preserve else Prune) n) nodesToWeaken
+          edges <- getM sEdges
+          mapM_ (weakenEdge Preserve) $ S.filter (isLoopToLoopEdge nodes) edges
+
+          return "weaken"
+          where
+            isLoopToLoopEdge :: M.Map NodeId RuleACInst -> Edge -> Bool
+            isLoopToLoopEdge ns (Edge (concN, concIdx) (premN, _)) =
+              let isLoopFactConsumed = fromMaybe False $ do
+                    li <- find ((== concN) . start) loops
+                    r <- M.lookup concN ns
+                    return $ loopFact li == factTag (L.get (rConc concIdx) r)
+              in isLoopFactConsumed && premN `elem` map start loops
+
+            kuWeakenSources :: M.Map NodeId RuleACInst -> S.Set NodeId
+            kuWeakenSources ns =
+              let kuNodes = M.keysSet $ M.filter isConstrRule ns
+                  -- ^ All KU nodes
+                  disconnectedKUNodes = S.filter (all intruder . getLarger fwd) kuNodes
+                  -- ^ All KU nodes that have only action goals, KU nodes, or K nodes larger then them
+              in  foldr (\n -> (S.\\ getLarger fwd n)) disconnectedKUNodes disconnectedKUNodes
+                  -- ^ Remove all larger nodes from the set so that there are only the topmost KU nodes left
+              where
+                intruder :: NodeId -> Bool
+                intruder n = maybe True isIntruderRule (M.lookup n ns)
+
+            addPremisesToWeaken :: NodeId -> (S.Set NodeId, S.Set NodeId) -> (S.Set NodeId, S.Set NodeId)
+            addPremisesToWeaken n (delete, keep)
+              | n `S.member` keep = (delete, keep)
+              | n `S.member` delete = (delete, keep)
+              | otherwise =
+                let larger = getDirectlyLarger fwd n
+                    (delete', keep') = foldr addPremisesToWeaken (delete, keep) larger
+                in  if S.null larger then (delete, keep)
+                    else if all (`S.member` delete') larger then (S.insert n delete', keep')
+                    else (delete', S.insert n keep')
+
+        unifyEdges :: Reduction ()
+        unifyEdges = do
+          _ <- substSystem
+          void enforceEdgeUniqueness
+
         loopCuts :: [LoopInstance NodeId] -> S.Set LNGuarded
         loopCuts [] = S.empty
         loopCuts (l:ls) = rec l ls <> loopCuts ls
@@ -596,52 +634,29 @@ weaken el = do
             rec _ [] = S.empty
             rec li (li':t) = maybe id S.insert (unifGuard li li') (rec li t)
 
-        filters acc ps = filter (\a -> acc ($ a) ps)
-
-        reachability :: (System -> [(NodeId, NodeId)]) -> Reduction (Maybe (TransClosedOrder NodeId))
-        reachability f = do
-          rel <- gets f
-          return (fromSet (S.fromList rel))
-
         forwardReachability :: Reduction (Maybe (TransClosedOrder NodeId))
-        forwardReachability = reachability (\s -> kLessRel s ++ rawEdgeRel s)
+        forwardReachability = gets (\s -> fromSet $ S.fromList $ kLessRel s ++ rawEdgeRel s)
 
-        backwardReachability :: Reduction (Maybe (TransClosedOrder NodeId))
-        backwardReachability = reachability (map swap . (\s -> kLessRel s ++ rawEdgeRel s))
-
-        keepLoopShort :: S.Set NodeId -> TransClosedOrder NodeId -> TransClosedOrder NodeId -> LoopInstance NodeId -> Reduction ()
-        keepLoopShort loopNodes fwd backwd ls = do
-          let t = NE.tail (loopEdges ls)
-          mapM_ (weakenNode Preserve) t
-          mapM_ (\n -> mapM_ (prunePremiseSources n) $ getDirectlyLarger backwd n) t
-            where
-              prunePremiseSources :: NodeId -> NodeId -> Reduction ()
-              prunePremiseSources parent i = do
-                let noOutgoing = S.singleton parent == getDirectlyLarger fwd i
-                when (noOutgoing && (i `S.notMember` loopNodes)) $ do
-                  weakenNode Prune i
-                  mapM_ (prunePremiseSources i) $ getDirectlyLarger backwd i
-
-        keepKuChainShort :: TransClosedOrder NodeId -> NodeId -> Reduction ()
-        keepKuChainShort backwd i = do
-          nodes <- L.getM sNodes
-          let isGoalOnly = not (M.member i nodes)
-          -- Only weaken if a KU node is reachable from this one or if this is a
-          -- pure action goal
-          when (isGoalOnly || any (maybe False isConstrRule . (`M.lookup` nodes)) (getLarger backwd i)) $ do
-            weakenNode Prune i
-            mapM_ (keepKuChainShort backwd) (getDirectlyLarger backwd i)
-    go (WeakenFormula f) = L.modM sFormulas (S.delete f)
-    go (WeakenLessAtom nid1 nid2) = L.modM sLessAtoms (S.filter keepLatom)
+    go (WeakenFormula f) = do
+      L.modM sFormulas (S.delete f)
+      return "weaken"
+    go (WeakenLessAtom nid1 nid2) = do
+      L.modM sLessAtoms (S.filter keepLatom)
+      return "weaken"
       where
         keepLatom :: LessAtom -> Bool
         keepLatom (LessAtom sml lrg _) = sml /= nid1 || lrg /= nid2
-    go (WeakenGoal g) = L.modM sGoals (M.delete g)
+    go (WeakenGoal g) = do
+      L.modM sGoals (M.delete g)
+      return "weaken"
     go (WeakenEdge e) = weakenEdge Preserve e
     go (WeakenNode i) = weakenNode Preserve i
 
 cut :: Maybe (NE.NonEmpty System) -> UpTo -> Reduction String
-cut syss (S.toList -> phis) = join $ disjunctionOfList (cutCase : zipWith negCase [(0 :: Int)..] phis)
+cut syss = join . disjunctionOfList . NE.toList . cutCases syss
+
+cutCases :: Maybe (NE.NonEmpty System) -> UpTo -> NE.NonEmpty (Reduction String)
+cutCases syss (S.toList -> phis) = cutCase NE.:| zipWith negCase [(0 :: Int)..] phis
   where
     insertFormulas :: [LNGuarded] -> Reduction ()
     insertFormulas formulas = L.modM sFormulas (\s -> foldr S.insert s formulas)
