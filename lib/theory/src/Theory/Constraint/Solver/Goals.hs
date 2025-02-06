@@ -635,9 +635,14 @@ weaken el = do
             rec :: LoopInstance NodeId -> [LoopInstance NodeId] -> S.Set LNGuarded
             rec _ [] = S.empty
             rec li (li':t) = maybe id S.insert (unifGuard li li') (rec li t)
-    go (WeakenFormula f) = do
-      L.modM sFormulas (S.delete f)
+    go (WeakenFormula phi) = do
+      L.modM sFormulas (S.delete phi)
+      L.modM sGoals (M.filterWithKey (\k _ -> not $ associatedSplitGoal k))
       return ""
+      where
+        associatedSplitGoal :: Goal -> Bool
+        associatedSplitGoal (DisjG disj) = phi == GDisj disj
+        associatedSplitGoal _ = False
     go (WeakenLessAtom nid1 nid2) = do
       L.modM sLessAtoms (S.filter keepLatom)
       return ""
