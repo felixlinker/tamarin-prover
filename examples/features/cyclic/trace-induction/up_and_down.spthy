@@ -5,41 +5,46 @@ functions: h/1
 
 rule Start:
   [ Fr(~x) ]
-  --[ Gen(~x) ]->
+  --[ Gen(~x, ~x)
+    , Start(~x) ]->
   [ Up(~x, ~x) ]
 
 rule Up:
   [ Up(id, x) ]
-  --[ Gen(h(x)) ]->
+  --[ Gen(id, h(x)) ]->
   [ Up(id, h(x)) ]
 
 rule DownStart:
   [ Up(idUp, x), Fr(~idDown) ]
-  --[ Destr(x) ]->
+  --[ Destr(~idDown, x) ]->
   [ Down(~idDown, x) ]
 
 rule Down:
   [ Down(id, h(x)) ]
-  --[ Destr(x) ]->
+  --[ Destr(id, x) ]->
   [ Down(id, x) ]
 
 rule DownEnd:
-    // Note: If we replace x with ~x, the lemma would also not be provable after
-    // searching for backlinks under substitutions.
   [ Down(id, x) ]
-  --[ End(x) ]->
+  --[ End(id, x) ]->
   []
 
-lemma CorrectnessInvariant[use_induction,reuse]:
-  "All x #a. Destr(x) @ #a ==> Ex #b. Gen(x) @ #b"
+lemma CorrectnessInvariant[reuse,use_induction]:
+  "All idd x #a. Destr(idd, x) @ #a ==> Ex idg #b. Gen(idg, x) @ #b"
 
 lemma CorrectnessEnd:
-  "All x #a. End(x) @ #a ==> Ex #b. Gen(x) @ #b"
+  "All idd x #a. End(idd, x) @ #a ==> Ex idg #b. Gen(idg, x) @ #b"
 
-lemma GenUnique[reuse,use_induction]:
-  "All x #a #b. Gen(x) @ #a & Gen(x) @ #b ==> #a = #b"
+lemma GenStart[reuse,use_induction]:
+  "All id x #a. Gen(id, x) @ #a & not (Ex seed. Start(seed) @ #a) ==> Ex seed #b. Start(seed) @ #b & (seed << x | seed = x)"
 
-lemma Correspondence[use_induction]:
-  "All x #a #b. Destr(x) @ #a & Destr(x) @ #b ==> #a = #b"
+lemma DestrSeed[use_induction]:
+  "All id x #a. Destr(id, x) @ #a ==> Ex seed #b. Start(seed) @ #b & (seed << x | seed = x)"
+
+lemma GenUnique[reuse,use_induction,hide_lemma=CorrectnessInvariant,hide_lemma=GenStart]:
+  "All id1 id2 x #a #b. Gen(id1, x) @ #a & Gen(id2, x) @ #b ==> #a = #b"
+
+lemma Correspondence[use_induction,hide_lemma=GenStart]:
+  "All id1 id2 x #a #b. Destr(id1, x) @ #a & Destr(id2, x) @ #b ==> #a = #b"
 
 end
