@@ -29,12 +29,51 @@ lemma Loop_before_Stop:
 
 lemma Stop_unique:
   "All x #i #j. Stop(x) @ j & Stop(x) @ i ==> #i = #j"
+simplify
+solve( (#i < #j)  ∥ (#j < #i) )
+  case case_1
+  solve( A( x.2 ) ▶₀ #j )
+    case Loop
+    search for cycle
+    minimize for cyclic proofs
+      case weaken
+      solve( A( x.2 ) ▶₀ #vr )
+        case Loop
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 6-08 */
+      next
+        case Start
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case Start
+    by contradiction /* cyclic */
+  qed
+next
+  case case_2
+  solve( A( x.2 ) ▶₀ #i )
+    case Loop
+    search for cycle
+    minimize for cyclic proofs
+      case weaken
+      solve( A( x.2 ) ▶₀ #vr )
+        case Loop
+        search for cycle
+        by contradiction /* cyclic backlink to CS id 6-0c */
+      next
+        case Start
+        by contradiction /* cyclic */
+      qed
+    qed
+  next
+    case Start
+    by contradiction /* cyclic */
+  qed
+qed
 
 lemma Satisfied_by_empty_trace_only:
   exists-trace
   "All x #j. Loop(x) @ j ==> F"
-
-lemma False:
-  "All x #i. Stop(x) @ #i ==> Ex #j. Loop(x) @ #j & #i < #j"
 
 end

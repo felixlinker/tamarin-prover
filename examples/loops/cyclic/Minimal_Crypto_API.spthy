@@ -57,6 +57,12 @@ rule WrapKey:
  */
 lemma NewKey_invariant:
   "not(Ex #i #j h k. NewKey(h, k) @ i & KU(k) @ j) "
+simplify
+solve( !KU( ~k.1 ) @ #j )
+  case WrapKey
+  search for cycle
+  by contradiction /* cyclic backlink to CS id 2-00 */
+qed
 
 /* This property talks only about standard traces that do not refer to the
  * actions of construction rules. It can be proven thanks to the
@@ -65,5 +71,17 @@ lemma NewKey_invariant:
  * facts. */
 lemma NewKey_secrecy:
   "not(Ex #i #j h k. NewKey(h, k) @ i & K(k) @ j) "
+simplify
+solve( !KU( ~k.1 ) @ #vk )
+  case WrapKey
+  minimize for cyclic proofs
+    case weaken
+    solve( !KU( ~k.2 ) @ #vk.4 )
+      case WrapKey
+      search for cycle
+      by contradiction /* cyclic backlink to CS id 4-00 */
+    qed
+  qed
+qed
 
 end

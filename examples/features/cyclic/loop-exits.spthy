@@ -24,5 +24,100 @@ lemma Correspondence:
 
 lemma CorrespondenceRequiringCut:
   "All x #a #b. GenRequiringCut(x) @ #a & GenRequiringCut(x) @ #b ==> #a = #b"
+simplify
+solve( (#a < #b)  ∥ (#b < #a) )
+  case case_1
+  solve( GenRequiringCut( x ) @ #a )
+    case Stop
+    solve( Up( id, x.1 ) ▶₀ #a )
+      case Start
+      solve( GenRequiringCut( ~x.2 ) @ #b )
+        case Stop
+        solve( Up( id.1, ~x.2 ) ▶₀ #b )
+          case Start
+          by contradiction
+        qed
+      next
+        case Up
+        by solve( Up( id.1, ~x.2 ) ▶₀ #b )
+      qed
+    next
+      case Up
+      solve( GenRequiringCut( h(x.2) ) @ #b )
+        case Stop
+        by sorry
+      next
+        case Up
+        solve( Up( id.1, h(x.2) ) ▶₀ #b )
+          case Up
+          by sorry
+        qed
+      qed
+    qed
+  next
+    case Up
+    solve( GenRequiringCut( x.1 ) @ #b )
+      case Stop
+      solve( Up( id, x.2 ) ▶₀ #a )
+        case Start
+        by solve( Up( id.1, ~x.3 ) ▶₀ #b )
+      next
+        case Up
+        by sorry
+      qed
+    next
+      case Up
+      by sorry
+    qed
+  qed
+next
+  case case_2
+  solve( GenRequiringCut( x ) @ #a )
+    case Stop
+    solve( Up( id, x.1 ) ▶₀ #a )
+      case Start
+      solve( GenRequiringCut( ~x.2 ) @ #b )
+        case Stop
+        solve( Up( id.1, ~x.2 ) ▶₀ #b )
+          case Start
+          by contradiction
+        qed
+      next
+        case Up
+        by contradiction
+      qed
+    next
+      case Up
+      solve( GenRequiringCut( h(x.2) ) @ #b )
+        case Stop
+        by sorry
+      next
+        case Up
+        solve( Up( id.1, h(x.2) ) ▶₀ #b )
+          case Up
+          by sorry
+        qed
+      qed
+    qed
+  next
+    case Up
+    solve( GenRequiringCut( x.1 ) @ #b )
+      case Stop
+      solve( Up( id.1, x.2 ) ▶₀ #b )
+        case Start
+        by solve( Up( id, ~x.3 ) ▶₀ #a )
+      next
+        case Up
+        solve( Up( id, h(x.3) ) ▶₀ #a )
+          case Up
+          by sorry
+        qed
+      qed
+    next
+      case Up
+      by sorry
+    qed
+  qed
+qed
 
 end

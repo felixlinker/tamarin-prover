@@ -133,12 +133,17 @@ rule RecvN:
     [ Receiver(lid, rid, S, data, mac, commit_k, commit_kNew) ]
 
 
+tactic: mac_first
+presort: i
+prio: regex "MAC\(kNp, mNp\)"
+deprio: regex "cycl"
+
 /*
 The desired security property: if all expiredness assumptions of the test
 thread are given and the server that is sending was not compromised before,
 then received data was sent by the server.
 */
-lemma authentic:
+lemma authentic[heuristic={mac_first}]:
   /* For every reciever claiming that it received data 'm' from the server, */
   "(All rid S m #i. FromSender(rid, S, m) @ i ==>
        /* the server actually sent that data */
@@ -155,6 +160,31 @@ lemma authentic:
        )
    )
   "
+simplify
+solve( Receiver( lid, rid.1, S.1, dataOld, MAC(dataOld, kOld),
+                 f(kOld), commit_k
+       ) ▶₁ #i )
+  case Recv1
+  by sorry /* removed */
+next
+  case RecvN
+  search for cycle
+  cut( ∀ commit #ne #e.
+        (AssumeCommitNotExpired( rid.1, commit ) @ #ne) ∧
+        (CommitExpired( commit ) @ #e)
+       ⇒
+        ((¬(#e < #ne)) ∨ (¬(#ne < #vr)))
+       , ∀ #j. (Sent( S.1, dataOld.1 ) @ #j) ⇒ ¬(#j < #vr) )
+    case cut
+    by contradiction /* cyclic backlink to CS id 2-00 */
+  next
+    case negate_0
+    by contradiction /* from formulas */
+  next
+    case negate_1
+    by sorry /* removed */
+  qed
+qed
 
 // Ensure that the above lemma is not vacuous due to the filtering condition.
 lemma authentic_reachable:
