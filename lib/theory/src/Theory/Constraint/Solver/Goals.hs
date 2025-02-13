@@ -630,7 +630,7 @@ weaken el = do
               guard (f == f')
               let loopNodesEqual = NE.zipWith (\t1 t2 -> GAto (EqE (toBTerm t1) (toBTerm t2))) es es'
               guard (not $ null $ NE.tail loopNodesEqual)
-              return (gdisj [ gnot (NE.head loopNodesEqual), NE.last loopNodesEqual ])
+              return (gconj [ gnot (NE.head loopNodesEqual), gnot (NE.last loopNodesEqual) ])
 
             rec :: LoopInstance NodeId -> [LoopInstance NodeId] -> S.Set LNGuarded
             rec _ [] = S.empty
