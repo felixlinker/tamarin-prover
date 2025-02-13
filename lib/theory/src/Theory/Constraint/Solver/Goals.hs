@@ -566,7 +566,7 @@ weaken el = do
         doWeakening loops (Just fwd) = do
           nodes <- L.getM sNodes
           let starts = S.fromList $ map start loops
-          let loopTails = foldr (S.union . (S.\\ starts) . getLarger fwd . start) S.empty loops
+          let loopTails = foldr (S.union . getLarger fwd . start) S.empty loops
           let kuToWeakenFrom = kuWeakenSources nodes
           let kLeafs = S.fromList
                 $ filter (S.null . getDirectlyLarger fwd)
@@ -574,7 +574,7 @@ weaken el = do
                 $ filter (isISendRule . snd)
                 $ M.toList nodes
           let kuToWeaken = foldr (S.union . getLarger fwd) S.empty kuToWeakenFrom
-          let (nodesToWeaken, _) = foldr addPremisesToWeaken (loopTails <> kuToWeaken, starts <> kuToWeakenFrom) (minima fwd)
+          let (nodesToWeaken, _) = foldr addPremisesToWeaken (loopTails <> kuToWeaken, (starts S.\\ loopTails) <> kuToWeakenFrom) (minima fwd)
           mapM_ (\n -> weakenNode (if n `S.member` loopTails then Preserve else Prune) n) nodesToWeaken
           mapM_ (weakenNode Prune) kLeafs
           edges <- getM sEdges
