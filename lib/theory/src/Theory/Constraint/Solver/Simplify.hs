@@ -31,7 +31,7 @@ import qualified Data.Foldable                      as F
 import           Data.List
 import qualified Data.Map                           as M
 import qualified Data.Set                           as S
-import           Data.Maybe                         (mapMaybe, listToMaybe, fromMaybe)
+import           Data.Maybe                         (mapMaybe, listToMaybe)
 
 import           Control.Basics
 import           Control.Category
@@ -129,7 +129,6 @@ simplifySystem = do
               c9 <- freshOrdering
               c10 <- simpSubterms
               c11 <- simpInjectiveFactEqMon
-              c12 <- simpInjectiveOrder
 
               -- Report on looping behaviour if necessary
               let changes = filter ((Changed ==) . snd) $
@@ -144,7 +143,6 @@ simplifySystem = do
                     , ("orderings for ~vars (S_fresh-order)",             c9)
                     , ("simplification of SubtermStore",                  c10)
                     , ("equations and monotonicity from injective Facts", c11)
-                    , ("injective fact order inference",                  c12)
                     ]
                   traceIfLooping
                     | n <= 10   = id
@@ -602,34 +600,6 @@ simpInjectiveFactEqMon = do
           -- and compute the pairs via 'trimmedPairTerms'
           behaviourTerms :: M.Map NodeId [(LNTerm, [(MonotonicBehaviour, LNTerm)])]
           behaviourTerms = M.map (map trimmedPairTerms . filter isInjective . get rPrems) nodes  --all node premises with the matching tag
-
-simpInjectiveOrder :: Reduction ChangeIndicator
-simpInjectiveOrder = do
-  nodes <- getM sNodes
-  edges <- backwardsMap <$> getM sEdges
-  latoms <- getM sLessAtoms
-  let newLatoms = foldr (checkNewLatoms nodes edges) latoms latoms
-  let changed = S.size newLatoms > S.size latoms
-  when changed (setM sLessAtoms newLatoms)
-  return (if changed then Changed else Unchanged)
-  where
-    backwardsMap :: S.Set Edge -> M.Map NodePrem NodeConc
-    backwardsMap = M.fromList . map (swap . \(Edge p c) -> (p, c)) . S.toList
-
-    prems :: RuleACInst -> [(PremIdx, LNFact)]
-    prems = zip (map PremIdx [(0 :: Int)..]) . get rPrems
-
-    injLAtom a b = LessAtom a b InjectiveFacts
-
-    checkNewLatoms :: M.Map NodeId RuleACInst -> M.Map NodePrem NodeConc -> LessAtom -> S.Set LessAtom -> S.Set LessAtom
-    checkNewLatoms nodes edges (LessAtom sml lrg _) s = fromMaybe s $ do
-      premsSml <- prems <$> M.lookup sml nodes
-      premsLrg <- prems <$> M.lookup lrg nodes
-      let largerPrems = [ (lrg, il)  | (_, ps) <- premsSml, (il, pl) <- premsLrg
-                        , factTag ps == factTag pl, isInjective ps ]
-      -- TODO: I could replace the old latom with the news
-      let newLatoms = filter (/= sml) $ mapMaybe (fmap fst . (`M.lookup` edges)) largerPrems
-      return (foldr (S.insert . injLAtom sml) s newLatoms)
 
 -- | Compute all less relations implied by injective fact instances.
 --
