@@ -1,0 +1,379 @@
+theory AccountableDecryption
+begin
+
+builtins: asymmetric-encryption, signing
+
+functions: decrypts/2
+equations: decrypts(aenc(m, pk(sk)), sk) = true
+
+functions: h/1, sharded/1
+
+restriction Eq:
+  "All a b #t. Eq(a, b) @ #t ==> a = b"
+
+restriction Sub:
+  "All a b #t. Sub(a, b) @ #t ==> a << b"
+
+restriction OnlyOnce:
+  "All term #x #y. OnlyOnce(term) @ #x & OnlyOnce(term) @ #y ==> #x = #y"
+
+rule TrusteeSetup:
+  [ Fr(~sk) ]
+  --[ OnlyOnce('trustee_setup') ]->
+  [ Trustee0(), !TrusteeSk(~sk), !TrusteePk(pk(~sk)), Out(pk(~sk)) ]
+
+rule TrusteeStart:
+  [ Fr(~id), Trustee0() ]
+  -->
+  [ Trustee(~id, 'empty') ]
+
+rule Submit:
+  let c = aenc(~m, pk) in
+  [ Fr(~m), !TrusteePk(pk) ]
+  --[ Submit(~m, c) ]->
+  [ Out(c) ]
+
+rule Trustee:
+  [ In(c), In(new_tree), Trustee(~tid, old_tree), !TrusteeSk(~sk) ]
+  --[ DecryptSources(decrypts(c, ~sk), adec(c, ~sk))
+    , TrusteeState(~tid, new_tree)
+    , Sub(c, new_tree)
+    , Sub(old_tree, new_tree) ]->
+  [ Out(adec(c, ~sk))
+  , Trustee(~tid, new_tree) ]
+
+rule SignatureRequest:
+  [ In(n), !TrusteeSk(~sk), Trustee(~tid, tree) ]
+  --[ TrusteeState(~tid, tree) ]->
+  [ Out(sign(<n, tree>, ~sk)), Trustee(~tid, tree) ]
+
+rule WitnessStart:
+  [ In(m), Fr(~nonce) ]
+  -->
+  [ St_Witness(m, ~nonce), Out(~nonce) ]
+
+rule WitnessComplete:
+  [ In(<sig, h>), !TrusteePk(spk), St_Witness(m, ~nonce) ]
+  --[ Eq(verify(sig, <~nonce, h>, spk), true)
+    , Witness(m, h) ]->
+  []
+
+lemma Decryption[sources]:
+  "All m #t. DecryptSources(true, m) @ #t ==> (Ex #x. KU(m) @ #x & #x < #t) | (Ex c #x. Submit(m, c) @ #x & #x < #t)"
+
+lemma Executability:
+  exists-trace
+  "Ex c m h #x #y. Witness(m, h) @ #x & Submit(m, c) @ #y"
+
+tactic: no_eqs
+presort: i
+deprio: regex "splitEqs"
+
+lemma TrusteeInjectivity[reuse,heuristic={no_eqs}]:
+  "All id1 id2 h1 h2 #x1 #x2. TrusteeState(id1, h1) @ #x1 & TrusteeState(id2, h2) @ #x2 ==> id1 = id2"
+simplify
+solve( TrusteeState( id1, h1 ) @ #x1 )
+  case SignatureRequest
+  solve( TrusteeState( id2, h2 ) @ #x2 )
+    case SignatureRequest
+    solve( !TrusteeSk( ~sk ) ▶₁ #x1 )
+      case TrusteeSetup
+      solve( !TrusteeSk( ~sk.1 ) ▶₁ #x2 )
+        case TrusteeSetup
+        search for cycle
+        minimize for cyclic proofs
+          case weaken
+          solve( Trustee( ~tid, tree ) ▶₂ #x1 )
+            case SignatureRequest
+            search for cycle
+            by contradiction /* cyclic backlink to CS id 8-0c */
+          next
+            case Trustee
+            search for cycle
+            minimize for cyclic proofs
+              case weaken
+              solve( Trustee( ~tid, old_tree ) ▶₂ #vr.2 )
+                case SignatureRequest
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 8-0c */
+              next
+                case Trustee
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 12-010c */
+              next
+                case TrusteeStart
+                by sorry /* removed */
+              qed
+            qed
+          next
+            case TrusteeStart
+            by sorry
+          qed
+        qed
+      qed
+    qed
+  next
+    case Trustee
+    solve( !TrusteeSk( ~sk ) ▶₁ #x1 )
+      case TrusteeSetup
+      solve( !TrusteeSk( ~sk.1 ) ▶₃ #x2 )
+        case TrusteeSetup
+        search for cycle
+        minimize for cyclic proofs
+          case weaken
+          solve( Trustee( ~tid, tree ) ▶₂ #x1 )
+            case SignatureRequest
+            search for cycle
+            by contradiction /* cyclic backlink to CS id 8-04 */
+          next
+            case Trustee
+            search for cycle
+            minimize for cyclic proofs
+              case weaken
+              solve( Trustee( ~tid, old_tree.1 ) ▶₂ #vr.2 )
+                case SignatureRequest
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 8-04 */
+              next
+                case Trustee
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 12-0104 */
+              next
+                case TrusteeStart
+                by sorry
+              qed
+            qed
+          next
+            case TrusteeStart
+            by sorry
+          qed
+        qed
+      qed
+    qed
+  qed
+next
+  case Trustee
+  solve( TrusteeState( id2, h2 ) @ #x2 )
+    case SignatureRequest
+    solve( !TrusteeSk( ~sk ) ▶₃ #x1 )
+      case TrusteeSetup
+      solve( !TrusteeSk( ~sk.1 ) ▶₁ #x2 )
+        case TrusteeSetup
+        search for cycle
+        minimize for cyclic proofs
+          case weaken
+          solve( Trustee( ~tid, old_tree ) ▶₂ #x1 )
+            case SignatureRequest
+            search for cycle
+            minimize for cyclic proofs
+              case weaken
+              solve( Trustee( ~tid, old_tree ) ▶₂ #vr.2 )
+                case SignatureRequest
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 12-0208 */
+              next
+                case Trustee
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 8-08 */
+              next
+                case TrusteeStart
+                by sorry /* removed */
+              qed
+            qed
+          next
+            case Trustee
+            search for cycle
+            by contradiction /* cyclic backlink to CS id 8-08 */
+          next
+            case TrusteeStart
+            by sorry /* removed */
+          qed
+        qed
+      qed
+    qed
+  next
+    case Trustee
+    solve( !TrusteeSk( ~sk ) ▶₃ #x1 )
+      case TrusteeSetup
+      solve( !TrusteeSk( ~sk.1 ) ▶₃ #x2 )
+        case TrusteeSetup
+        search for cycle
+        minimize for cyclic proofs
+          case weaken
+          solve( Trustee( ~tid, old_tree ) ▶₂ #x1 )
+            case SignatureRequest
+            search for cycle
+            minimize for cyclic proofs
+              case weaken
+              solve( Trustee( ~tid, old_tree ) ▶₂ #vr.2 )
+                case SignatureRequest
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 12-0200 */
+              next
+                case Trustee
+                search for cycle
+                by contradiction /* cyclic backlink to CS id 8-00 */
+              next
+                case TrusteeStart
+                by sorry
+              qed
+            qed
+          next
+            case Trustee
+            search for cycle
+            by contradiction /* cyclic backlink to CS id 8-00 */
+          next
+            case TrusteeStart
+            by sorry
+          qed
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma TrusteeMonotonicity[reuse]:
+  "All id h1 h2 #x1 #x2. TrusteeState(id, h1) @ #x1 & TrusteeState(id, h2) @ #x2 & #x2 < #x1 ==> (h2 << h1 | h2 = h1)"
+simplify
+solve( TrusteeState( id, h1 ) @ #x1 )
+  case SignatureRequest
+  solve( !TrusteeSk( ~sk ) ▶₁ #x1 )
+    case TrusteeSetup
+    solve( TrusteeState( ~tid, h2 ) @ #x2 )
+      case SignatureRequest
+      solve( !TrusteeSk( ~sk.1 ) ▶₁ #x2 )
+        case TrusteeSetup
+        solve( Trustee( ~tid.1, tree ) ▶₂ #x1 )
+          case SignatureRequest
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 6-14 */
+        next
+          case Trustee
+          search for cycle
+          minimize for cyclic proofs
+            case weaken
+            solve( Trustee( ~tid.1, old_tree ) ▶₂ #vr.2 )
+              case SignatureRequest
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 6-14 */
+            next
+              case Trustee
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 10-0054 */
+            next
+              case TrusteeStart
+              by contradiction /* cyclic */
+            qed
+          qed
+        next
+          case TrusteeStart
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case Trustee
+      solve( !TrusteeSk( ~sk.1 ) ▶₃ #x2 )
+        case TrusteeSetup
+        solve( Trustee( ~tid.1, tree ) ▶₂ #x1 )
+          case SignatureRequest
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 6-04 */
+        next
+          case Trustee
+          search for cycle
+          minimize for cyclic proofs
+            case weaken
+            solve( Trustee( ~tid.1, old_tree.1 ) ▶₂ #vr.2 )
+              case SignatureRequest
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 6-04 */
+            next
+              case Trustee
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 10-0044 */
+            next
+              case TrusteeStart
+              by contradiction /* cyclic */
+            qed
+          qed
+        next
+          case TrusteeStart
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+next
+  case Trustee
+  solve( !TrusteeSk( ~sk ) ▶₃ #x1 )
+    case TrusteeSetup
+    solve( TrusteeState( ~tid, h2 ) @ #x2 )
+      case SignatureRequest
+      solve( !TrusteeSk( ~sk.1 ) ▶₁ #x2 )
+        case TrusteeSetup
+        solve( Trustee( ~tid.1, old_tree ) ▶₂ #x1 )
+          case SignatureRequest
+          search for cycle
+          minimize for cyclic proofs
+            case weaken
+            solve( Trustee( ~tid.1, old_tree ) ▶₂ #vr.2 )
+              case SignatureRequest
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 10-0090 */
+            next
+              case Trustee
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 6-10 */
+            next
+              case TrusteeStart
+              by contradiction /* cyclic */
+            qed
+          qed
+        next
+          case Trustee
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 6-10 */
+        next
+          case TrusteeStart
+          by contradiction /* cyclic */
+        qed
+      qed
+    next
+      case Trustee
+      solve( !TrusteeSk( ~sk.1 ) ▶₃ #x2 )
+        case TrusteeSetup
+        solve( Trustee( ~tid.1, old_tree ) ▶₂ #x1 )
+          case SignatureRequest
+          search for cycle
+          minimize for cyclic proofs
+            case weaken
+            solve( Trustee( ~tid.1, old_tree ) ▶₂ #vr.2 )
+              case SignatureRequest
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 10-0080 */
+            next
+              case Trustee
+              search for cycle
+              by contradiction /* cyclic backlink to CS id 6-00 */
+            next
+              case TrusteeStart
+              by contradiction /* cyclic */
+            qed
+          qed
+        next
+          case Trustee
+          search for cycle
+          by contradiction /* cyclic backlink to CS id 6-00 */
+        next
+          case TrusteeStart
+          by contradiction /* cyclic */
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma Secrecy:
+  "All c m h #x #y. Witness(m, h) @ #x & Submit(m, c) @ #y ==> c << h"
+
+end
