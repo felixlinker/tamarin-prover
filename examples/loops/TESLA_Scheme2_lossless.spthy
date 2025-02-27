@@ -190,8 +190,13 @@ lemma knows_only_expired_chain_keys [use_induction, reuse]:
   "All k #i #j. ChainKey(k) @i & KU(k) @ j ==>
       (Ex #e. Expired(k) @ e & e < j)"
 
+
+tactic: mac_first
+presort: i
+prio: regex "MAC\(kNp, mNp\)"
+
 // The desired security property:
-lemma authentic [use_induction]:
+lemma authentic [use_induction,heuristic={mac_first}]:
   " (All m S k check #i.
          /* Whenever the reciever states that it received an authentic message, */
          FromSender(m, S, k, check) @ i

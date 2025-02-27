@@ -29,14 +29,19 @@ lemma SeedsMatch[reuse,use_induction,hide_lemma=LoopStart]:
         & Compute(id2, seed2, x) @ #t2
     ==> (seed1 = seed2)"
 
+lemma SecrecyWeakened[use_induction]:
+  "All id seed x #t. Compute(id, seed, x) @ #t
+    ==>   (not Ex #x. KU(x) @ #x)
+        | (Ex id2 y #x. RevealElement(id2, y) @ #x & (y << x | y = x))"
+
 lemma IdsMatch[use_induction,hide_lemma=LoopStart,hide_lemma=SeedsMatch]:
   "All id1 id2 seed1 seed2 x #t1 #t2. Compute(id1, seed1, x) @ #t1
         & Compute(id2, seed2, x) @ #t2
     ==> (id1 = id2)"
 
-lemma Secrecy[no_cyclic]:
+lemma Secrecy[use_induction]:
   "All id seed x #t. Compute(id, seed, x) @ #t
-    ==>   (not Ex #x. K(x) @ #x)
+    ==>   (not Ex #x. KU(x) @ #x)
         | (Ex y #x. RevealElement(id, y) @ #x & (y << x | y = x))"
 
 end

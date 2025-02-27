@@ -34,7 +34,7 @@ prio: regex "KU\( h"
 
 lemma SecrecyWeakened[heuristic={ku_h}]:
   "All id seed x #t. Compute(id, seed, x) @ #t
-    ==>   (not Ex #x. K(x) @ #x)
+    ==>   (not Ex #x. KU(x) @ #x)
         | (Ex id2 y #x. RevealElement(id2, y) @ #x & (y << x | y = x))"
 
 lemma IdsMatch[reuse]:
@@ -44,7 +44,7 @@ lemma IdsMatch[reuse]:
 
 lemma Secrecy[heuristic={ku_h}]:
   "All id seed x #t. Compute(id, seed, x) @ #t
-    ==>   (not Ex #x. K(x) @ #x)
+    ==>   (not Ex #x. KU(x) @ #x)
         | (Ex y #x. RevealElement(id, y) @ #x & (y << x | y = x))"
 
 end
