@@ -26,6 +26,11 @@ rule KeyGen:
   , Out('g'^~ltk)
   , Out('g'^~prek) ]
 
+rule LtkReveal:
+  [ !SecretKeys($A, sk1, sk2) ]
+  --[ LtkReveal($A) ]->
+  [ Out(sk1), Out(sk2) ]
+
 rule SenderStart:
   let dh1 = prepk^~ltk
       dh2 = ltpk^~x
@@ -39,7 +44,7 @@ rule SenderStart:
   , !SecretKeys($A, ~ltk, prek)
   , !PublicKeys($B, ltpk, prepk) ]
   --[ Neq($A, $B)
-    , Send(~m) ]->
+    , Send(~m, $A, $B) ]->
   [ Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -49,7 +54,7 @@ rule Send:
   in
   [ Fr(~m)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
-  --[ Send(~m) ]->
+  --[ Send(~m, $A, $B) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
   , Out(senc(~m, mk)) ]
 
@@ -89,7 +94,7 @@ rule OuterRatchetToSender:
   in
   [ Fr(~x), Fr(~m)
   , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
-  --[ Send(~m) ]->
+  --[ Send(~m, $A, $B) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -107,9 +112,13 @@ rule OuterRatchetToReceiver:
 
 lemma Exec:
   exists-trace
-  "Ex m #x #y. Receive(m) @ #x & Send(m) @ #y"
+  "Ex m a b #x #y. Receive(m) @ #x & Send(m, a, b) @ #y"
 
 lemma Secrecy:
-  "All m #t. Send(m) @ #t ==> (not Ex #x. K(m) @ #x)"
+  "All m a b #t.
+        Send(m, a, b) @ #t
+    ==>   (not Ex #x. K(m) @ #x)
+        | (Ex #x. LtkReveal(a) @ #x)
+        | (Ex #x. LtkReveal(b) @ #x)"
 
 end
