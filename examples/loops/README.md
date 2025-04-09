@@ -9,8 +9,10 @@ Some models use custom tactics for that purpose.
 To construct proofs for a theory, run (`PROOF_FILE` to be replaced):
 
 ```sh
-tamarin-prover --prove PROOF_FILE
+stack run -- --prove PROOF_FILE
 ```
+
+`stack run` will compile Tamarin from source and use that binary.
 
 We provide a table that maps theory names as referenced in the paper with file names below.
 The paper also references other examples not included in this folder, which can be found in the directory `examples/features/cyclic`.
