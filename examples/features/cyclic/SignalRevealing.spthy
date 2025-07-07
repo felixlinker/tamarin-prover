@@ -1,6 +1,11 @@
 theory SignalRevealing
 begin
 
+tactic: noeqs
+presort: i
+
+deprio: regex "splitEqs"
+
 builtins: diffie-hellman, symmetric-encryption
 functions: kdf/1, decrypts/2, true/0
 equations: decrypts(senc(m, k), k) = true
@@ -40,7 +45,7 @@ rule SenderStart:
       dh3 = prepk^~x
       ss = kdf(<dh1, dh2, dh3>)
       rk = kdf(<'rk', ss>)
-      ck = kdf(<'ck', rk>)
+      ck = kdf(<'ck', ss>)
       mk = kdf(<'mk', ck>)
   in
   [ Fr(~id), Fr(~x), Fr(~m)
@@ -73,7 +78,7 @@ rule ReceiverStart:
       dh3 = pc^~prek
       ss = kdf(<dh1, dh2, dh3>)
       rk = kdf(<'rk', ss>)
-      ck = kdf(<'ck', rk>)
+      ck = kdf(<'ck', ss>)
       mk = kdf(<'mk', ck>)
   in
   [ Fr(~id)
@@ -104,7 +109,7 @@ rule Receive:
 rule OuterRatchetToSender:
   let dhss = pc^~x
       rk = kdf(<'rk', old_rk, dhss>)
-      ck = kdf(<'ck', rk>)
+      ck = kdf(<'ck', old_rk, dhss>)
       mk = kdf(<'mk', ck>)
   in
   [ Fr(~x), Fr(~m)
@@ -120,7 +125,7 @@ rule OuterRatchetToSender:
 rule OuterRatchetToReceiver:
   let dhss = pc^~x
       rk = kdf(<'rk', old_rk, dhss>)
-      ck = kdf(<'ck', rk>)
+      ck = kdf(<'ck', old_rk, dhss>)
       mk = kdf(<'mk', ck>)
   in
   [ In(<pc, enc>)
@@ -142,9 +147,9 @@ lemma OuterLoopStep:
   "All id a b pc rk #a. RootKey(id, a, b, pc, rk) @ #a & not NewRootKey(id, a, b, pc, rk) @ #a
     ==> Ex #b. NewRootKey(id, a, b, pc, rk) @ #b & b < #a"
 
-lemma RkSecrecy:
-  "All id a b pc rk #t. RootKey(id, a, b, pc, rk) @ #t
-    ==>   (not Ex #x. KU(rk) @ #x)
+lemma RkSecrecy[heuristic={noeqs}]:
+  "All id a b pc ss #t. RootKey(id, a, b, pc, kdf(<'rk', ss>)) @ #t
+    ==>   (not Ex #x. KU(ss) @ #x)
         | (Ex #x. RevealLtk(a) @ #x)
         | (Ex #x. RevealLtk(b) @ #x)
         | (Ex #x. RevealPre(a) @ #x)
@@ -155,9 +160,9 @@ lemma RkSecrecy:
 lemma CkSecrecy:
   "All id m a b pc rk ck #t. ChainKey(id, ck) @ #t & Send(id, m, a, b, pc, rk) @ #t
     ==>   (not Ex #x. KU(ck) @ #x)
-        | (Ex #x. KU(rk) @ #x)"
+        | (Ex ss #x. rk = kdf(<'rk', ss>) & KU(ss) @ #x)"
 
-lemma Secrecy:
+lemma Secrecy[heuristic={noeqs}]:
   "All id m a b pc rk #t. Send(id, m, a, b, pc, rk) @ #t
     ==>   (not Ex #x. K(m) @ #x)
         | (Ex #x. RevealLtk(a) @ #x)

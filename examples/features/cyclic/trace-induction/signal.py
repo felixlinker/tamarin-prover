@@ -38,12 +38,12 @@ if argv[1] == 'RkSecrecy':
     re.compile(r'Session.+▶. #b\.1'),
     re.compile(r'Session.+▶. #t'),
   ], lines)
-elif argv[1] == 'CkSecrecy':
-  match = matchAgainstList([
-    '@ #t',
-    'last',
-    '!KU( kdf',
-  ], lines)
+# elif argv[1] == 'CkSecrecy':
+#   match = matchAgainstList([
+#     '@ #t',
+#     'last',
+#     '!KU( kdf',
+#   ], lines)
 
 if match is not None:
   print(match)
