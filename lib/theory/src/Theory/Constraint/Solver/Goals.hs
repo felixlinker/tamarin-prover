@@ -48,6 +48,7 @@ import           Theory.Constraint.Solver.Reduction
 import           Theory.Constraint.System
 import           Theory.Constraint.System.ID (SystemID)
 import           Theory.Tools.IntruderRules (mkDUnionRule, isDExpRule, isDPMultRule, isDEMapRule)
+import qualified Theory.Tools.EquationStore as EqStore
 import           Theory.Model
 import           Term.Builtin.Convenience
 
@@ -520,8 +521,25 @@ weaken :: WeakenEl -> Reduction String
 weaken el = do
   sid <- L.getM sId
   L.setM sWeakenedFrom (Just sid)
-  go el
+  r <- go el
+
+  -- simplify equation store; some equations might substitute free variables
+  -- that do not exist anymore. First, obtain free variables without considering
+  -- the equation store.
+  s <- gets (L.set sSolvedFormulas S.empty . L.set sEqStore emptyEqStore)
+  let sFrees = S.fromList $ frees s
+  hnd <- getMaudeHandle
+  L.modM sEqStore (filterEqStore sFrees)
+  st <- L.getM sEqStore
+  L.setM sEqStore =<< EqStore.simp hnd (\_ _ -> False) st
+  return r
   where
+    filterEqStore :: S.Set LVar -> EqStore -> EqStore
+    filterEqStore vars = L.modify eqsConj (fmap (fmap $ S.map filterSubst))
+      where
+        filterSubst :: LNSubstVFresh -> LNSubstVFresh
+        filterSubst (SubstVFresh sm) = SubstVFresh (M.filterWithKey (\k _ -> k `S.member` vars) sm)
+
     weakenEdge :: WeakenMode -> Edge -> Reduction String
     weakenEdge mode e = do
       L.modM sEdges (S.delete e)
