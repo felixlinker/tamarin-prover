@@ -23,17 +23,17 @@ rule KeyGen:
 
 rule RevealLtk:
   [ !SecretKeys($A, ~ltk, ~prek) ]
-  --[ Reveal('g'^~ltk) ]->
+  --[ RevealLtk($A) ]->
   [ Out(~ltk) ]
 
 rule RevealPrek:
   [ !SecretKeys($A, ~ltk, ~prek) ]
-  --[ Reveal('g'^~prek) ]->
+  --[ RevealPre($A) ]->
   [ Out(~prek) ]
 
 rule RevealEphemeral:
-  [ !EphemeralDH($A, ~x) ]
-  --[ Reveal('g'^~x) ]->
+  [ !EphemeralDH($A, $B, ~x) ]
+  --[ RevealEphemeral($A, $B) ]->
   [ Out(~x) ]
 
 rule SenderStart:
@@ -49,10 +49,11 @@ rule SenderStart:
   , !SecretKeys($A, ~ltk, prek)
   , !PublicKeys($B, ltpk, prepk) ]
   --[ Neq($A, $B)
-    , ToSender(~id, 'g'^~x, dh3)
-    , Send(~id, ~m, 'g'^~x, prepk, prepk^~x)
+    , RootKey(~id, $A, $B, prepk, rk)
+    , NewRootKey(~id, $A, $B, prepk, rk)
+    , Send(~id, ~m, $A, $B, prepk, rk)
     , GenEph('g'^~x) ]->
-  [ !EphemeralDH($A, ~x)
+  [ !EphemeralDH($A, $B, ~x)
   , Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -62,7 +63,8 @@ rule Send:
   in
   [ Fr(~m)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
-  --[ Send(~id, ~m, 'g'^~x, pc, pc^~x)
+  --[ Send(~id, ~m, $A, $B, pc, rk)
+    , RootKey(~id, $A, $B, pc, rk)
     , ChainKey(~id, new_ck) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
   , Out(senc(~m, mk)) ]
@@ -82,8 +84,10 @@ rule ReceiverStart:
   , In(<pc, enc>) ]
   --[ Neq($A, $B)
     , Neq(pc, DH_neutral)
-    , ToReceiver(~id, 'g'^~prek)
-    , Receive(~id, sdec(enc, mk), 'g'^~prek, pc)
+    , Neq(pc, 'g')
+    , RootKey(~id, $A, $B, pc, rk)
+    , NewRootKey(~id, $A, $B, pc, rk)
+    , Receive(~id, sdec(enc, mk), rk)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~prek, $B, pc, rk, ck) ]
 
@@ -93,7 +97,8 @@ rule Receive:
   in
   [ In(enc)
   , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
-  --[ Receive(~id, sdec(enc, mk), 'g'^~x, pc)
+  --[ RootKey(~id, $A, $B, pc, rk)
+    , Receive(~id, sdec(enc, mk), rk)
     , Use(~id, 'g'^~x)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
@@ -106,10 +111,11 @@ rule OuterRatchetToSender:
   in
   [ Fr(~x), Fr(~m)
   , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
-  --[ ToSender(~id, 'g'^~x, dhss)
-    , Send(~id, ~m, 'g'^~x, pc, dhss)
+  --[ RootKey(~id, $A, $B, pc, rk)
+    , NewRootKey(~id, $A, $B, pc, rk)
+    , Send(~id, ~m, $A, $B, pc, rk)
     , GenEph('g'^~x)  ]->
-  [ !EphemeralDH($A, ~x)
+  [ !EphemeralDH($A, $B, ~x)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -122,37 +128,45 @@ rule OuterRatchetToReceiver:
   [ In(<pc, enc>)
   , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
   --[ Neq(pc, DH_neutral)
-    , ToReceiver(~id, 'g'^~x)
-    , Receive(~id, sdec(enc, mk), 'g'^~x, pc)
+    , Neq(pc, 'g')
+    , RootKey(~id, $A, $B, pc, rk)
+    , NewRootKey(~id, $A, $B, pc, rk)
+    , Receive(~id, sdec(enc, mk), rk)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
 
 lemma Exec:
   exists-trace
-  "Ex id1 id2 m pc1 pc2 ss #x #y. Receive(id1, m, pc1, pc2) @ #x
-    & Send(id2, m, pc2, pc1, ss) @ #y"
+  "Ex id1 id2 m a b pc rk #x #y. Receive(id1, m, rk) @ #x
+    & Send(id2, m, a, b, pc, rk) @ #y"
 
-lemma OuterLoopStepSender[reuse,use_induction]:
-  "All id m pc x ss #a. Send(id, m, pc, x, ss) @ #a & not ToSender(id, pc, ss) @ #a
-    ==> Ex #b. ToSender(id, pc, ss) @ #b & b < #a"
+lemma OuterLoopStep[reuse,use_induction]:
+  "All id a b pc rk #a. RootKey(id, a, b, pc, rk) @ #a & not NewRootKey(id, a, b, pc, rk) @ #a
+    ==> Ex #b. NewRootKey(id, a, b, pc, rk) @ #b & b < #a"
 
-lemma SSSecrecy[reuse,no_cyclic]:
-  "All id m pc1 pc2 ss #t. Send(id, m, pc1, pc2, ss) @ #t
-  ==>   (not Ex #x. KU(ss) @ #x)
-      | (Ex #x. Reveal(pc1) @ #x)
-      | (Ex #x. Reveal(pc2) @ #x)
-      | (not Ex #x. GenEph(pc2) @ #x)"
+lemma RkSecrecy[reuse,use_induction]:
+  "All id a b pc rk #t. RootKey(id, a, b, pc, rk) @ #t
+    ==>   (not Ex #x. KU(rk) @ #x)
+        | (Ex #x. RevealLtk(a) @ #x)
+        | (Ex #x. RevealLtk(b) @ #x)
+        | (Ex #x. RevealPre(a) @ #x)
+        | (Ex #x. RevealPre(b) @ #x)
+        | (Ex #x. RevealEphemeral(a, b) @ #x)
+        | (Ex #x. RevealEphemeral(b, a) @ #x)"
 
-lemma CkSecrecy[reuse,use_induction,hide_lemma=OuterLoopStepSender,hide_lemma=SSSecrecy]:
-  "All id m pc1 pc2 ss ck #a. ChainKey(id, ck) @ #a & Send(id, m, pc1, pc2, ss) @ #a
+lemma CkSecrecy[reuse,use_induction,hide_lemma=OuterLoopStep,hide_lemma=RkSecrecy]:
+  "All id m a b pc rk ck #t. ChainKey(id, ck) @ #t & Send(id, m, a, b, pc, rk) @ #t
     ==>   (not Ex #x. KU(ck) @ #x)
-        | (Ex #x. KU(ss) @ #x)"
+        | (Ex #x. KU(rk) @ #x)"
 
-lemma Secrecy[no_cyclic,hide_lemma=OuterLoopStepSender]:
-  "All id m pc1 pc2 ss #t. Send(id, m, pc1, pc2, ss) @ #t
+lemma Secrecy[no_cyclic,hide_lemma=OuterLoopStep]:
+  "All id m a b pc rk #t. Send(id, m, a, b, pc, rk) @ #t
     ==>   (not Ex #x. K(m) @ #x)
-        | (Ex #x. Reveal(pc1) @ #x)
-        | (Ex #x. Reveal(pc2) @ #x)
-        | (not Ex #x. GenEph(pc2) @ #x)"
+        | (Ex #x. RevealLtk(a) @ #x)
+        | (Ex #x. RevealLtk(b) @ #x)
+        | (Ex #x. RevealPre(a) @ #x)
+        | (Ex #x. RevealPre(b) @ #x)
+        | (Ex #x. RevealEphemeral(a, b) @ #x)
+        | (Ex #x. RevealEphemeral(b, a) @ #x)"
 
 end

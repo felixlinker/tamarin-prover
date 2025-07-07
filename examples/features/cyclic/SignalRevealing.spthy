@@ -1,14 +1,6 @@
 theory SignalRevealing
 begin
 
-tactic: noeqs
-presort: i
-
-deprio: regex "Session\(.+#x\.1"
-deprio: regex "splitEqs"
-
-heuristic: {noeqs}
-
 builtins: diffie-hellman, symmetric-encryption
 functions: kdf/1, decrypts/2, true/0
 equations: decrypts(senc(m, k), k) = true
@@ -29,17 +21,17 @@ rule KeyGen:
 
 rule RevealLtk:
   [ !SecretKeys($A, ~ltk, ~prek) ]
-  --[ Reveal('g'^~ltk) ]->
+  --[ RevealLtk($A) ]->
   [ Out(~ltk) ]
 
 rule RevealPrek:
   [ !SecretKeys($A, ~ltk, ~prek) ]
-  --[ Reveal('g'^~prek) ]->
+  --[ RevealPre($A) ]->
   [ Out(~prek) ]
 
 rule RevealEphemeral:
-  [ !EphemeralDH($A, ~x) ]
-  --[ Reveal('g'^~x) ]->
+  [ !EphemeralDH($A, $B, ~x) ]
+  --[ RevealEphemeral($A, $B) ]->
   [ Out(~x) ]
 
 rule SenderStart:
@@ -55,9 +47,11 @@ rule SenderStart:
   , !SecretKeys($A, ~ltk, prek)
   , !PublicKeys($B, ltpk, prepk) ]
   --[ Neq($A, $B)
-    , Send(~m, 'g'^~x, prepk)
+    , RootKey(~id, $A, $B, prepk, rk)
+    , NewRootKey(~id, $A, $B, prepk, rk)
+    , Send(~id, ~m, $A, $B, prepk, rk)
     , GenEph('g'^~x) ]->
-  [ !EphemeralDH($A, ~x)
+  [ !EphemeralDH($A, $B, ~x)
   , Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -67,7 +61,9 @@ rule Send:
   in
   [ Fr(~m)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
-  --[ Send(~m, 'g'^~x, pc) ]->
+  --[ Send(~id, ~m, $A, $B, pc, rk)
+    , RootKey(~id, $A, $B, pc, rk)
+    , ChainKey(~id, new_ck) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
   , Out(senc(~m, mk)) ]
 
@@ -85,7 +81,11 @@ rule ReceiverStart:
   , !PublicKeys($B, ltpk, prepk)
   , In(<pc, enc>) ]
   --[ Neq($A, $B)
-    , Receive(sdec(enc, mk))
+    , Neq(pc, DH_neutral)
+    , Neq(pc, 'g')
+    , RootKey(~id, $A, $B, pc, rk)
+    , NewRootKey(~id, $A, $B, pc, rk)
+    , Receive(~id, sdec(enc, mk), rk)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~prek, $B, pc, rk, ck) ]
 
@@ -95,7 +95,9 @@ rule Receive:
   in
   [ In(enc)
   , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
-  --[ Receive(sdec(enc, mk))
+  --[ RootKey(~id, $A, $B, pc, rk)
+    , Receive(~id, sdec(enc, mk), rk)
+    , Use(~id, 'g'^~x)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
 
@@ -107,9 +109,11 @@ rule OuterRatchetToSender:
   in
   [ Fr(~x), Fr(~m)
   , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
-  --[ Send(~m, 'g'^~x, pc)
+  --[ RootKey(~id, $A, $B, pc, rk)
+    , NewRootKey(~id, $A, $B, pc, rk)
+    , Send(~id, ~m, $A, $B, pc, rk)
     , GenEph('g'^~x)  ]->
-  [ !EphemeralDH($A, ~x)
+  [ !EphemeralDH($A, $B, ~x)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -121,19 +125,46 @@ rule OuterRatchetToReceiver:
   in
   [ In(<pc, enc>)
   , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
-  --[ Receive(sdec(enc, mk))
+  --[ Neq(pc, DH_neutral)
+    , Neq(pc, 'g')
+    , RootKey(~id, $A, $B, pc, rk)
+    , NewRootKey(~id, $A, $B, pc, rk)
+    , Receive(~id, sdec(enc, mk), rk)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
 
 lemma Exec:
   exists-trace
-  "Ex m pc1 pc2 #x #y. Receive(m) @ #x & Send(m, pc1, pc2) @ #y"
+  "Ex id1 id2 m a b pc rk #x #y. Receive(id1, m, rk) @ #x
+    & Send(id2, m, a, b, pc, rk) @ #y"
+
+lemma OuterLoopStep:
+  "All id a b pc rk #a. RootKey(id, a, b, pc, rk) @ #a & not NewRootKey(id, a, b, pc, rk) @ #a
+    ==> Ex #b. NewRootKey(id, a, b, pc, rk) @ #b & b < #a"
+
+lemma RkSecrecy:
+  "All id a b pc rk #t. RootKey(id, a, b, pc, rk) @ #t
+    ==>   (not Ex #x. KU(rk) @ #x)
+        | (Ex #x. RevealLtk(a) @ #x)
+        | (Ex #x. RevealLtk(b) @ #x)
+        | (Ex #x. RevealPre(a) @ #x)
+        | (Ex #x. RevealPre(b) @ #x)
+        | (Ex #x. RevealEphemeral(a, b) @ #x)
+        | (Ex #x. RevealEphemeral(b, a) @ #x)"
+
+lemma CkSecrecy:
+  "All id m a b pc rk ck #t. ChainKey(id, ck) @ #t & Send(id, m, a, b, pc, rk) @ #t
+    ==>   (not Ex #x. KU(ck) @ #x)
+        | (Ex #x. KU(rk) @ #x)"
 
 lemma Secrecy:
-  "All m pc1 pc2 #t. Send(m, pc1, pc2) @ #t
+  "All id m a b pc rk #t. Send(id, m, a, b, pc, rk) @ #t
     ==>   (not Ex #x. K(m) @ #x)
-        | (Ex #x. Reveal(pc1) @ #x)
-        | (Ex #x. Reveal(pc2) @ #x)
-        | (not Ex #x. GenEph(pc2) @ #x)"
+        | (Ex #x. RevealLtk(a) @ #x)
+        | (Ex #x. RevealLtk(b) @ #x)
+        | (Ex #x. RevealPre(a) @ #x)
+        | (Ex #x. RevealPre(b) @ #x)
+        | (Ex #x. RevealEphemeral(a, b) @ #x)
+        | (Ex #x. RevealEphemeral(b, a) @ #x)"
 
 end

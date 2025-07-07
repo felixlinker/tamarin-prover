@@ -1,13 +1,6 @@
 theory Signal
 begin
 
-tactic: noeqs
-presort: i
-
-deprio: regex "splitEqs"
-
-heuristic: {noeqs}
-
 builtins: diffie-hellman, symmetric-encryption
 functions: kdf/1, decrypts/2, true/0
 equations: decrypts(senc(m, k), k) = true
@@ -125,22 +118,22 @@ lemma Exec:
   exists-trace
   "Ex id m a b rk #x #y. Receive(m) @ #x & Send(id, m, a, b, rk) @ #y"
 
-lemma OuterLoopStep:
+lemma OuterLoopStep[reuse,use_induction]:
   "All id a b rk #a. RootKey(id, a, b, rk) @ #a & not NewRootKey(id, a, b, rk) @ #a
     ==> Ex #b. NewRootKey(id, a, b, rk) @ #b & b < #a"
 
-lemma RkSecrecy:
+lemma RkSecrecy[reuse,use_induction]:
   "All id a b rk #t. RootKey(id, a, b, rk) @ #t
   ==>   (not Ex #x. KU(rk) @ #x)
       | (Ex #x. LtkReveal(a) @ #x)
       | (Ex #x. LtkReveal(b) @ #x)"
 
-lemma CkSecrecy:
+lemma CkSecrecy[reuse,use_induction,hide_lemma=OuterLoopStep,hide_lemma=RkSecrecy]:
   "All id m a b rk ck #a. ChainKey(id, ck) @ #a & Send(id, m, a, b, rk) @ #a
     ==>   (not Ex #x. KU(ck) @ #x)
         | (Ex #x. KU(rk) @ #x)"
 
-lemma Secrecy:
+lemma Secrecy[no_cyclic,hide_lemma=OuterLoopStep]:
   "All id m a b rk #t.
         Send(id, m, a, b, rk) @ #t
     ==>   (not Ex #x. K(m) @ #x)

@@ -26,26 +26,23 @@ def matchAgainstList(priorityList, lines):
       pass
 
 match = None
-if argv[1] == 'SSSecrecy':
-  match = matchAgainstList([
-    re.compile(r'@ #t \)$'),
-    re.compile('!KU.+~x'),
-    'GenEph',
-  ], lines)
-if argv[1] == 'CkSecrecy':
+if argv[1] == 'RkSecrecy':
   match = matchAgainstList([
     'last',
     '!KU( kdf',
-    re.compile(r'@ #a \)$'),
-    re.compile(r'Session.+▶. #a'),
-    'splitEqs(0)',
+    '!KU( ~',
+    re.compile(r'!KU\( \'g\'\^\(~[\w\d\.]+\*~[\w\d\.]+\)'),
+    '!SecretKeys',
+    '!PublicKeys',
+    'NewRootKey',
+    re.compile(r'Session.+▶. #b\.1'),
+    re.compile(r'Session.+▶. #t'),
   ], lines)
-if argv[1] == 'Secrecy':
+elif argv[1] == 'CkSecrecy':
   match = matchAgainstList([
-    '∀',
-    '!KU( ~m',
-    '!KU( kdf',
     '@ #t',
+    'last',
+    '!KU( kdf',
   ], lines)
 
 if match is not None:
