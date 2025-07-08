@@ -52,9 +52,9 @@ rule SenderStart:
   , !SecretKeys($A, ~ltk, prek)
   , !PublicKeys($B, ltpk, prepk) ]
   --[ Neq($A, $B)
-    , RootKey(~id, $A, $B, prepk, rk)
-    , NewRootKey(~id, $A, $B, prepk, rk)
-    , Send(~id, ~m, $A, $B, prepk, rk)
+    , RootKey(~id, $A, $B, rk)
+    , NewRootKey(~id, $A, $B, rk)
+    , Send(~m, $A, $B)
     , GenEph('g'^~x) ]->
   [ !EphemeralDH($A, $B, ~x)
   , Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
@@ -66,8 +66,8 @@ rule Send:
   in
   [ Fr(~m)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
-  --[ Send(~id, ~m, $A, $B, pc, rk)
-    , RootKey(~id, $A, $B, pc, rk)
+  --[ Send(~m, $A, $B)
+    , RootKey(~id, $A, $B, rk)
     , ChainKey(~id, new_ck) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
   , Out(senc(~m, mk)) ]
@@ -88,9 +88,9 @@ rule ReceiverStart:
   --[ Neq($A, $B)
     , Neq(pc, DH_neutral)
     , Neq(pc, 'g')
-    , RootKey(~id, $A, $B, pc, rk)
-    , NewRootKey(~id, $A, $B, pc, rk)
-    , Receive(~id, sdec(enc, mk), rk)
+    , RootKey(~id, $A, $B, rk)
+    , NewRootKey(~id, $A, $B, rk)
+    , Receive(sdec(enc, mk), $A, $B)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~prek, $B, pc, rk, ck) ]
 
@@ -100,8 +100,8 @@ rule Receive:
   in
   [ In(enc)
   , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
-  --[ RootKey(~id, $A, $B, pc, rk)
-    , Receive(~id, sdec(enc, mk), rk)
+  --[ RootKey(~id, $A, $B, rk)
+    , Receive(sdec(enc, mk), $A, $B)
     , Use(~id, 'g'^~x)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
@@ -114,9 +114,9 @@ rule OuterRatchetToSender:
   in
   [ Fr(~x), Fr(~m)
   , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
-  --[ RootKey(~id, $A, $B, pc, rk)
-    , NewRootKey(~id, $A, $B, pc, rk)
-    , Send(~id, ~m, $A, $B, pc, rk)
+  --[ RootKey(~id, $A, $B, rk)
+    , NewRootKey(~id, $A, $B, rk)
+    , Send(~m, $A, $B)
     , GenEph('g'^~x)  ]->
   [ !EphemeralDH($A, $B, ~x)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
@@ -132,23 +132,24 @@ rule OuterRatchetToReceiver:
   , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
   --[ Neq(pc, DH_neutral)
     , Neq(pc, 'g')
-    , RootKey(~id, $A, $B, pc, rk)
-    , NewRootKey(~id, $A, $B, pc, rk)
-    , Receive(~id, sdec(enc, mk), rk)
+    , RootKey(~id, $A, $B, rk)
+    , NewRootKey(~id, $A, $B, rk)
+    , Receive(sdec(enc, mk), $A, $B)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
 
 lemma Exec:
   exists-trace
-  "Ex id1 id2 m a b pc rk #x #y. Receive(id1, m, rk) @ #x
-    & Send(id2, m, a, b, pc, rk) @ #y"
+  "Ex id1 id2 m a b rk #x #y.
+      Receive(m, b, a) @ #x & RootKey(id1, b, a, rk) @ #x
+    & Send(m, a, b) @ #y    & RootKey(id2, a, b, rk) @ #y"
 
 lemma OuterLoopStep:
-  "All id a b pc rk #a. RootKey(id, a, b, pc, rk) @ #a & not NewRootKey(id, a, b, pc, rk) @ #a
-    ==> Ex #b. NewRootKey(id, a, b, pc, rk) @ #b & b < #a"
+  "All id a b rk #a. RootKey(id, a, b, rk) @ #a & not NewRootKey(id, a, b, rk) @ #a
+    ==> Ex #b. NewRootKey(id, a, b, rk) @ #b & b < #a"
 
 lemma RkSecrecy[heuristic={noeqs}]:
-  "All id a b pc ss #t. RootKey(id, a, b, pc, kdf(<'rk', ss>)) @ #t
+  "All id a b ss #t. RootKey(id, a, b, kdf(<'rk', ss>)) @ #t
     ==>   (not Ex #x. KU(ss) @ #x)
         | (Ex #x. RevealLtk(a) @ #x)
         | (Ex #x. RevealLtk(b) @ #x)
@@ -158,12 +159,12 @@ lemma RkSecrecy[heuristic={noeqs}]:
         | (Ex #x. RevealEphemeral(b, a) @ #x)"
 
 lemma CkSecrecy:
-  "All id m a b pc rk ck #t. ChainKey(id, ck) @ #t & Send(id, m, a, b, pc, rk) @ #t
+  "All id a b rk ck #t. ChainKey(id, ck) @ #t & RootKey(id, a, b, rk) @ #t
     ==>   (not Ex #x. KU(ck) @ #x)
         | (Ex ss #x. rk = kdf(<'rk', ss>) & KU(ss) @ #x)"
 
 lemma Secrecy[heuristic={noeqs}]:
-  "All id m a b pc rk #t. Send(id, m, a, b, pc, rk) @ #t
+  "All m a b #t. Send(m, a, b) @ #t
     ==>   (not Ex #x. K(m) @ #x)
         | (Ex #x. RevealLtk(a) @ #x)
         | (Ex #x. RevealLtk(b) @ #x)

@@ -44,7 +44,7 @@ rule SenderStart:
   --[ Neq($A, $B)
     , RootKey(~id, $A, $B, rk)
     , NewRootKey(~id, $A, $B, rk)
-    , Send(~id, ~m, $A, $B, rk) ]->
+    , Send(~m, $A, $B) ]->
   [ Session(~id, $A, 'S', ~x, $B, prepk, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -54,7 +54,7 @@ rule Send:
   in
   [ Fr(~m)
   , Session(~id, $A, 'S', ~x, $B, pc, rk, ck) ]
-  --[ Send(~id, ~m, $A, $B, rk)
+  --[ Send(~m, $A, $B)
     , RootKey(~id, $A, $B, rk)
     , ChainKey(~id, new_ck) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, new_ck)
@@ -76,7 +76,7 @@ rule ReceiverStart:
   --[ Neq($A, $B)
     , RootKey(~id, $A, $B, rk)
     , NewRootKey(~id, $A, $B, rk)
-    , Receive(sdec(enc, mk))
+    , Receive(sdec(enc, mk), $A, $B)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~prek, $B, pc, rk, ck) ]
 
@@ -87,7 +87,7 @@ rule Receive:
   [ In(enc)
   , Session(~id, $A, 'R', ~x, $B, pc, rk, ck) ]
   --[ RootKey(~id, $A, $B, rk)
-    , Receive(sdec(enc, mk))
+    , Receive(sdec(enc, mk), $A, $B)
     , Eq(decrypts(enc, mk), true) ]->
   [ Session(~id, $A, 'R', ~x, $B, pc, rk, new_ck) ]
 
@@ -101,7 +101,7 @@ rule OuterRatchetToSender:
   , Session(~id, $A, 'R', drop, $B, pc, old_rk, old_ck) ]
   --[ RootKey(~id, $A, $B, rk)
     , NewRootKey(~id, $A, $B, rk)
-    , Send(~id, ~m, $A, $B, rk) ]->
+    , Send(~m, $A, $B) ]->
   [ Session(~id, $A, 'S', ~x, $B, pc, rk, ck)
   , Out(<'g'^~x, senc(~m, mk)>) ]
 
@@ -113,7 +113,7 @@ rule OuterRatchetToReceiver:
   in
   [ In(<pc, enc>)
   , Session(~id, $A, 'S', ~x, $B, old_pc, old_rk, old_ck) ]
-  --[ Receive(sdec(enc, mk))
+  --[ Receive(sdec(enc, mk), $A, $B)
     , RootKey(~id, $A, $B, rk)
     , NewRootKey(~id, $A, $B, rk)
     , Eq(decrypts(enc, mk), true) ]->
@@ -121,7 +121,9 @@ rule OuterRatchetToReceiver:
 
 lemma Exec:
   exists-trace
-  "Ex id m a b rk #x #y. Receive(m) @ #x & Send(id, m, a, b, rk) @ #y"
+  "Ex id1 id2 m a b rk #x #y.
+      Receive(m, b, a) @ #x & RootKey(id1, b, a, rk) @ #x
+    & Send(m, a, b) @ #y & RootKey(id2, a, b, rk) @ #y"
 
 lemma OuterLoopStep:
   "All id a b rk #a. RootKey(id, a, b, rk) @ #a & not NewRootKey(id, a, b, rk) @ #a
@@ -134,13 +136,13 @@ lemma RkSecrecy[heuristic={noeqs}]:
       | (Ex #x. LtkReveal(b) @ #x)"
 
 lemma CkSecrecy:
-  "All id m a b rk ck #a. ChainKey(id, ck) @ #a & Send(id, m, a, b, rk) @ #a
+  "All id a b rk ck #a. ChainKey(id, ck) @ #a & RootKey(id, a, b, rk) @ #a
     ==>   (not Ex #x. KU(ck) @ #x)
         | (Ex ss #x. rk = kdf(<'rk', ss>) & KU(ss) @ #x)"
 
 lemma Secrecy[heuristic={noeqs}]:
-  "All id m a b rk #t.
-        Send(id, m, a, b, rk) @ #t
+  "All m a b #t.
+        Send(m, a, b) @ #t
     ==>   (not Ex #x. K(m) @ #x)
         | (Ex #x. LtkReveal(a) @ #x)
         | (Ex #x. LtkReveal(b) @ #x)"
