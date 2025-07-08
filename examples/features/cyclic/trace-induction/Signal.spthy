@@ -121,6 +121,172 @@ lemma Exec:
   "Ex id1 id2 m a b rk #x #y.
       Receive(m, b, a) @ #x & RootKey(id1, b, a, rk) @ #x
     & Send(m, a, b) @ #y & RootKey(id2, a, b, rk) @ #y"
+simplify
+solve( Receive( m, b, a ) @ #x )
+  case OuterRatchetToReceiver
+  solve( Session( ~id, $A, 'S', ~x.1, $B, old_pc, old_rk, old_ck
+         ) ▶₁ #x )
+    case OuterRatchetToSender
+    by sorry
+  next
+    case Send
+    solve( Session( ~id, $A, 'S', ~x.1, $B, old_pc, old_rk, ck
+           ) ▶₁ #vr )
+      case OuterRatchetToSender
+      by sorry
+    next
+      case Send
+      by sorry
+    next
+      case SenderStart
+      solve( Send( z.1, $B, $A ) @ #y )
+        case OuterRatchetToSender
+        solve( Session( ~id.1, $A.1, 'R', drop, $B.1, pc.1, old_rk.1,
+                        old_ck.1
+               ) ▶₂ #y )
+          case OuterRatchetToReceiver_case_1
+          by sorry
+        next
+          case OuterRatchetToReceiver_case_2
+          by sorry
+        next
+          case OuterRatchetToReceiver_case_3
+          by sorry
+        next
+          case Receive
+          solve( Session( ~id.1, $A.1, 'R', ~x.13, $B.1, pc.1, old_rk.1, ck.1
+                 ) ▶₁ #vr.4 )
+            case OuterRatchetToReceiver_case_1
+            by sorry
+          next
+            case OuterRatchetToReceiver_case_2
+            by sorry
+          next
+            case OuterRatchetToReceiver_case_3
+            by sorry
+          next
+            case Receive
+            by sorry
+          next
+            case ReceiverStart
+            solve( RootKey( id1, $B.1, $A.1, rk ) @ #x )
+              case OuterRatchetToReceiver
+              solve( RootKey( id2, $A.1, $B.1,
+                              kdf(<'rk',
+                                   kdf(<'rk',
+                                        kdf(<'g'^(~ltk*~prek.1), 'g'^(~ltk.1*~x.1),
+                                             'g'^(~prek.1*~x.1)>)
+                                       >),
+                                   z>)
+                     ) @ #y )
+                case OuterRatchetToSender
+                solve( !KU( senc(z.4,
+                                 kdf(<'mk',
+                                      kdf(<'ck',
+                                           kdf(<'ck',
+                                                kdf(<'g'^(~prek.3*~ltk.4), 'g'^(~ltk.1*~x.20),
+                                                     'g'^(~prek.3*~x.20)>)
+                                               >)
+                                          >)
+                                     >))
+                       ) @ #vk.3 )
+                  case Send
+                  solve( !KU( senc(x.14,
+                                   kdf(<'mk',
+                                        kdf(<'ck',
+                                             kdf(<'g'^(~prek.3*~ltk.4), 'g'^(~ltk.1*~x.20),
+                                                  'g'^(~prek.3*~x.20)>)
+                                            >)
+                                       >))
+                         ) @ #vk.6 )
+                    case Send
+                    solve( Session( ~id.2, $A.2, 'S', ~x.25, $B.2, pc.2, rk.1,
+                                    kdf(<'ck',
+                                         kdf(<'g'^(~prek.3*~ltk.4), 'g'^(~ltk.1*~x.20),
+                                              'g'^(~prek.3*~x.20)>)
+                                        >)
+                           ) ▶₁ #vr.8 )
+                      case Send
+                      by sorry
+                    next
+                      case SenderStart
+                      by sorry
+                    qed
+                  next
+                    case SenderStart
+                    solve( Session( ~id.2, $A.2, 'S', ~x.25, $B.2, pc.2, rk.1,
+                                    kdf(<'ck',
+                                         kdf(<'g'^(~prek.4*~ltk.5), 'g'^(~ltk.6*~x.26),
+                                              'g'^(~prek.4*~x.26)>)
+                                        >)
+                           ) ▶₁ #vr.8 )
+                      case Send
+                      by sorry
+                    next
+                      case SenderStart
+                      solve( !KU( senc(~m.3,
+                                       kdf(<'mk',
+                                            kdf(<'ck',
+                                                 kdf(<'rk',
+                                                      kdf(<'g'^(~ltk.7*~prek.7),
+                                                           'g'^(~ltk.8*~x.27), 'g'^(~prek.7*~x.27)>)
+                                                     >),
+                                                 'g'^(~x.21*~x.27)>)
+                                           >))
+                             ) @ #vk.2 )
+                        case OuterRatchetToSender
+                        solve( !KU( 'g'^~x.28 ) @ #vk.1 )
+                          case OuterRatchetToSender
+                          solve( !KU( 'g'^~x.27 ) @ #vk.5 )
+                            case SenderStart
+                            SOLVED // trace found
+                          next
+                            case c_exp
+                            by sorry
+                          qed
+                        next
+                          case c_exp
+                          by sorry
+                        qed
+                      next
+                        case c_senc
+                        by sorry
+                      qed
+                    qed
+                  next
+                    case c_senc
+                    by sorry
+                  qed
+                next
+                  case c_senc
+                  by sorry
+                qed
+              qed
+            qed
+          qed
+        next
+          case ReceiverStart
+          by sorry
+        qed
+      next
+        case Send
+        by sorry
+      next
+        case SenderStart
+        by sorry
+      qed
+    qed
+  next
+    case SenderStart
+    by sorry
+  qed
+next
+  case Receive
+  by sorry
+next
+  case ReceiverStart
+  by sorry
+qed
 
 lemma OuterLoopStep[reuse,use_induction]:
   "All id a b rk #a. RootKey(id, a, b, rk) @ #a & not NewRootKey(id, a, b, rk) @ #a
