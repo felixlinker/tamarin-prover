@@ -28,7 +28,7 @@ Each directory contains a README providing details on how to verify each case st
 | 1 | Key Renegotiation | `Minimal_KeyRenegotiation.spthy` | `examples/loops/cyclic` | `examples/loops` | 1.55 | 1.51 |
 | 1 | Create, Use, Destroy | `Minimal_Create_Use_Destroy.spthy` | `examples/loops/cyclic` | `examples/loops` | 1.52 | 1.56 |
 | 1 | Alternating Loop | `alternating-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.62 | 1.64 |
-| 1 | Nested Loop | `nested-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.57 | 1.56 |
+| 1 | Nested Loop | `nested-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.63 | 1.56 |
 | 1 | Revealing Loop | `revealing-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.57 | 1.56 |
 | 2 |ignal 1 | `Signal.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 40.7 | 38.65 |
 | 2 |ignal 2 | `SignalRevealing.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 50.06 | 47.64 |
