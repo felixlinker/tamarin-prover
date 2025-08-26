@@ -29,19 +29,19 @@ rule DownEnd:
   --[ End(id, x) ]->
   []
 
-lemma CorrectnessInvariant:
+lemma Auto_CorrectnessInvariant:
   "All idd x #a. Destr(idd, x) @ #a ==> Ex idg #b. Gen(idg, x) @ #b"
 
-lemma CorrectnessEnd:
+lemma Auto_CorrectnessEnd:
   "All idd x #a. End(idd, x) @ #a ==> Ex idg #b. Gen(idg, x) @ #b"
 
-lemma GenStart:
+lemma Auto_GenStart:
   "All id x #a. Gen(id, x) @ #a ==> Ex seed #b. Start(seed) @ #b & (seed << x | seed = x)"
 
-lemma DestrSeed:
+lemma Auto_DestrSeed:
   "All id x #a. Destr(id, x) @ #a ==> Ex seed #b. Start(seed) @ #b & (seed << x | seed = x)"
 
-lemma GenUnique:
+lemma Auto_GenUnique:
   "All id1 id2 x #a #b. Gen(id1, x) @ #a & Gen(id2, x) @ #b ==> #a = #b"
 
 // Not provable using cyclic induction

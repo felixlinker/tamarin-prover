@@ -12,6 +12,10 @@ To construct proofs for a theory, run (`PROOF_FILE` to be replaced):
 stack run -- --prove PROOF_FILE
 ```
 
+> [!NOTE]
+> When using cyclic induction for the theory "Up and Down", not all proofs terminate.
+> To avoid non-termination, pass the option `--prove="Auto_*"` instead of `--prove`.
+
 `stack run` will compile Tamarin from source and use that binary.
 
 We provide a table that maps theory names as referenced in the paper with file names below.
