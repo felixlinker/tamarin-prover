@@ -19,22 +19,22 @@ As we prove each case study with cyclic induction (CI) and trace induction (TI),
 To provide a high-level overview, all our case studies are contained in the directories `examples/loops` and `examples/features/cyclic`.
 Each directory contains a README providing details on how to verify each case study and a subdirectory, `cyclic` and `trace-induction` respectively, for the corresponding CI/TI proofs of the theories in the parent directory.
 
-| Case Study Set | Case Study | Source File Name | Path CI | Path TI |
-| -------------- | ---------- | ---------------- | ------- | ------- |
-| 1 | Loop | `Minimal_Loop_Example.spthy`| `examples/loops/cyclic` | `examples/loops` |
-| 1 | Hash Chain | `Minimal_HashChain.spthy` | `examples/loops/cyclic` | `examples/loops` |
-| 1 | Crypto API | `Minimal_Crypto_API.spthy` | `examples/loops/cyclic` | `examples/loops` |
-| 1 | Key Renegotiation | `Minimal_KeyRenegotiation.spthy` | `examples/loops/cyclic` | `examples/loops` |
-| 1 | Create, Use, Destroy | `Minimal_Create_Use_Destroy.spthy` | `examples/loops/cyclic` | `examples/loops` |
-| 1 | Alternating Loop | `alternating-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |
-| 1 | Nested Loop | `nested-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |
-| 1 | Revealing Loop | `revealing-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |
-| 2 | Signal 1 | `Signal.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |
-| 2 | Signal 2 | `SignalRevealing.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |
-| 3 | Up and Down | `up_and_down.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |
-| 3 | Loop Exits | `loop-exits.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |
-| 3 | TESLA 1 | `TESLA_Scheme1.spthy` | `examples/loops/cyclic` | `examples/loops` |
-| 3 | TESLA 2 | `TESLA_Scheme2.spthy` | `examples/loops/cyclic` | `examples/loops` |
+| Case Study Set | Case Study | Source File Name | Path CI | Path TI | Time CI | Time TI |
+| -------------- | ---------- | ---------------- | ------- | ------- | ------- | ------- |
+| 1 | Loop | `Minimal_Loop_Example.spthy`| `examples/loops/cyclic` | `examples/loops` | 1.50 s | 1.58 s |
+| 1 | Hash Chain | `Minimal_HashChain.spthy` | `examples/loops/cyclic` | `examples/loops` | 1.57 s | 1.53 s |
+| 1 | Crypto API | `Minimal_Crypto_API.spthy` | `examples/loops/cyclic` | `examples/loops` | 1.55 s | 1.54 s |
+| 1 | Key Renegotiation | `Minimal_KeyRenegotiation.spthy` | `examples/loops/cyclic` | `examples/loops` | 1.55 s | 1.51 s |
+| 1 | Create, Use, Destroy | `Minimal_Create_Use_Destroy.spthy` | `examples/loops/cyclic` | `examples/loops` | 1.52 s | 1.56 s |
+| 1 | Alternating Loop | `alternating-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.62 s | 1.64 s |
+| 1 | Nested Loop | `nested-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.57 s | 1.56 s |
+| 1 | Revealing Loop | `revealing-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.57 s | 1.56 s |
+| 2 | Signal 1 | `Signal.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 40.7 s | 38.65 s |
+| 2 | Signal 2 | `SignalRevealing.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 50.06 s | 47.64 s |
+| 3 | Up and Down | `up_and_down.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.59 s | 1.54 s |
+| 3 | Loop Exits | `loop-exits.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` | 1.64 s | 1.53 s |
+| 3 | TESLA 1 | `TESLA_Scheme1.spthy` | `examples/loops/cyclic` | `examples/loops` | 4.09 s | 2.42 s |
+| 3 | TESLA 2 | `TESLA_Scheme2.spthy` | `examples/loops/cyclic` | `examples/loops` | 4.04 s | 4.14 s |
 
 ## Implementation Details
 
