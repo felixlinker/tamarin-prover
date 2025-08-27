@@ -9,7 +9,7 @@ Some models use custom tactics for that purpose.
 To construct proofs for a theory, run (`PROOF_FILE` to be replaced):
 
 ```sh
-stack run -- --prove PROOF_FILE
+stack run -- --derivcheck-timeout=0 --prove PROOF_FILE
 ```
 
 `stack run` will compile Tamarin from source and use that binary.
