@@ -310,11 +310,11 @@ next
   by sorry
 qed
 
-lemma OuterLoopStep:
+lemma Auto_OuterLoopStep:
   "All id a b rk #a. RootKey(id, a, b, rk) @ #a & not NewRootKey(id, a, b, rk) @ #a
     ==> Ex #b. NewRootKey(id, a, b, rk) @ #b & b < #a"
 
-lemma RkSecrecy[heuristic={noeqs}]:
+lemma Auto_RkSecrecy[heuristic={noeqs}]:
   "All id a b ss #t. RootKey(id, a, b, kdf(<'rk', ss>)) @ #t
     ==>   (not Ex #x. KU(ss) @ #x)
         | (Ex #x. RevealLtk(a) @ #x)
@@ -324,12 +324,12 @@ lemma RkSecrecy[heuristic={noeqs}]:
         | (Ex #x. RevealEphemeral(a, b) @ #x)
         | (Ex #x. RevealEphemeral(b, a) @ #x)"
 
-lemma CkSecrecy:
+lemma Auto_CkSecrecy:
   "All id a b rk ck #t. ChainKey(id, ck) @ #t & RootKey(id, a, b, rk) @ #t
     ==>   (not Ex #x. KU(ck) @ #x)
         | (Ex ss #x. rk = kdf(<'rk', ss>) & KU(ss) @ #x)"
 
-lemma Secrecy[heuristic={noeqs}]:
+lemma Auto_Secrecy[heuristic={noeqs}]:
   "All m a b #t. Send(m, a, b) @ #t
     ==>   (not Ex #x. K(m) @ #x)
         | (Ex #x. RevealLtk(a) @ #x)

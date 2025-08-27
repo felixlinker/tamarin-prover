@@ -288,24 +288,24 @@ next
   by sorry
 qed
 
-lemma OuterLoopStep[reuse,use_induction]:
+lemma Auto_OuterLoopStep[reuse,use_induction]:
   "All id a b rk #a. RootKey(id, a, b, rk) @ #a & not NewRootKey(id, a, b, rk) @ #a
     ==> Ex #b. NewRootKey(id, a, b, rk) @ #b & b < #a"
 
 // NOTE: <...> is right-associative. In the outer ratchet, we use two values to
 // derive a new root key, but ss will be unified with both.
-lemma RkSecrecy[reuse,use_induction]:
+lemma Auto_RkSecrecy[reuse,use_induction]:
   "All id a b ss #t. RootKey(id, a, b, kdf(<'rk', ss>)) @ #t
   ==>   (not Ex #x. KU(ss) @ #x)
       | (Ex #x. LtkReveal(a) @ #x)
       | (Ex #x. LtkReveal(b) @ #x)"
 
-lemma CkSecrecy[reuse,use_induction,hide_lemma=OuterLoopStep,hide_lemma=RkSecrecy]:
+lemma Auto_CkSecrecy[reuse,use_induction,hide_lemma=OuterLoopStep,hide_lemma=RkSecrecy]:
   "All id a b rk ck #a. ChainKey(id, ck) @ #a & RootKey(id, a, b, rk) @ #a
     ==>   (not Ex #x. KU(ck) @ #x)
         | (Ex ss #x. rk = kdf(<'rk', ss>) & KU(ss) @ #x)"
 
-lemma Secrecy[no_cyclic,hide_lemma=OuterLoopStep]:
+lemma Auto_Secrecy[no_cyclic,hide_lemma=OuterLoopStep]:
   "All m a b #t.
         Send(m, a, b) @ #t
     ==>   (not Ex #x. K(m) @ #x)

@@ -13,8 +13,8 @@ stack run -- --prove PROOF_FILE
 ```
 
 > [!NOTE]
-> When using cyclic induction for the theory "Up and Down", not all proofs terminate.
-> To avoid non-termination, pass the option `--prove="Auto_*"` instead of `--prove`.
+> Not all proofs in the theories "Up and Down", "Signal 1," and "Signal 2" terminate.
+> To avoid non-termination, pass the option `--prove="Auto_*"` instead of `--prove` when proving these theories.
 
 `stack run` will compile Tamarin from source and use that binary.
 

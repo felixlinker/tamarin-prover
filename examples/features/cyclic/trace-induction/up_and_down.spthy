@@ -29,22 +29,22 @@ rule DownEnd:
   --[ End(id, x) ]->
   []
 
-lemma CorrectnessInvariant[reuse,use_induction]:
+lemma Auto_CorrectnessInvariant[reuse,use_induction]:
   "All idd x #a. Destr(idd, x) @ #a ==> Ex idg #b. Gen(idg, x) @ #b"
 
-lemma CorrectnessEnd:
+lemma Auto_CorrectnessEnd:
   "All idd x #a. End(idd, x) @ #a ==> Ex idg #b. Gen(idg, x) @ #b"
 
-lemma GenStart[reuse,use_induction]:
+lemma Auto_GenStart[reuse,use_induction]:
   "All id x #a. Gen(id, x) @ #a & not (Ex seed. Start(seed) @ #a) ==> Ex seed #b. Start(seed) @ #b & (seed << x | seed = x)"
 
-lemma DestrSeed[use_induction]:
+lemma Auto_DestrSeed[use_induction]:
   "All id x #a. Destr(id, x) @ #a ==> Ex seed #b. Start(seed) @ #b & (seed << x | seed = x)"
 
-lemma GenUnique[reuse,use_induction,hide_lemma=CorrectnessInvariant,hide_lemma=GenStart]:
+lemma Auto_GenUnique[reuse,use_induction,hide_lemma=CorrectnessInvariant,hide_lemma=GenStart]:
   "All id1 id2 x #a #b. Gen(id1, x) @ #a & Gen(id2, x) @ #b ==> #a = #b"
 
-lemma Correspondence[use_induction,hide_lemma=GenStart]:
+lemma Auto_Correspondence[use_induction,hide_lemma=GenStart]:
   "All id1 id2 x #a #b. Destr(id1, x) @ #a & Destr(id2, x) @ #b ==> #a = #b"
 
 end
