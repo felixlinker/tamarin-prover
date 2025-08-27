@@ -6,7 +6,7 @@ This branch of the Tamarin prover repository contains an implementation of cycli
 
 Follow the instructions for [Compiling from source in the Tamarin manual](https://tamarin-prover.com/manual/master/book/002_installation.html#sec:LinuxSrcInstall).
 
-Be sure to use the repository: `https://github.com/felixlinker/tamarin-prover.git` and branch `cyclic`.
+Be sure to use the repository: `https://github.com/felixlinker/tamarin-prover.git` and branch `cyclic` should you clone the repository.
 
 ## Case Studies
 
