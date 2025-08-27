@@ -1,7 +1,6 @@
 # The Tamarin Prover with Cyclic Induction
 
-This branch of the Tamarin prover repository contains an implementation of cyclic induction for protocol verification.
-It comes with two sets of case studies.
+This branch of the Tamarin prover repository contains an implementation of cyclic induction for protocol verification as well as case studies.
 
 ## Installation
 
