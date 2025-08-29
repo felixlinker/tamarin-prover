@@ -1,58 +1,114 @@
-# The Tamarin Prover with Cyclic Induction
+The Tamarin prover repository
+=============================
+[![master branch build-status](https://travis-ci.org/tamarin-prover/tamarin-prover.svg?branch=develop)](https://travis-ci.org/tamarin-prover/tamarin-prover)
 
-This branch of the Tamarin prover repository contains an implementation of cyclic induction for protocol verification as well as case studies.
-
-## Installation
-
-Follow the instructions for [Compiling from source in the Tamarin manual](https://tamarin-prover.com/manual/master/book/002_installation.html#sec:LinuxSrcInstall).
-
-Be sure to use the repository: `https://github.com/felixlinker/tamarin-prover.git` and branch `cyclic` should you clone the repository.
-
-## Case Studies
-
-Our paper references three sets of case studies.
-We provide these case studies in two directories.
-We provide a table that maps each case study theory to the corresponding source files below.
-As we prove each case study with cyclic induction (CI) and trace induction (TI), we provide two source files.
-We timed proof construction on a MacBook with an Apple M2 Max CPU and 32 GB of memory and provide timings for each case study in seconds below.
-Timings are also provided in `timings.xslx`.
-
-To provide a high-level overview, all our case studies are contained in the directories `examples/loops` and `examples/features/cyclic`.
-Each directory contains a README providing details on how to verify each case study and a subdirectory, `cyclic` and `trace-induction` respectively, for the corresponding CI/TI proofs of the theories in the parent directory.
-
-| Case Study Set | Case Study | Source File Name | Path CI | Path TI | Time CI | Time TI | Time Diff | Relative Diff |
-| -------------- | ---------- | ---------------- | ------- | ------- | ------- | ------- | --------- | ------------- |
-| 1 | Loop | `Minimal_Loop_Example.spthy`| `examples/loops/cyclic` | `examples/loops` |0.04|0.05|-0.01|-20.00%|
-| 1 | Hash Chain | `Minimal_HashChain.spthy` | `examples/loops/cyclic` | `examples/loops` |0.08|0.08|0|0.00%|
-| 1 | Crypto API | `Minimal_Crypto_API.spthy` | `examples/loops/cyclic` | `examples/loops` |0.05|0.05|0|0.00%|
-| 1 | Key Renegotiation | `Minimal_KeyRenegotiation.spthy` | `examples/loops/cyclic` | `examples/loops` |0.07|0.05|0.02|40.00%|
-| 1 | Create, Use, Destroy | `Minimal_Create_Use_Destroy.spthy` | `examples/loops/cyclic` | `examples/loops` |0.05|0.07|-0.02|-28.57%|
-| 1 | Alternating Loop | `alternating-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |0.11|0.14|-0.03|-21.43%|
-| 1 | Nested Loop | `nested-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |0.1|0.08|0.02|25.00%|
-| 1 | Revealing Loop | `revealing-loop.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |0.07|0.08|-0.01|-12.50%|
-| 2 | Signal 1 | `Signal.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |38.25|36.89|1.36|3.69%|
-| 2 | Signal 2 | `SignalRevealing.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |48.48|44.98|3.5|7.78%|
-| 3 | Up and Down | `up_and_down.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |0.06|0.21|-0.15|-71.43%|
-| 3 | Loop Exits | `loop-exits.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |0.12|0.06|0.06|100.00%|
-| 3 | TESLA 1 | `TESLA_Scheme1.spthy` | `examples/loops/cyclic` | `examples/loops` |2.51|2.54|-0.03|-1.18%|
-| 3 | TESLA 2 | `TESLA_Scheme2.spthy` | `examples/loops/cyclic` | `examples/loops` |2.62|0.87|1.75|201.15%|
-
-We also timed both Signal case studies without proving any auxiliary lemmas when using cyclic induction.
-Results of that are below.
-
-| Case Study | Source File Name | Path CI | Path TI | Time CI | Time TI | Time Diff | Relative Diff |
-| ---------- | ---------------- | ------- | ------- | ------- | ------- | --------- | ------------- |
-| Signal 1 | `Signal.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |37.85|36.89|0.96|2.60%|
-| Signal 2 | `SignalRevealing.spthy` | `examples/features/cyclic` | `examples/features/cyclic/trace-induction` |44.82|44.98|-0.16|-0.36%|
+This README describes the organization of the repository of the Tamarin prover
+for security protocol verification. Its intended audience are interested
+users and future developers of the Tamarin prover. For installation
+and usage instructions of the Tamarin prover see chapter 2 of the manual:
+https://tamarin-prover.github.io/manual/master/book/002_installation.html
 
 
-## Implementation Details
+Developing and contributing
+---------------------------
 
-We describe relevant source files.
-Our implementation is not limited to these files, but they provide the most important aspects.
+See [contributing instructions](CONTRIBUTING.md) for instructions on how to develop,
+test and release changes to the Tamarin prover source code.
 
-| Source File | Description |
-| ----------- | ----------- |
-| `lib/theory/src/Theory/Proof/Cyclic.hs` | Provides data structures to manage a cyclic (pre)proof. |
-| `lib/theory/src/Theory/Constraint/System/Inclusion.hs` | Provides the inclusion check between two constraint systems. |
-| `lib/theory/src/Theory/Constraint/SystemMatch.hs` | Provides a data structure to rename one constraint system to another. |
+
+Version Numbering Policy
+-----------------------
+
+We use version numbers with four components.
+
+ - The first component is the major version number. It indicates complete
+   rewrites of the codebase.
+ - The second component is the minor version number. We use odd minor version
+   numbers to denote development releases intended for early adopters. We use
+   even minor version numbers to denote public releases, which are also
+   published.
+ - The third component indicates bugfix releases.
+ - The fourth component indicates documentation and meta-data changes.
+
+We ensure that the external interface of a version of the Tamarin prover is backwards
+compatible with the external interface of all versions that agree on the major
+and minor version number.
+
+We announce all releases of the Tamarin prover on:
+http://tamarin-prover.github.io
+
+
+Manual
+------
+
+The manual is available as PDF or HTML at https://tamarin-prover.github.io/manual/index.html
+
+Experimental improved graph output
+----------------------------------
+
+You can use our experimental improved graph output which may be
+helpful for very large graphs that can be created for complicated
+protocols. To enable this feature read the instructions about
+[improved graphs](/misc/cleandot/README.md).
+
+Spthy code editors
+------------------
+
+The project contains support for spthy syntax highlighting and support
+in the [etc](/etc/) directory. This includes support for [Sublime Text](/etc/SUBLIME_TEXT.md), [VIM](/etc/spthy.vim) and [Notepad++](/etc/notepad_plus_plus_spthy.xml).
+
+External tools
+------------------
+
+External tools may use the [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) grammar
+in the [tree-sitter/](/tree-sitter/) directory.
+
+
+Example Protocol Models
+-----------------------
+
+All example protocol models are found in the directory
+
+    ./examples/
+
+All models that we consider stable
+are part of every installation of the Tamarin prover. See
+`tamarin-prover.cabal` for the list of installed protocols. We use the
+following sub-directories to organize the models.
+
+~~~~
+accountability/ case studies using the accountability implementation presented in
+                the "Verifying Accountability for Unbounded Sets of Participants" paper
+csf12/          the AKE case studies from our CSF'12 paper.
+classic/        classic security protocols like the ones from
+                [SPORE](http://www.lsv.ens-cachan.fr/Software/spore/table.html)
+loops/          experiments for testing loop-invariants and protocols with
+                non-monotonic state
+related_work/   examples from related work on protocols with loops or
+                non-monotonic state
+experiments/    all other experiments
+ake/            more AKE examples including ID-based and tripartite group KE
+                protocols based on bilinear pairing
+features/       (small) models that demonstrate a given feature
+ccs15/	        the observational equivalence case studies from our CCS'15 paper
+csf-18/         the XOR case studies from the CSF'18 paper
+~~~~
+
+Feel free to add more sub-directories and describe them here.
+
+In general, we try use descriptive names for files containing the models. We
+also document all our findings as comments in the protocol model.  Moreover,
+we use the following header in all files to make their context more explicit.
+
+~~~~
+/*
+   Protocol:    Example
+   Modeler:     Simon Meier, Benedikt Schmidt
+   Date:        January 2012
+
+   Status:      working
+
+   Description of protocol.
+
+*/
+~~~~
